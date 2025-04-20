@@ -1,0 +1,11 @@
+# Ignore Value Change Dump files
+*.vcd
+
+# Ignore .cf files
+*.cf
+
+# Ignore GTKWave Analyzer files
+*.gtkw
+
+# Ignore bash scripts since file paths change depending on user
+*.sh
