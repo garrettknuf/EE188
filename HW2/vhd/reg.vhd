@@ -12,7 +12,7 @@
 --  addresses may be read and written independently of the ALU accesses.
 --
 --  Packages included are:
---     RegConstants - constants for the general purpose registers
+--     RegArrayConstants - constants for the general purpose registers
 --
 --  Entities included are:
 --     RegArray - program memory access unit
@@ -30,7 +30,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use work.GenericConstants.all;
 
-package RegConstants is
+package RegArrayConstants is
 
     constant REGARRAY_RegCnt : integer := 16; -- R0-R15
 
@@ -69,7 +69,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use work.array_type_pkg.all;
 use work.GenericConstants.all;
-use work.RegConstants.all;
+use work.RegArrayConstants.all;
 
 entity RegArray is
 

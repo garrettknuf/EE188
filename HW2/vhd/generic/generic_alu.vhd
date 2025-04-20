@@ -6,7 +6,7 @@
 --  It does not include a multiplier, MAC, divider, or barrel shifter.
 --
 --  Packages included are:
---     GenericALUConstants - constants for all entities making up the ALU
+--     ALUConstants - constants for all entities making up the ALU
 --
 --  Entities included are:
 --     FBlockBit - one bit of an F-Block
@@ -38,7 +38,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-package  GenericALUConstants  is
+package  ALUConstants  is
 
 --  Adder carry in select constants
 --     may be freely changed
@@ -279,7 +279,7 @@ end  structural;
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.GenericALUConstants.all;
+use work.ALUConstants.all;
 
 entity  Adder  is
 
@@ -364,7 +364,7 @@ end  structural;
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.std_match;
-use work.GenericALUConstants.all;
+use work.ALUConstants.all;
 
 entity  Shifter  is
 
@@ -465,7 +465,7 @@ end  dataflow;
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.GenericALUConstants.all;
+use work.ALUConstants.all;
 
 entity  GenericALU  is
 

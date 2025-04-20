@@ -71,7 +71,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.GenericConstants.all;
-use work.GenericALUConstants.all;
+use work.ALUConstants.all;
 use work.TbitConstants.all;
 
 entity ALU is
