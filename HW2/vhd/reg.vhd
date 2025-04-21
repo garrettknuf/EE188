@@ -34,6 +34,34 @@ package RegArrayConstants is
 
     constant REGARRAY_RegCnt : integer := 16; -- R0-R15
 
+    constant R0     : integer := 0;
+    constant R1     : integer := 1;
+    constant R2     : integer := 2;
+    constant R3     : integer := 3;
+    constant R4     : integer := 4;
+    constant R5     : integer := 5;
+    constant R6     : integer := 6;
+    constant R7     : integer := 7;
+    constant R8     : integer := 8;
+    constant R9     : integer := 9;
+    constant R10    : integer := 10;
+    constant R11    : integer := 11;
+    constant R12    : integer := 12;
+    constant R13    : integer := 13;
+    constant R14    : integer := 14;
+    constant R15    : integer := 15;
+
+    -- Special register opeations mux select lines
+    constant RegOp_None    : integer := 0;
+    constant RegOp_SWAPB   : integer := 1;
+    constant RegOp_SWAPW   : integer := 2;
+    constant RegOp_XTRCT   : integer := 3;
+    constant RegOp_EXTSB   : integer := 4;
+    constant RegOp_EXTSW   : integer := 5;
+    constant RegOp_EXTUB   : integer := 6;
+    constant RegOp_EXTUW   : integer := 7;
+    constant REGOP_SrcCnt  : integer := 8;
+
 end package;
 
 --
@@ -84,6 +112,7 @@ entity RegArray is
         RegAxStore : in   std_logic;
         RegA1Sel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegA2Sel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegOpSel   : in   integer  range REGOP_SrcCnt - 1 downto 0;
         CLK        : in   std_logic;
         RegA       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
         RegB       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
@@ -126,14 +155,35 @@ architecture behavioral of RegArray is
         );
     end component;
 
-    -- Unused signals
-    signal RegDIn     : std_logic_vector(2 * REG_SIZE - 1 downto 0);
-    signal RegDInSel  : integer  range REGARRAY_RegCnt/2 - 1 downto 0;
-    signal RegDStore  : std_logic;
-    signal RegDSel    : integer  range REGARRAY_RegCnt/2 - 1 downto 0;
-    signal RegD       : std_logic_vector(2 * REG_SIZE - 1 downto 0);
+    signal OpMux  : std_logic_vector(REG_SIZE - 1 downto 0);
 
 begin
+
+    -- Special register operations
+    process(RegA, RegB, RegOpSel)
+    begin
+        case RegOpSel is
+            when RegOp_None =>
+                OpMux <= RegA;
+            when RegOp_SWAPB =>
+                OpMux <= RegA(31 downto 16) & RegA(7 downto 0) & RegA(15 downto 8);
+            when RegOp_SWAPW =>
+                OpMux <= RegA(15 downto 0) & RegA(31 downto 16);
+            when RegOp_XTRCT =>
+                OpMux <= RegA(15 downto 0) & RegB(31 downto 16);
+            when RegOp_EXTSB =>
+                OpMux <= (31 downto 8 => RegA(7)) & RegA(7 downto 0);
+            when RegOp_EXTSW =>
+                OpMux <= (31 downto 16 => RegA(15)) & RegA(15 downto 0);
+            when RegOp_EXTUB =>
+                OpMux <= (31 downto 8 => '0') & RegA(7 downto 0);
+            when RegOp_EXTUW =>
+                OpMux <= (31 downto 16 => '0') & RegA(15 downto 0);
+            when others =>
+                OpMux <= (others => 'X');
+
+        end case;
+    end process;
 
     -- Instantiate generic memory unit
     Generic_RegArray : GenericRegArray
@@ -153,16 +203,16 @@ begin
             RegAxStore => RegAxStore,
             RegA1Sel => RegA1Sel,
             RegA2Sel => RegA2Sel,
-            RegDIn => RegDIn,
-            RegDInSel => RegDInSel,
-            RegDStore => RegDStore,
-            RegDSel => RegDSel,
+            RegDIn => open,
+            RegDInSel => open,
+            RegDStore => open,
+            RegDSel => open,
             clock => CLK,
             RegA => RegA,
             RegB => RegB,
             RegA1 => RegA1,
             RegA2 => RegA2,
-            RegD => RegD
+            RegD => open
         );
 
 end behavioral;
