@@ -30,19 +30,17 @@ use ieee.std_logic_1164.all;
 
 package TbitConstants is
 
-    constant Tbit_Carry     : integer := 0;     -- set to carry flag
-    constant Tbit_Borrow    : integer := 1;     -- set to borrow flag (not carry)
-    constant Tbit_Overflow  : integer := 2;     -- set to overflow flag
-    constant Tbit_Zero      : integer := 3;     -- set to zero flag
-    constant Tbit_Sign      : integer := 4;     -- set to sign flag
-    constant Tbit_GEQ       : integer := 5;     -- set when A >= B (signed)
-    constant Tbit_GT        : integer := 6;     -- set when A > B (signed)
-    constant Tbit_HI        : integer := 7;     -- set when A > B (unsigned)
-    constant Tbit_STR       : integer := 8;     -- set when A and B have same byte
-    constant Tbit_PL        : integer := 9;     -- set when A > 0
-    constant Tbit_PZ        : integer := 10;    -- set when A >= 0
-
-    constant Tbit_Src_Cnt   : integer := 11;    -- total number of T-bit sources
+    constant Tbit_Carry     : std_logic_vector(3 downto 0) := "0000";     -- set to carry flag
+    constant Tbit_Borrow    : std_logic_vector(3 downto 0) := "0001";     -- set to borrow flag (not carry)
+    constant Tbit_Overflow  : std_logic_vector(3 downto 0) := "0010";     -- set to overflow flag
+    constant Tbit_Zero      : std_logic_vector(3 downto 0) := "0011";     -- set to zero flag
+    constant Tbit_Sign      : std_logic_vector(3 downto 0) := "0100";     -- set to sign flag
+    constant Tbit_GEQ       : std_logic_vector(3 downto 0) := "0101";     -- set when A >= B (signed)
+    constant Tbit_GT        : std_logic_vector(3 downto 0) := "0110";     -- set when A > B (signed)
+    constant Tbit_HI        : std_logic_vector(3 downto 0) := "0111";     -- set when A > B (unsigned)
+    constant Tbit_STR       : std_logic_vector(3 downto 0) := "1000";     -- set when A and B have same byte
+    constant Tbit_PL        : std_logic_vector(3 downto 0) := "1001";     -- set when A > 0
+    constant Tbit_PZ        : std_logic_vector(3 downto 0) := "1010";    -- set when A >= 0
 
 end package;
 
@@ -84,7 +82,7 @@ entity ALU is
         CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
         SCmd     : in      std_logic_vector(2 downto 0);              -- shift operation
         ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
-        TbitOp   : in      integer range Tbit_Src_Cnt - 1 downto 0;   -- T-bit operation
+        TbitOp   : in      std_logic_vector(3 downto 0);              -- T-bit operation
         Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);  -- ALU result
         Tbit     : out     std_logic                                  -- T-bit result
     );

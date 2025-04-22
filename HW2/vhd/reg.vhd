@@ -157,6 +157,13 @@ architecture behavioral of RegArray is
 
     signal OpMux  : std_logic_vector(REG_SIZE - 1 downto 0);
 
+    -- Unused signals
+    signal RegDIn     : std_logic_vector(2 * REG_SIZE - 1 downto 0);
+    signal RegDInSel  : integer  range REGARRAY_RegCnt/2 - 1 downto 0;
+    signal RegDStore  : std_logic;
+    signal RegDSel    : integer  range REGARRAY_RegCnt/2 - 1 downto 0;
+    signal RegD       : std_logic_vector(2 * REG_SIZE - 1 downto 0);
+
 begin
 
     -- Special register operations
@@ -203,16 +210,16 @@ begin
             RegAxStore => RegAxStore,
             RegA1Sel => RegA1Sel,
             RegA2Sel => RegA2Sel,
-            RegDIn => open,
-            RegDInSel => open,
-            RegDStore => open,
-            RegDSel => open,
+            RegDIn => RegDIn,
+            RegDInSel => RegDInSel,
+            RegDStore => RegDStore,
+            RegDSel => RegDSel,
             clock => CLK,
             RegA => RegA,
             RegB => RegB,
             RegA1 => RegA1,
             RegA2 => RegA2,
-            RegD => open
+            RegD => RegD
         );
 
 end behavioral;

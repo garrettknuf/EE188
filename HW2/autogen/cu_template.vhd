@@ -285,40 +285,6 @@ begin
     end process;
 
     -- Instruction decoding (auto-generated)
-    process (all)
-	begin
-		if std_match(IR, OpMOV_Imm_To_Rn) then
-			ALUOpACmd <= (others => '-');
-			ALUOpBCmd <= ALUOpBCmd_Imm;
-			FCmd <= FCmd_A;
-			CinCmd <= (others => '-');
-			SCmd <= (others => '-');
-			ALUCmd <= ALUCmd_FBLOCK;
-			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
-			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
-			DAU_SrcSel <= unused;
-			DAU_OffsetSel <= unused;
-			DAU_IncDecSel <= '-';
-			DAU_IncDecBit <= unused;
-			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
-			RegInSel <= RegInSel_Rn;
-			RegStore <= '1';
-			RegASel <= unused;
-			RegBSel <= unused;
-			RegAxInSel <= unused;
-			RegAxStore <= '0';
-			RegA1Sel <= unused;
-			RegA2Sel <= unused;
-			RegOpSel <= RegOp_None;
-			NextState <= Idle;
-			RD <= '0';
-			WR <= '0';
-		end if;
-	 end process;
+    -- <AUTO-GEN PLACEHOLDER (do not remove or modify): Instruction decoding>
 
 end behavioral;

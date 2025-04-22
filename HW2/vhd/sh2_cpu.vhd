@@ -35,6 +35,8 @@ entity SH2_CPU is
         CLK     : in    std_logic
         DB      : inout std_logic_vector(15 downto 0);
         AB      : out   std_logic_vector(31 downto 0);
+        RD      : out   std_logic;
+        WR      : out   std_logic;
     );
 
 end SH2_CPU;
@@ -73,7 +75,8 @@ architecture structural of SH2_CPU is
             RegA       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
             RegB       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
             RegA1      : out  std_logic_vector(LONG_SIZE - 1 downto 0);
-            RegA2      : out  std_logic_vector(LONG_SIZE - 1 downto 0)
+            RegA2      : out  std_logic_vector(LONG_SIZE - 1 downto 0);
+            RegOpSel   : out  integer  range REGOp_SrcCnt - 1 downto 0
         );
     end component;
 
@@ -158,6 +161,7 @@ begin
             RegB        => RegB,
             RegA1       => RegA1,
             RegA2       => RegA2,
+            RegOpSel    => RegOPSel,
         );
 
     -- Program Memory Access Unit (PAU)
