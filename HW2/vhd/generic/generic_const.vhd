@@ -26,4 +26,7 @@ package  GenericConstants  is
     constant DATA_BUS_SIZE : integer := WORD_SIZE;  -- data bus num bits
     constant REG_SIZE      : integer := LONG_SIZE;   -- register size
 
+    constant True   : std_logic := '1';
+    constant False  : std_logic := '0';
+
 end package;

@@ -68,6 +68,7 @@ architecture structural of SH2_CPU is
             RegAxStore : in   std_logic;
             RegA1Sel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
             RegA2Sel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegSWXSel  : in   integer  range REGSWX_SrcCnt - 1 downto 0;
             CLK        : in   std_logic;
             RegA       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
             RegB       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
@@ -151,6 +152,7 @@ begin
             RegAxStore  => RegAxStore,
             RegA1Sel    => RegA1Sel,
             RegA2Sel    => RegA2Sel,
+            RegSWXSel   => RegSWXSel,
             CLK         => CLK,
             RegA        => RegA,
             RegB        => RegB,

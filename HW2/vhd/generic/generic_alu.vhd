@@ -26,6 +26,7 @@
 --     29 Jan 21  Glen George       Fixed overflow signal in adder.
 --     11 Apr 25  Glen George       Removed Status Register.
 --     17 Apr 25  Garrett Knuf      Rename ALU to GenericALU.
+--     20 Apr 25  Garrett Knuf      Add FCmd constants.
 --
 ----------------------------------------------------------------------------
 
@@ -73,6 +74,18 @@ package  ALUConstants  is
    constant ALUCmd_ADDER   : std_logic_vector(1 downto 0) := "01";
    constant ALUCmd_SHIFT   : std_logic_vector(1 downto 0) := "10";
 
+--  F block command constants
+   constant FCmd_Zero   : std_logic_vector(3 downto 0) := "0000";
+   constant FCmd_NotA   : std_logic_vector(3 downto 0) := "0011";
+   constant FCmd_NotB   : std_logic_vector(3 downto 0) := "0101";
+   constant FCmd_XOR    : std_logic_vector(3 downto 0) := "0110";
+   constant FCmd_AND    : std_logic_vector(3 downto 0) := "1000";
+   constant FCmd_B      : std_logic_vector(3 downto 0) := "1010";
+   constant FCmd_A      : std_logic_vector(3 downto 0) := "1100";
+   constant FCmd_OR     : std_logic_vector(3 downto 0) := "1110";
+   constant FCmd_ONE    : std_logic_vector(3 downto 0) := "1111";
+
+   
 
 end package;
 
