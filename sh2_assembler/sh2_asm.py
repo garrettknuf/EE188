@@ -3,6 +3,9 @@ SH-2 Assembler
 """
 
 import re
+import sys
+import struct
+import math
 
 # Convert n in Rn to integer value
 REGISTER_MAP = {
@@ -175,11 +178,15 @@ INSTRUCTION_SET = {
 
     # d Format PC Relative Addressing
     # Table A.43
-    # TODO
+    ("BF", ("label",)):     lambda label: 0x8B00,
+    ("BF/S", ("label",)):   lambda label: 0x8F00,
+    ("BT", ("label",)):     lambda label: 0x8900,
+    ("BT/S", ("label",)):   lambda label: 0x8D00,
 
     # d12 Format
     # Table A.44
-    # TODO
+    ("BRA", ("label",)):    lambda label: 0xA000,
+    ("BSR", ("label",)):    lambda label: 0xB000,
 
     # nd8 Format
     # Table A.45
@@ -211,6 +218,9 @@ INSTRUCTION_SET = {
     ("MOV", ("imm", "reg")):    lambda imm, rn: 0xE000 | (rn << 8) | (imm & 0x00FF),
 
 }
+
+label_dict = {}
+pc_rel_branch_list = []
 
 def parse_operand(op):
     op = op.strip().upper()
@@ -283,7 +293,7 @@ def parse_operand(op):
     # Fallback: probably a label or symbolic address (e.g., jump target)
     return "label", op
     
-def assemble_instruction(line):
+def assemble_instruction(line, addr):
     # Remove comments and strip white space
     line = line.split(';')[0].strip()
     
@@ -299,40 +309,172 @@ def assemble_instruction(line):
         raw_operands = re.findall(r'@?\([^)]*\)|[^,]+', tokens[1])
         operands = [op.strip() for op in raw_operands]
 
-    # print(operands)
-
     parsed_operands = [parse_operand(op) for op in operands]
     operand_types = tuple(op_type for op_type, _ in parsed_operands)
-
-    # print(parsed_operands)
-
     key = (opcode, operand_types)
 
-    # print(key)
+    if re.match(r'^\s*([A-Za-z_][A-Za-z0-9_]*):\s*$', opcode):
+        label_dict[opcode[:-1]] = addr
+        return None
+
     if key not in INSTRUCTION_SET:
         raise ValueError(f"Unsupported instruction: {opcode} {operand_types}")
 
     operand_values = [value for _, value in parsed_operands]
-    # print(operand_values)
+
+    if opcode in ['BF', 'BF/S', 'BT', 'BT/S', 'BRA','BSR']:
+        pc_rel_branch_list.append((opcode, operand_values, addr))
 
     return INSTRUCTION_SET[key](*operand_values)
 
 
+def parse_data(line):
+    data = bytearray()
+    labels = {}
+    current_offset = 0
+
+    line = line.strip()
+    if not line or line.startswith(';') or line == ".data":
+        return None
+    
+    # Extract label and directive
+    label_match = re.match(r'(\w+):\s*(\.\w+)\s+(.*)', line)
+    if not label_match:
+        return None
+    
+    label, directive, value = label_match.groups()
+    labels[label] = current_offset
+
+    if directive == ".ascii":
+        data.extend(value.strip('"').encode('ascii'))
+    elif directive == ".asciiz":
+        data.extend(value.strip('"').encode('ascii') + b'\x00')
+    elif directive == ".byte":
+        data.extend(int(v.strip()) & 0xFF for v in value.split(','))
+    elif directive == ".word":
+        for v in value.split(','):
+            data.extend(struct.pack('>H', int(v.strip())))
+    elif directive == ".long":
+        for v in value.split(','):
+            data.extend(struct.pack('>I', int(v.strip())))
+    else:
+        raise ValueError(f"Unknown directive: {directive}")
+    
+    binary_strs = []
+    # Pad to 16-bit boundary if needed
+    if len(data) % 2 != 0:
+        data.append(0)
+
+    # Convert to 16-bit binary strings
+    for i in range(0, len(data), 2):
+        high = data[i]
+        low = data[i + 1]
+        word = (high << 8) | low
+        binary_strs.append(f"{word:016b}")
+
+    current_offset += len(data)
+    
+    return binary_strs
+
+
+### Main ####
 if __name__ == '__main__':
 
-    with open('test.asm', 'r') as asm_file:
-        lines = asm_file.readlines()
-        
-        with open('output.txt', 'w') as out_file:
+    # Make sure input and output files provided
+    if len(sys.argv) < 3:
+        print("Usage: python3 sh2_asm.py <asm_file> <output_file>")
+        sys.exit(1)
 
-            addr = 0
-            for line_num, line in enumerate(lines):
-                asm = assemble_instruction(line)
+    # Code Section
+    SEG_UNKNOWN = 0
+    SEG_TEXT = 1
+    SEG_DATA = 2
+
+    # List of text lines to output
+    output_lines = []
+
+    # Read assembly file
+    with open(sys.argv[1], 'r') as asm_file:
+        lines = asm_file.readlines()
+
+        addr = 0
+        seg = SEG_UNKNOWN
+        data_arr = []
+        data_map = {}
+
+        # Iterate through all lines of file
+        for line_num, line in enumerate(lines):
+
+            # Change code section if directive is found
+            if len(line.split()) > 0 and line.split()[0] == '.text':
+                seg = SEG_TEXT
+                continue
+            elif len(line.split())> 0 and line.split()[0] == '.data':
+                seg = SEG_DATA
+                continue
+
+            # Parse program code
+            if seg == SEG_TEXT:
+                asm = assemble_instruction(line, addr)
                 if asm:
-                    out_file.write(format(asm, '016b'))
-                    out_file.write(f'\t; 0x{addr:08X} : ')
-                    out_file.write(f'{lines[line_num][:-1]}')
-                    out_file.write('\n')
+                    text = format(asm, '016b') + f'\t; 0x{addr:08X} : ' + \
+                            f'{lines[line_num][:-1].lstrip()}\n'
+                    output_lines.append(text)
                     addr += 2
 
-        print('Assembled.')
+            # Parse data segment
+            elif seg == SEG_DATA:
+                data = parse_data(line)
+                if data:
+                    data_arr.append(data)
+
+        # Start address of data segment
+        DATA_SEG_ADDR = 80
+
+        # Fill in reset of program code memory up until start of data segment
+        while addr < DATA_SEG_ADDR:
+            output_lines.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
+            addr += 2
+
+        # Add data segment with comments
+        for var in data_arr:
+            for word in var: 
+                dec_val = int(word, 2)
+                hex_val = hex(dec_val)
+                left_byte = int(word[:8], 2)
+                right_byte = int(word[8:16], 2)
+                output_lines.append(f"{word}\t; 0x{addr:08X} : {left_byte}," +
+                                    f"{right_byte} / {dec_val} / {hex_val}\n")
+                addr += 2
+
+    # Handle PC relative branches
+    for branch in pc_rel_branch_list:
+        # Calculate signed displacement
+        branch_instr_addr = branch[2]
+        label_addr = label_dict[branch[1][0]]
+        offset = label_addr - branch_instr_addr
+
+        new_line = ''
+        # Add displacmenet to instruction
+        if branch[0] in ['BF', 'BF/S', 'BT', 'BT/S']:
+            # 8-bit displacement
+            output_bin = format(offset & 0x00FF, '08b')
+            for i in range(8, 16):
+                old_line = output_lines[(int)(branch_instr_addr / 2)]
+                new_line = old_line[0:8] + output_bin + old_line[16:]
+        elif branch[0] in ['BRA', 'BSR']:
+            # 12-bit displacement
+            output_bin = format(offset & 0x0FFF, '012b')
+            for i in range(4, 16):
+                old_line = output_lines[(int)(branch_instr_addr / 2)]
+                new_line = old_line[0:4] + output_bin + old_line[16:]
+        
+        output_lines[(int)(branch_instr_addr / 2)] = new_line
+
+
+    # Write to output file
+    with open(sys.argv[2], 'w') as out_file:
+        for line in output_lines:
+            out_file.write(line)
+
+        print(f"Assembly complete...result in '{sys.argv[2]}'")
