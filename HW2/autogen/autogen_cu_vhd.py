@@ -38,10 +38,13 @@ for index, row, in df.iterrows():
 vhdl_str = "process (all)\n"
 vhdl_str += "\tbegin\n\t\t"
 std_logic_signal_list = ['DAU_IncDecSel', 'DAU_PrePostSel']
+integer_signal_list = ['PAUSrc_Sel', 'PAU_OffsetSel', 'DAU_SrcSel', 'DAU_OffsetSel',
+                       'DAU_IncDecBit', 'RegInSel', 'RegASel', 'RegBSel',
+                       'RegAxInSel', 'RegA1Sel', 'RegA2Sel', 'RegOpSel']
 cnt = 0
 for instruction, control_signals in instruction_decoding.items():
     cnt += 1
-    if cnt < 2:
+    if cnt < 100:
         vhdl_str += f"if std_match(IR, {instruction}) then\n"
         for signal, value in control_signals.items():
             value = control_signals.get(signal, 'X')
@@ -51,17 +54,22 @@ for instruction, control_signals in instruction_decoding.items():
                 else:
                     value = "(others => '-')"
             elif value == 0:
-                value = "'0'"
+                if signal not in integer_signal_list:
+                    value = "'0'"
+                else:
+                    value = "0"
             elif value == 1:
-                value = "'1'"
+                if signal not in integer_signal_list:
+                    value = "'1'"
+                else:
+                    value = "1"
             vhdl_str += f"\t\t\t{signal} <= {value};\n"
         vhdl_str += f"\t\tels"
 vhdl_str = vhdl_str[:-3] + "end if;\n" 
 vhdl_str += "\t end process;"
 
-with open('ir_decoding.vhdl', 'w') as f:
-    f.write(vhdl_str)
-
+# with open('ir_decoding.vhdl', 'w') as f:
+#     f.write(vhdl_str)
 
 # Set the paths for your source and destination files
 src_file = '../autogen/cu_template.vhd'

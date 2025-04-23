@@ -27,7 +27,9 @@ architecture TB_ARCHITECTURE of tb_sh2_cpu is
         port (
             CLK     : in    std_logic;
             DB      : inout std_logic_vector(15 downto 0);
-            AB      : out   std_logic_vector(31 downto 0)
+            AB      : out   std_logic_vector(31 downto 0);
+            RD      : out   std_logic;
+            WR      : out   std_logic
         );
 
     end component;
@@ -38,6 +40,8 @@ architecture TB_ARCHITECTURE of tb_sh2_cpu is
 
     -- Observed signals
     signal AB  : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+    signal RD  : std_logic;
+    signal WR  : std_logic;
 
     -- Signal used to stop clock signal generators
     signal END_SIM  : std_logic   := '0';
@@ -49,7 +53,9 @@ begin
         port map(
             CLK     => CLK,
             DB      => DB,
-            AB      => AB
+            AB      => AB,
+            RD      => RD,
+            WR      => WR
         );
 
     -- Main test loop

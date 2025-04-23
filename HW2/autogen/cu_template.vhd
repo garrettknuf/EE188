@@ -124,12 +124,12 @@ package CUConstants is
     constant OpSHAR         : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100001";
     constant OpSHLL         : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00000000";
     constant OpSHLR         : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00000001";
-    -- TODO: SHLL2
-    -- TODO: SHLR2
-    -- TODO: SHLL8
-    -- TODO: SHLR8
-    -- TODO: SHLL16
-    -- TODO: SHLR16
+    constant OpSHLL2        : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00001000";
+    constant OpSHLR2        : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00001001";
+    constant OpSHLL8        : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00011000";
+    constant OpSHLR8        : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00011001";
+    constant OpSHLL16       : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00101000";
+    constant OpSHLR16       : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00101001";
 
     -- Branch Instructions (Table 5.7)
     constant OpBF           : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "10001011--------";
@@ -179,11 +179,24 @@ package CUConstants is
 
 
     constant ALUOpACmd_RegA  : std_logic_vector(1 downto 0) := "00";
+    constant ALUOpACmd_DB    : std_logic_vector(1 downto 0) := "01";
 
     constant ALUOpBCmd_RegB  : std_logic_vector(1 downto 0) := "00";
     constant ALUOpBCmd_Imm   : std_logic_vector(1 downto 0) := "00";
 
-    constant RegInSel_Rn : integer range REGARRAY_RegCnt - 1 downto 0 := 0;
+    constant RegInSel_Rn : integer range 1 downto 0 := 0;
+
+    constant RegASel_Rm : integer range 2 downto 0 := 0;
+    constant RegASel_Rn : integer range 2 downto 0 := 1;
+    constant RegASel_R0 : integer range 2 downto 0 := 2;
+
+
+    constant RegBSel_Rm : integer range 2 downto 0 := 0;
+    
+
+    constant RegA1Sel_Rn : integer range 2 downto 0 := 0;
+    constant RegA1Sel_Rm : integer range 2 downto 0 := 1;
+    constant RegA1Sel_R0 : integer range 2 downto 0 := 2;
 
     constant unused : integer := 0;
 
@@ -201,6 +214,7 @@ use work.GenericConstants.all;
 use work.CUConstants.all;
 use work.ALUConstants.all;
 use work.TbitConstants.all;
+use work.MemUnitConstants.all;
 use work.DAUConstants.all;
 use work.PAUConstants.all;
 use work.RegArrayConstants.all;
@@ -219,7 +233,7 @@ entity CU is
         ALUOpBCmd   : out     std_logic_vector(1 downto 0);                          
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
-        SCmd        : out     std_logic_vector(2 downto 0);            
+        SCmd        : out     std_logic_vector(3 downto 0);            
         ALUCmd      : out     std_logic_vector(1 downto 0);
         TbitOp      : out     std_logic_vector(3 downto 0);
 
@@ -261,15 +275,20 @@ end CU;
 
 architecture behavioral of CU is
 
-    constant Idle       : integer := 0;
-    constant Fetch      : integer := 1;
-    constant STATE_CNT  : integer := 2;
+    constant Idle           : integer := 0;
+    constant Fetch          : integer := 1;
+    constant WaitForRead    : integer := 2;
+    constant BranchSlot     : integer := 3;
+    constant STATE_CNT      : integer := 4;
 
     signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
     signal NextState : integer range STATE_CNT-1 downto 0;
 
+    signal Tbit : std_logic;
 
 begin
+
+    Tbit <= SR(0);
 
     -- Control Unit FSM
     process (CLK)

@@ -50,7 +50,7 @@ architecture structural of SH2_CPU is
             Cin      : in      std_logic;                               
             FCmd     : in      std_logic_vector(3 downto 0);            
             CinCmd   : in      std_logic_vector(1 downto 0);            
-            SCmd     : in      std_logic_vector(2 downto 0);            
+            SCmd     : in      std_logic_vector(3 downto 0);            
             ALUCmd   : in      std_logic_vector(1 downto 0);            
             TbitOp   : in      integer range Tbit_Src_Cnt - 1 downto 0; 
             Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);
