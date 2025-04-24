@@ -2,7 +2,7 @@
 *.vcd
 
 # Ignore .cf files
-*.cf
+# *.cf
 
 # Ignore GTKWave Analyzer files
 *.gtkw
