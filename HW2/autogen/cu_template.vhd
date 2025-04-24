@@ -159,23 +159,24 @@ package CUConstants is
     -- TODO: LDS.L @Rm+, MACH
     -- TODO: LDS.L @Rm+, MACL
     constant OpLDSL_At_Rm_Inc_To_PR  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00101010";
-    constant NOP                     : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000001001";
-    constant RTE                     : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000101011";
+    constant OpNOP                   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000001001";
+    constant OpRTE                   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000101011";
+    constant OpSETT                  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000011000";
     -- TODO: Sleep
-    constant STC_SR_To_Rn            : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00000010";
-    constant STC_GBR_To_Rn           : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00010010";
-    constant STC_VBR_To_Rn           : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00100010";
-    constant STCL_SR_To_At_Dec_Rn    : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00000011";
-    constant STCL_GBR_To_At_Dec_Rn   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00010011";
-    constant STCL_VBR_To_At_Dec_Rn   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100011";
+    constant OpSTC_SR_To_Rn          : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00000010";
+    constant OpSTC_GBR_To_Rn         : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00010010";
+    constant OpSTC_VBR_To_Rn         : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00100010";
+    constant OpSTCL_SR_To_At_Dec_Rn  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00000011";
+    constant OpSTCL_GBR_To_At_Dec_Rn : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00010011";
+    constant OpSTCL_VBR_To_At_Dec_Rn : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100011";
     -- TODO: STS MACH, Rn
     -- TODO: STS MACL, Rn
     -- TODO: STS MACH, Rn
-    constant STS_PR_To_Rn            : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00101010";
+    constant OpSTS_PR_To_Rn          : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00101010";
     -- TODO: STSL MACH, @-Rn
     -- TODO: STSL MACL, @-Rn
-    constant STSL_PR_To_At_Dec_Rn    : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100010";
-    constant TRAPA                   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "11000011--------";
+    constant OpSTSL_PR_To_At_Dec_Rn  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100010";
+    constant OpTRAPA                 : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "11000011--------";
 
 
     constant ALUOpACmd_RegA  : std_logic_vector(1 downto 0) := "00";
@@ -279,10 +280,15 @@ architecture behavioral of CU is
     constant Fetch          : integer := 1;
     constant WaitForRead    : integer := 2;
     constant BranchSlot     : integer := 3;
-    constant STATE_CNT      : integer := 4;
+    constant WaitForReadPostInc : integer := 4;
+    constant RTE_Init : integer := 5;
+    constant TRAPA_Init : integer := 6;
+    constant STATE_CNT      : integer := 7;
 
     signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
     signal NextState : integer range STATE_CNT-1 downto 0;
+
+    signal UpdateIR : std_logic;
 
     signal Tbit : std_logic;
 
