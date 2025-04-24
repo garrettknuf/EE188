@@ -80,7 +80,7 @@ entity ALU is
         Cin      : in      std_logic;                                 -- carry in
         FCmd     : in      std_logic_vector(3 downto 0);              -- F-Block operation
         CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
-        SCmd     : in      std_logic_vector(2 downto 0);              -- shift operation
+        SCmd     : in      std_logic_vector(3 downto 0);              -- shift operation
         ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
         TbitOp   : in      std_logic_vector(3 downto 0);              -- T-bit operation
         Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);  -- ALU result
@@ -103,7 +103,7 @@ architecture behavioral of ALU is
             Cin      : in      std_logic;                                 -- carry in
             FCmd     : in      std_logic_vector(3 downto 0);              -- F-Block operation
             CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
-            SCmd     : in      std_logic_vector(2 downto 0);              -- shift operation
+            SCmd     : in      std_logic_vector(3 downto 0);              -- shift operation
             ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
             Result   : buffer  std_logic_vector(wordsize - 1 downto 0);   -- ALU result
             Cout     : out     std_logic;                                 -- carry out

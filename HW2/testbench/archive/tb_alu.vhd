@@ -12,7 +12,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.GenericConstants.all;
-use work.GenericALUConstants.all;
+use work.ALUConstants.all;
 use work.TbitConstants.all;
 
 library osvvm;
@@ -27,15 +27,15 @@ architecture TB_ARCHITECTURE of tb_alu is
     component ALU
 
         port (
-            ALUOpA   : in      std_logic_vector(LONG_SIZE - 1 downto 0);   -- first operand
-            ALUOpB   : in      std_logic_vector(LONG_SIZE - 1 downto 0);   -- second operand
+            ALUOpA   : in      std_logic_vector(LONG_SIZE - 1 downto 0);  -- first operand
+            ALUOpB   : in      std_logic_vector(LONG_SIZE - 1 downto 0);  -- second operand
             Cin      : in      std_logic;                                 -- carry in
             FCmd     : in      std_logic_vector(3 downto 0);              -- F-Block operation
             CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
-            SCmd     : in      std_logic_vector(2 downto 0);              -- shift operation
+            SCmd     : in      std_logic_vector(3 downto 0);              -- shift operation
             ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
-            TbitOp   : in      integer range Tbit_Src_Cnt - 1 downto 0;   -- T-bit operation
-            Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);   -- ALU result
+            TbitOp   : in      std_logic_vector(3 downto 0);              -- T-bit operation
+            Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);  -- ALU result
             Tbit     : out     std_logic                                  -- T-bit result
         );
 
@@ -47,9 +47,9 @@ architecture TB_ARCHITECTURE of tb_alu is
     signal Cin      : std_logic;
     signal FCmd     : std_logic_vector(3 downto 0);
     signal CinCmd   : std_logic_vector(1 downto 0);
-    signal SCmd     : std_logic_vector(2 downto 0);
+    signal SCmd     : std_logic_vector(3 downto 0);
     signal ALUCmd   : std_logic_vector(1 downto 0);
-    signal TbitOp   : integer range Tbit_Src_Cnt - 1 downto 0;
+    signal TbitOp   : std_logic_vector(3 downto 0); 
     signal CLK      : std_logic;
 
     -- Observed signals
