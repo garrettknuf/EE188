@@ -1,52 +1,55 @@
 v 4
-file . "../vhd/cu.vhd" "020eaefeed92a3e07893342107bc9b6639e94361" "20250424041138.779":
-  package cuconstants at 19( 419) + 0 on 938;
-  entity cu at 210( 14489) + 0 on 939;
-  architecture behavioral of cu at 276( 17068) + 0 on 940;
-file . "../testbench/tb_sh2_cpu.vhd" "b5435fd52e69fb7180eee0cd66a6de5b66d1a90a" "20250424041139.015":
-  entity tb_sh2_cpu at 11( 342) + 0 on 941;
-  architecture tb_architecture of tb_sh2_cpu at 22( 535) + 0 on 942;
-file . "../vhd/reg.vhd" "a4588000b9bd3bf84aff748a04385b74b13be868" "20250424041138.587":
-  package regarrayconstants at 29( 1178) + 0 on 932;
-  entity regarray at 96( 3752) + 0 on 933;
-  architecture behavioral of regarray at 126( 4985) + 0 on 934;
-file . "../vhd/dau.vhd" "48f0eeb29f204ba2f55f45da05d4e2929abe605c" "20250424041138.335":
-  package dauconstants at 29( 1074) + 0 on 926;
-  entity dau at 81( 3065) + 0 on 927;
-  architecture behavioral of dau at 111( 4213) + 0 on 928;
-file . "../vhd/generic/generic_reg.vhd" "a79bff906499fc1b8d0d9fd07191c180668a0694" "20250424041138.181":
-  entity genericregarray at 62( 2729) + 0 on 921;
-  architecture behavioral of genericregarray at 98( 4231) + 0 on 922;
-file . "../vhd/generic/generic_alu.vhd" "cdbb1ead5a6aaf7f7665a96641ddb4d2d5c34114" "20250424041137.911":
-  package aluconstants at 39( 1514) + 0 on 904;
-  entity fblockbit at 133( 4889) + 0 on 905;
-  architecture dataflow of fblockbit at 148( 5284) + 0 on 906;
-  entity adderbit at 176( 5921) + 0 on 907;
-  architecture dataflow of adderbit at 192( 6324) + 0 on 908;
-  entity fblock at 237( 7400) + 0 on 909;
-  architecture structural of fblock at 257( 7929) + 0 on 910;
-  entity adder at 300( 9066) + 0 on 911;
-  architecture structural of adder at 324( 9977) + 0 on 912;
-  entity shifter at 384( 11991) + 0 on 913;
-  architecture dataflow of shifter at 406( 12648) + 0 on 914;
-  entity genericalu at 486( 15985) + 0 on 915;
-  architecture structural of genericalu at 515( 17372) + 0 on 916;
-file . "../vhd/generic/generic_const.vhd" "ee0f9c5733660b9fb87981ba25c07dd19be37214" "20250424041137.713":
-  package genericconstants at 16( 383) + 0 on 903;
-file . "../vhd/generic/generic_mau.vhd" "38ecbab460e6e2ee79aa5df2047222e0a726efb9" "20250424041138.051":
-  package array_type_pkg at 35( 1455) + 0 on 917;
-  package memunitconstants at 52( 1740) + 0 on 918;
-  entity memunit at 138( 4241) + 0 on 919;
-  architecture dataflow of memunit at 167( 5260) + 0 on 920;
-file . "../vhd/alu.vhd" "aae3433ebf4bb0d1634458ff12622d1b99cdc389" "20250424041138.260":
-  package tbitconstants at 28( 1018) + 0 on 923;
-  entity alu at 68( 2884) + 0 on 924;
-  architecture behavioral of alu at 93( 3989) + 0 on 925;
-file . "../vhd/pau.vhd" "04b5ce17a25f1cd1cafed71521628976430d8269" "20250424041138.496":
-  package pauconstants at 27( 947) + 0 on 929;
-  entity pau at 73( 2485) + 0 on 930;
-  architecture behavioral of pau at 99( 3386) + 0 on 931;
-file . "../vhd/sr.vhd" "e09d68289c986229c0b3fd33f32f8b32fc76cb0b" "20250424041138.668":
-  package statusregconstants at 18( 646) + 0 on 935;
-  entity statusreg at 48( 1547) + 0 on 936;
-  architecture behavioral of statusreg at 65( 1914) + 0 on 937;
+file . "../testbench/tb_sh2_cpu.vhd" "b5435fd52e69fb7180eee0cd66a6de5b66d1a90a" "20250424041706.868":
+  entity tb_sh2_cpu at 11( 342) + 0 on 171;
+  architecture tb_architecture of tb_sh2_cpu at 22( 535) + 0 on 172;
+file . "../vhd/sr.vhd" "e09d68289c986229c0b3fd33f32f8b32fc76cb0b" "20250424041706.496":
+  package statusregconstants at 18( 646) + 0 on 163;
+  entity statusreg at 48( 1547) + 0 on 164;
+  architecture behavioral of statusreg at 65( 1914) + 0 on 165;
+file . "../vhd/pau.vhd" "04b5ce17a25f1cd1cafed71521628976430d8269" "20250424041706.254":
+  package pauconstants at 27( 947) + 0 on 157;
+  entity pau at 73( 2485) + 0 on 158;
+  architecture behavioral of pau at 99( 3386) + 0 on 159;
+file . "../vhd/alu.vhd" "aae3433ebf4bb0d1634458ff12622d1b99cdc389" "20250424041706.018":
+  package tbitconstants at 28( 1018) + 0 on 151;
+  entity alu at 68( 2884) + 0 on 152;
+  architecture behavioral of alu at 93( 3989) + 0 on 153;
+file . "../vhd/generic/generic_mau.vhd" "38ecbab460e6e2ee79aa5df2047222e0a726efb9" "20250424041705.880":
+  package array_type_pkg at 35( 1455) + 0 on 145;
+  package memunitconstants at 52( 1740) + 0 on 146;
+  entity memunit at 138( 4241) + 0 on 147;
+  architecture dataflow of memunit at 167( 5260) + 0 on 148;
+file . "../vhd/generic/generic_const.vhd" "ee0f9c5733660b9fb87981ba25c07dd19be37214" "20250424041705.641":
+  package genericconstants at 16( 383) + 0 on 131;
+file . "../vhd/generic/generic_alu.vhd" "cdbb1ead5a6aaf7f7665a96641ddb4d2d5c34114" "20250424041705.788":
+  package aluconstants at 39( 1514) + 0 on 132;
+  entity fblockbit at 133( 4889) + 0 on 133;
+  architecture dataflow of fblockbit at 148( 5284) + 0 on 134;
+  entity adderbit at 176( 5921) + 0 on 135;
+  architecture dataflow of adderbit at 192( 6324) + 0 on 136;
+  entity fblock at 237( 7400) + 0 on 137;
+  architecture structural of fblock at 257( 7929) + 0 on 138;
+  entity adder at 300( 9066) + 0 on 139;
+  architecture structural of adder at 324( 9977) + 0 on 140;
+  entity shifter at 384( 11991) + 0 on 141;
+  architecture dataflow of shifter at 406( 12648) + 0 on 142;
+  entity genericalu at 486( 15985) + 0 on 143;
+  architecture structural of genericalu at 515( 17372) + 0 on 144;
+file . "../vhd/generic/generic_reg.vhd" "a79bff906499fc1b8d0d9fd07191c180668a0694" "20250424041705.943":
+  entity genericregarray at 62( 2729) + 0 on 149;
+  architecture behavioral of genericregarray at 98( 4231) + 0 on 150;
+file . "../vhd/dau.vhd" "48f0eeb29f204ba2f55f45da05d4e2929abe605c" "20250424041706.112":
+  package dauconstants at 29( 1074) + 0 on 154;
+  entity dau at 81( 3065) + 0 on 155;
+  architecture behavioral of dau at 111( 4213) + 0 on 156;
+file . "../vhd/reg.vhd" "a4588000b9bd3bf84aff748a04385b74b13be868" "20250424041706.372":
+  package regarrayconstants at 29( 1178) + 0 on 160;
+  entity regarray at 96( 3752) + 0 on 161;
+  architecture behavioral of regarray at 126( 4985) + 0 on 162;
+file . "../vhd/cu.vhd" "020eaefeed92a3e07893342107bc9b6639e94361" "20250424041706.702":
+  package cuconstants at 19( 419) + 0 on 166;
+  entity cu at 210( 14489) + 0 on 167;
+  architecture behavioral of cu at 276( 17068) + 0 on 168;
+file . "../vhd/sh2_cpu.vhd" "908316443a74d05637832c2c036aef5b33c43650" "20250424041706.796":
+  entity sh2_cpu at 29( 551) + 0 on 169;
+  architecture structural of sh2_cpu at 50( 1054) + 0 on 170;
