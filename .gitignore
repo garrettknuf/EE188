@@ -2,13 +2,13 @@
 *.vcd
 
 # Ignore .cf files
-# *.cf
+*.cf
 
 # Ignore GTKWave Analyzer files
 *.gtkw
 
 # # Ignore bash scripts since file paths change depending on user
-# *.sh
+*.sh
 
 # Ignore temporary files
 ~*
