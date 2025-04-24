@@ -2,10 +2,10 @@
 --
 --  Hitachi SH-2 RISC Processor
 --
---  This is an implementation of 
+--  This is an implementation of the Hitachi SH-2 RISC Processor.
 --
 --  Entities included are:
---    
+--    SH2_CPU - top level structural of CPU
 --
 --  Revision History:
 --     16 April 2025    Garrett Knuf    Initial revision.
@@ -19,12 +19,15 @@
 --
 --  Inputs:
 --    CLK   - system clock
+--    RST   - active-low system reset
 --
 --  In/outs:
 --    DB    - data bus (16-bit)
 --
 --  Outputs:
 --    AB    - address bus (32-bit)
+--    RD    - read from memory active-high
+--    WR    - write to memory active-high
 --
 library ieee;
 use ieee.std_logic_1164.all;
@@ -34,11 +37,13 @@ use work.TbitConstants.all;
 use work.PAUConstants.all;
 use work.DAUConstants.all;
 use work.RegArrayConstants.all;
+use work.CUConstants.all;
 
 entity SH2_CPU is
 
     port (
         CLK     : in    std_logic;
+        RST     : in    std_logic;
         DB      : inout std_logic_vector(15 downto 0);
         AB      : out   std_logic_vector(31 downto 0);
         RD      : out   std_logic;
@@ -51,16 +56,16 @@ architecture structural of SH2_CPU is
 
     component ALU is
         port (
-            ALUOpA   : in      std_logic_vector(LONG_SIZE - 1 downto 0);
-            ALUOpB   : in      std_logic_vector(LONG_SIZE - 1 downto 0);
-            Cin      : in      std_logic;                               
-            FCmd     : in      std_logic_vector(3 downto 0);            
-            CinCmd   : in      std_logic_vector(1 downto 0);            
-            SCmd     : in      std_logic_vector(3 downto 0);            
-            ALUCmd   : in      std_logic_vector(1 downto 0);            
+            ALUOpA   : in      std_logic_vector(LONG_SIZE - 1 downto 0);  -- first operand
+            ALUOpB   : in      std_logic_vector(LONG_SIZE - 1 downto 0);  -- second operand
+            Cin      : in      std_logic;                                 -- carry in
+            FCmd     : in      std_logic_vector(3 downto 0);              -- F-Block operation
+            CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
+            SCmd     : in      std_logic_vector(3 downto 0);              -- shift operation
+            ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
             TbitOp   : in      std_logic_vector(3 downto 0);              -- T-bit operation
-            Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);
-            Tbit     : out     std_logic                                
+            Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);  -- ALU result
+            Tbit     : out     std_logic                                  -- T-bit result
         );
     end component;
 
@@ -95,6 +100,7 @@ architecture structural of SH2_CPU is
             UpdatePC    : in    std_logic;
             UpdatePR    : in    std_logic;
             CLK         : in    std_logic;
+            RST         : in    std_logic;
             ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
@@ -130,17 +136,69 @@ architecture structural of SH2_CPU is
         );
     end component;
 
+    component CU is
+        port (
+            -- CU Input Signals
+            CLK     : in    std_logic;
+            RST     : in    std_logic;
+            DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+            SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
+            IR      : out    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+
+            -- ALU Control Signals
+            ALUOpACmd   : out     std_logic_vector(1 downto 0);
+            ALUOpBCmd   : out     std_logic_vector(1 downto 0);                          
+            FCmd        : out     std_logic_vector(3 downto 0);            
+            CinCmd      : out     std_logic_vector(1 downto 0);            
+            SCmd        : out     std_logic_vector(3 downto 0);            
+            ALUCmd      : out     std_logic_vector(1 downto 0);
+            TbitOp      : out     std_logic_vector(3 downto 0);
+
+            -- StatusReg Control Signals
+            UpdateTbit  : out   std_logic;
+
+            -- PAU Control Signals
+            PAU_SrcSel      : out   integer range PAU_SRC_CNT - 1 downto 0;
+            PAU_OffsetSel   : out   integer range PAU_OFFSET_CNT - 1 downto 0;
+            PAU_UpdatePC    : out   std_logic;
+            PAU_UpdatePR    : out   std_logic;
+
+            -- DAU Control Signals
+            DAU_SrcSel      : out   integer range DAU_SRC_CNT - 1 downto 0;
+            DAU_OffsetSel   : out   integer range DAU_OFFSET_CNT - 1 downto 0;
+            DAU_IncDecSel   : out   std_logic;
+            DAU_IncDecBit   : out   integer range 2 downto 0;
+            DAU_PrePostSel  : out   std_logic;
+            DAU_LoadGBR     : out   std_logic;
+
+            -- RegArray Control Signals
+            RegInSel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegStore   : out   std_logic;
+            RegASel    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegBSel    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegAxInSel : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegAxStore : out   std_logic;
+            RegA1Sel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegA2Sel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegOpSel   : out   integer  range REGOp_SrcCnt - 1 downto 0;
+        
+            -- IO Control signals
+            RD      : out   std_logic;
+            WR      : out   std_logic
+        );
+    end component;
+
     -- ALU Signals
-    signal ALUOpA    : std_logic_vector(LONG_SIZE - 1 downto 0);
-    signal ALUOpB    : std_logic_vector(LONG_SIZE - 1 downto 0);
-    signal Cin       : std_logic;
-    signal FCmd      : std_logic_vector(3 downto 0);
-    signal CinCmd    : std_logic_vector(1 downto 0);
-    signal SCmd      : std_logic_vector(3 downto 0);
-    signal ALUCmd    : std_logic_vector(1 downto 0);
-    signal TbitOp    : std_logic_vector(3 downto 0);
-    signal Result    : std_logic_vector(LONG_SIZE - 1 downto 0);
-    signal Tbit      : std_logic;
+    signal ALU_ALUOpACmd : std_logic_vector(1 downto 0);
+    signal ALU_ALUOpBCmd : std_logic_vector(1 downto 0);
+    signal ALU_Cin       : std_logic;
+    signal ALU_FCmd      : std_logic_vector(3 downto 0);
+    signal ALU_CinCmd    : std_logic_vector(1 downto 0);
+    signal ALU_SCmd      : std_logic_vector(3 downto 0);
+    signal ALU_ALUCmd    : std_logic_vector(1 downto 0);
+    signal ALU_TbitOp    : std_logic_vector(3 downto 0);
+    signal ALU_Result    : std_logic_vector(LONG_SIZE - 1 downto 0);
+    signal ALU_Tbit      : std_logic;
 
     -- RegArray Signals
     signal RegIn      : std_logic_vector(LONG_SIZE - 1 downto 0);
@@ -188,25 +246,43 @@ architecture structural of SH2_CPU is
     signal DAU_GBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
 
     -- StatusReg Signals
-    signal Tbit_in        : std_logic;
-    signal UpdateTbit     : std_logic;
+    signal SR_UpdateTbit     : std_logic;
     signal SR             : std_logic_vector(REG_SIZE - 1 downto 0);
 
+    signal ALUOpA : std_logic_vector(LONG_SIZE-1 downto 0);
+    signal ALUOpB : std_logic_vector(LONG_SIZE-1 downto 0);
+
+    signal DB_Out : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+
+    signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+
 begin
+
+    ALUOpA <= RegA;
+    ALUOpB <= RegB;
+
+    DB <= DB_Out            when WR = '1' else
+          (others => 'Z')   when RD = '1' else
+          (others => 'X');
+
+    AB <= PAU_ProgAddr;
+
+    PAU_Offset8 <= IR(7 downto 0);
+    PAU_Offset12 <= IR(11 downto 0);
 
     -- Create 32-bit ALU for standard logic and arithmetic operations
     SH2_ALU : ALU
         port map (
             ALUOpA  => ALUOpA,
             ALUOpB  => ALUOpB,
-            Cin     => Cin,
-            FCmd    => FCmd,
-            CinCmd  => CinCmd,
-            SCmd    => SCmd,
-            ALUCmd  => ALUCmd,
-            TbitOp  => TbitOp,
-            Result  => Result,
-            Tbit    => Tbit
+            Cin     => ALU_Cin,
+            FCmd    => ALU_FCmd,
+            CinCmd  => ALU_CinCmd,
+            SCmd    => ALU_SCmd,
+            ALUCmd  => ALU_ALUCmd,
+            TbitOp  => ALU_TbitOp,
+            Result  => ALU_Result,
+            Tbit    => ALU_Tbit
         );
 
     -- Create 32-bit register array with general purpose registers R0-R15
@@ -241,6 +317,7 @@ begin
             UpdatePC   => PAU_UpdatePC,
             UpdatePR   => PAU_UpdatePR,
             CLK        => CLK,
+            RST        => RST,
             ProgAddr   => PAU_ProgAddr,
             PC         => PAU_PC,
             PR         => PAU_PR
@@ -269,10 +346,62 @@ begin
     -- Status Register (SR)
     SH2_SR : StatusReg
         port map (
-            Tbit        => Tbit,
-            UpdateTbit  => UpdateTbit,
+            Tbit        => ALU_Tbit,
+            UpdateTbit  => SR_UpdateTbit,
             CLK         => CLK,
             SR          => SR
+        );
+
+    -- Control Unit (CU)
+    SH2_CU : CU
+        port map (
+            -- CU Input Signals
+            CLK         => CLK,
+            RST         => RST,
+            DB          => DB,
+            SR          => SR,
+            IR          => IR,
+
+            -- ALU Control Signals
+            ALUOpACmd   => ALU_ALUOpACmd,
+            ALUOpBCmd   => ALU_ALUOpBCmd,
+            FCmd        => ALU_FCmd,
+            CinCmd      => ALU_CinCmd,
+            SCmd        => ALU_SCmd,
+            ALUCmd      => ALU_ALUCmd,
+            TbitOp      => ALU_TbitOp,
+
+            -- StatusReg Control Signals
+            UpdateTbit  => SR_UpdateTbit,
+
+            -- PAU Control Signals
+            PAU_SrcSel      => PAU_SrcSel,
+            PAU_OffsetSel   => PAU_OffsetSel,
+            PAU_UpdatePC    => PAU_UpdatePC,
+            PAU_UpdatePR    => PAU_UpdatePR,
+
+            -- DAU Control Signals
+            DAU_SrcSel      => DAU_SrcSel,
+            DAU_OffsetSel   => DAU_OffsetSel,
+            DAU_IncDecSel   => DAU_IncDecSel,
+            DAU_IncDecBit   => DAU_IncDecBit,
+            DAU_PrePostSel  => DAU_PrePostSel,
+            DAU_LoadGBR     => DAU_LoadGBR,
+
+            -- RegArray Control Signals
+            RegInSel     => RegInSel,
+            RegStore     => RegStore,
+            RegASel      => RegASel,
+            RegBSel      => RegBSel,
+            RegAxInSel   => RegAxInSel,
+            RegAxStore   => RegAxStore,
+            RegA1Sel     => RegA1Sel,
+            RegA2Sel     => RegA2Sel,
+            RegOpSel     => RegOpSel,
+
+            -- IO Control signals
+            RD          => RD,
+            WR          => WR
         );
 
 end structural;

@@ -177,6 +177,8 @@ package CUConstants is
     -- TODO: STSL MACL, @-Rn
     constant OpSTSL_PR_To_At_Dec_Rn  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100010";
     constant OpTRAPA                 : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "11000011--------";
+    
+    constant OpBoot                  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000000000";
 
 
     constant ALUOpACmd_RegA  : std_logic_vector(1 downto 0) := "00";
@@ -226,8 +228,10 @@ entity CU is
     port (
         -- CU Input Signals
         CLK     : in    std_logic;
+        RST     : in    std_logic;
         DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
         SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
+        IR      : out   std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
 
         -- ALU Control Signals
         ALUOpACmd   : out     std_logic_vector(1 downto 0);
@@ -285,7 +289,6 @@ architecture behavioral of CU is
     constant TRAPA_Init : integer := 6;
     constant STATE_CNT      : integer := 7;
 
-    signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
     signal NextState : integer range STATE_CNT-1 downto 0;
 
     signal UpdateIR : std_logic;
@@ -301,10 +304,11 @@ begin
     begin
 
         if rising_edge(CLK) then
-
-            -- Temporary only reading from memory (fetch)
-            IR <= DB;
-
+            if RST = '1' then
+                IR <= DB when UpdateIR = '1' else IR;
+            else
+                IR <= OpBoot;
+            end if;
         end if;
 
     end process;

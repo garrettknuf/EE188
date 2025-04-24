@@ -177,6 +177,8 @@ package CUConstants is
     -- TODO: STSL MACL, @-Rn
     constant OpSTSL_PR_To_At_Dec_Rn  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100010";
     constant OpTRAPA                 : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "11000011--------";
+    
+    constant OpBoot                  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000000000";
 
 
     constant ALUOpACmd_RegA  : std_logic_vector(1 downto 0) := "00";
@@ -226,8 +228,10 @@ entity CU is
     port (
         -- CU Input Signals
         CLK     : in    std_logic;
+        RST     : in    std_logic;
         DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
         SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
+        IR      : out   std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
 
         -- ALU Control Signals
         ALUOpACmd   : out     std_logic_vector(1 downto 0);
@@ -285,7 +289,6 @@ architecture behavioral of CU is
     constant TRAPA_Init : integer := 6;
     constant STATE_CNT      : integer := 7;
 
-    signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
     signal NextState : integer range STATE_CNT-1 downto 0;
 
     signal UpdateIR : std_logic;
@@ -301,10 +304,11 @@ begin
     begin
 
         if rising_edge(CLK) then
-
-            -- Temporary only reading from memory (fetch)
-            IR <= DB;
-
+            if RST = '1' then
+                IR <= DB when UpdateIR = '1' else IR;
+            else
+                IR <= OpBoot;
+            end if;
         end if;
 
     end process;
@@ -340,7 +344,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -436,7 +440,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1460,7 +1464,7 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1492,7 +1496,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1524,7 +1528,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1556,7 +1560,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1588,7 +1592,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1620,7 +1624,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1652,7 +1656,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1684,7 +1688,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1716,7 +1720,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1748,7 +1752,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1780,7 +1784,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1812,7 +1816,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1844,7 +1848,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1876,7 +1880,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1908,7 +1912,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1940,7 +1944,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -1972,7 +1976,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2004,7 +2008,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2036,7 +2040,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2068,7 +2072,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2100,7 +2104,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2132,7 +2136,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2164,7 +2168,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2196,7 +2200,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2228,7 +2232,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2260,7 +2264,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2292,7 +2296,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2324,7 +2328,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2356,7 +2360,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2420,7 +2424,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2452,7 +2456,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2484,7 +2488,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2580,7 +2584,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2612,7 +2616,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2676,7 +2680,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2708,7 +2712,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2772,7 +2776,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2804,7 +2808,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2836,7 +2840,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2868,7 +2872,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2900,7 +2904,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2932,7 +2936,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2964,7 +2968,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -2996,7 +3000,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3028,7 +3032,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3060,7 +3064,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3092,7 +3096,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3124,7 +3128,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3156,7 +3160,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3188,7 +3192,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3220,7 +3224,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= BranchSlot when Tbit = '0' else Idle;
 			UpdateIR <= '1';
@@ -3252,7 +3256,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= BranchSlot when Tbit = '0' else Idle;
 			UpdateIR <= '1';
@@ -3284,7 +3288,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= BranchSlot when Tbit = '1' else Idle;
 			UpdateIR <= '1';
@@ -3316,7 +3320,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= BranchSlot when Tbit = '1' else Idle;
 			UpdateIR <= '1';
@@ -3348,7 +3352,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3380,7 +3384,7 @@ begin
 			RegA1Sel <= RegA1Sel_Rm;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3412,7 +3416,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3444,7 +3448,7 @@ begin
 			RegA1Sel <= RegA1Sel_Rm;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3476,7 +3480,7 @@ begin
 			RegA1Sel <= RegA1Sel_Rm;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3508,7 +3512,7 @@ begin
 			RegA1Sel <= RegA1Sel_Rm;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3540,7 +3544,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3572,7 +3576,7 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3604,7 +3608,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3636,7 +3640,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3668,7 +3672,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3796,7 +3800,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3860,7 +3864,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3892,7 +3896,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= RTE_Init;
 			UpdateIR <= '1';
@@ -3924,7 +3928,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3956,7 +3960,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -3988,7 +3992,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -4020,7 +4024,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -4148,7 +4152,7 @@ begin
 			RegA1Sel <= 0;
 			RegA2Sel <= 0;
 			RegOpSel <= RegOp_None;
-			RD <= '0';
+			RD <= '1';
 			WR <= '0';
 			NextState <= Idle;
 			UpdateIR <= '1';
@@ -4201,7 +4205,7 @@ begin
 			DAU_OffsetSel <= unused;
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
-			DAU_PrePostSel <= '0';
+			DAU_PrePostSel <= '-';
 			DAU_LoadGBR <= '0';
 			RegInSel <= 0;
 			RegStore <= '0';
@@ -4215,6 +4219,38 @@ begin
 			RD <= '1';
 			WR <= '0';
 			NextState <= TRAPA_Init;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpBoot) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrZero;
+			PAU_OffsetSel <= PAU_OffsetZero;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= 0;
+			RD <= '1';
+			WR <= '0';
+			NextState <= Idle;
 			UpdateIR <= '1';
 		end if;
 	 end process;

@@ -88,6 +88,7 @@ entity PAU is
         UpdatePC    : in    std_logic;
         UpdatePR    : in    std_logic;
         CLK         : in    std_logic;
+        RST         : in    std_logic;
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
@@ -130,6 +131,8 @@ architecture behavioral of PAU is
     signal PrePostSel   : std_logic;                -- mux select for pre/post
     signal AddrSrcOut   : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0); -- not used
 
+    constant PC_INIT_VALUE : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := (others => '0');
+
 begin
 
     -- Inputs to address source mux
@@ -153,8 +156,13 @@ begin
     PAU_registers : process (CLK)
     begin
         if rising_edge(CLK) then
-            -- Update PC
-            PC <= ProgAddr when UpdatePC = '1' else PC;
+
+            if RST = '1' then
+                -- Update PC
+                PC <= ProgAddr when UpdatePC = '1' else PC;
+            else
+                PC <= PC_INIT_VALUE;
+            end if;
 
             -- Update PR
             PR <= ProgAddr when UpdatePR = '1' else PR;

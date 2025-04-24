@@ -418,7 +418,7 @@ if __name__ == '__main__':
                 asm = assemble_instruction(line, addr)
                 if asm:
                     text = format(asm, '016b') + f'\t; 0x{addr:08X} : ' + \
-                            f'{lines[line_num][:-1].lstrip()}\n'
+                            f"{(lines[line_num].lstrip())}".rstrip('\n') + '\n'
                     output_lines.append(text)
                     addr += 2
 
@@ -453,12 +453,14 @@ if __name__ == '__main__':
         branch_instr_addr = branch[2]
         label_addr = label_dict[branch[1][0]]
         offset = label_addr - branch_instr_addr
+        offset = (int)(offset / 2)
 
         new_line = ''
         # Add displacmenet to instruction
         if branch[0] in ['BF', 'BF/S', 'BT', 'BT/S']:
             # 8-bit displacement
             output_bin = format(offset & 0x00FF, '08b')
+            print(output_bin)
             for i in range(8, 16):
                 old_line = output_lines[(int)(branch_instr_addr / 2)]
                 new_line = old_line[0:8] + output_bin + old_line[16:]

@@ -16,7 +16,7 @@ for arg in "$@"; do
 done
 
 TB_NAME="tb_sh2_cpu"
-WAVEFORM_NAME="SH2_CPU"
+WAVEFORM_NAME="sh2_cpu"
 VHDL_FILES=(
     "../vhd/generic/generic_const.vhd"
     "../vhd/generic/generic_alu.vhd"
