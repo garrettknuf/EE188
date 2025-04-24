@@ -159,23 +159,24 @@ package CUConstants is
     -- TODO: LDS.L @Rm+, MACH
     -- TODO: LDS.L @Rm+, MACL
     constant OpLDSL_At_Rm_Inc_To_PR  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00101010";
-    constant NOP                     : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000001001";
-    constant RTE                     : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000101011";
+    constant OpNOP                   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000001001";
+    constant OpRTE                   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000101011";
+    constant OpSETT                  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000011000";
     -- TODO: Sleep
-    constant STC_SR_To_Rn            : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00000010";
-    constant STC_GBR_To_Rn           : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00010010";
-    constant STC_VBR_To_Rn           : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00100010";
-    constant STCL_SR_To_At_Dec_Rn    : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00000011";
-    constant STCL_GBR_To_At_Dec_Rn   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00010011";
-    constant STCL_VBR_To_At_Dec_Rn   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100011";
+    constant OpSTC_SR_To_Rn          : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00000010";
+    constant OpSTC_GBR_To_Rn         : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00010010";
+    constant OpSTC_VBR_To_Rn         : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00100010";
+    constant OpSTCL_SR_To_At_Dec_Rn  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00000011";
+    constant OpSTCL_GBR_To_At_Dec_Rn : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00010011";
+    constant OpSTCL_VBR_To_At_Dec_Rn : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100011";
     -- TODO: STS MACH, Rn
     -- TODO: STS MACL, Rn
     -- TODO: STS MACH, Rn
-    constant STS_PR_To_Rn            : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00101010";
+    constant OpSTS_PR_To_Rn          : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000----00101010";
     -- TODO: STSL MACH, @-Rn
     -- TODO: STSL MACL, @-Rn
-    constant STSL_PR_To_At_Dec_Rn    : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100010";
-    constant TRAPA                   : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "11000011--------";
+    constant OpSTSL_PR_To_At_Dec_Rn  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100010";
+    constant OpTRAPA                 : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "11000011--------";
 
 
     constant ALUOpACmd_RegA  : std_logic_vector(1 downto 0) := "00";
@@ -279,10 +280,15 @@ architecture behavioral of CU is
     constant Fetch          : integer := 1;
     constant WaitForRead    : integer := 2;
     constant BranchSlot     : integer := 3;
-    constant STATE_CNT      : integer := 4;
+    constant WaitForReadPostInc : integer := 4;
+    constant RTE_Init : integer := 5;
+    constant TRAPA_Init : integer := 6;
+    constant STATE_CNT      : integer := 7;
 
     signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
     signal NextState : integer range STATE_CNT-1 downto 0;
+
+    signal UpdateIR : std_logic;
 
     signal Tbit : std_logic;
 
@@ -334,9 +340,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_At_Disp_PC_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -365,9 +372,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_PC_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -396,9 +404,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOV_Rm_To_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -427,9 +436,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -458,9 +468,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -489,9 +500,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -520,9 +532,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_At_Rm_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -551,9 +564,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_At_Rm_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -582,9 +596,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_At_Rm_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -613,9 +628,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Dec_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -644,9 +660,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Dec_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -675,9 +692,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Dec_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -706,9 +724,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_At_Rm_Inc_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -737,9 +756,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_At_Rm_Inc_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -768,9 +788,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_At_Rm_Inc_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -799,9 +820,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -830,9 +852,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -861,9 +884,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -892,9 +916,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_At_Disp_Rm_To_R0) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -923,9 +948,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_At_Disp_Rm_To_R0) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -954,9 +980,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_Rm_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -985,9 +1012,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_Rm_To_At_R0_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1016,9 +1044,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_Rm_To_At_R0_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1047,9 +1076,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_Rm_To_At_R0_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1078,9 +1108,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_At_R0_Rm_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -1109,9 +1140,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_At_R0_Rm_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -1140,9 +1172,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_At_R0_Rm_To_Rn) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -1171,9 +1204,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_GBR) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1202,9 +1236,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_GBR) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1233,9 +1268,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_GBR) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1264,9 +1300,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '0';
 			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_At_Disp_GBR_To_R0) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -1295,9 +1332,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_At_Disp_GBR_To_R0) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -1326,9 +1364,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_GBR_To_R0) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -1357,9 +1396,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVA) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -1388,9 +1428,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Fetch;
 			RD <= '1';
 			WR <= '0';
+			NextState <= Fetch;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVT) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -1419,9 +1460,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSwapB) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1450,9 +1492,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSwapW) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1481,9 +1524,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpXTRCT) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1512,9 +1556,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpADD_Rm_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1543,9 +1588,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpADD_Imm_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -1574,9 +1620,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpADDC) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1605,9 +1652,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpADDV) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1636,9 +1684,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_EQ_Imm) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -1667,9 +1716,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_EQ_RmRn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1698,9 +1748,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_HS) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1729,9 +1780,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_GE) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1760,9 +1812,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_HI) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1791,9 +1844,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_GT) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1822,9 +1876,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_PL) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1853,9 +1908,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_PZ) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1884,9 +1940,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_STR) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1915,9 +1972,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_DT) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -1946,9 +2004,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpEXTS_B) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -1977,9 +2036,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpEXTS_W) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2008,9 +2068,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpEXTU_B) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2039,9 +2100,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpEXTU_W) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2070,9 +2132,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpNEG) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2101,9 +2164,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpNEGC) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2132,9 +2196,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSUB) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -2163,9 +2228,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSUBC) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -2194,9 +2260,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSUBV) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -2225,9 +2292,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpAND_Rm_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -2256,9 +2324,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpAND_Imm_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -2287,9 +2356,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpAND_Imm_B) then
 			ALUOpACmd <= ALUOpACmd_DB;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -2318,9 +2388,10 @@ begin
 			RegA1Sel <= RegA1Sel_R0;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= WaitForRead;
 			RD <= '1';
 			WR <= '0';
+			NextState <= WaitForRead;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpNOT) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -2349,9 +2420,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpOR_Rm_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -2380,9 +2452,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpOR_Imm) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -2411,9 +2484,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpOR_Imm_B) then
 			ALUOpACmd <= ALUOpACmd_DB;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -2442,9 +2516,10 @@ begin
 			RegA1Sel <= RegA1Sel_R0;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= WaitForRead;
 			RD <= '1';
 			WR <= '0';
+			NextState <= WaitForRead;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpTAS_B) then
 			ALUOpACmd <= ALUOpACmd_DB;
 			ALUOpBCmd <= (others => '-');
@@ -2473,9 +2548,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rn;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= WaitForRead;
 			RD <= '1';
 			WR <= '0';
+			NextState <= WaitForRead;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpTST_Rm_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -2504,9 +2580,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpTST_Imm) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -2535,9 +2612,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpTST_Imm_B) then
 			ALUOpACmd <= ALUOpACmd_DB;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -2566,9 +2644,10 @@ begin
 			RegA1Sel <= RegA1Sel_R0;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= WaitForRead;
 			RD <= '1';
 			WR <= '0';
+			NextState <= WaitForRead;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpXOR_Rm_Rn) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_RegB;
@@ -2597,9 +2676,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpXOR_Imm) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -2628,9 +2708,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpXOR_Imm_B) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= ALUOpBCmd_Imm;
@@ -2659,9 +2740,10 @@ begin
 			RegA1Sel <= RegA1Sel_R0;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= WaitForRead;
 			RD <= '1';
 			WR <= '0';
+			NextState <= WaitForRead;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpROTL) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2690,9 +2772,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpROTR) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2721,9 +2804,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpROTCL) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2752,9 +2836,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpROTCR) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2783,9 +2868,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHAL) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2814,9 +2900,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHAR) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2845,9 +2932,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLL) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2876,9 +2964,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLR) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2907,9 +2996,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLL2) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2938,9 +3028,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLR2) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -2969,9 +3060,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLL8) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -3000,9 +3092,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLR8) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -3031,9 +3124,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLL16) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -3062,9 +3156,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLR16) then
 			ALUOpACmd <= ALUOpACmd_RegA;
 			ALUOpBCmd <= (others => '-');
@@ -3093,9 +3188,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpBF) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3124,9 +3220,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= BranchSlot when Tbit = '0' else Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= BranchSlot when Tbit = '0' else Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpBFS) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3155,9 +3252,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= BranchSlot when Tbit = '0' else Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= BranchSlot when Tbit = '0' else Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpBT) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3186,9 +3284,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= BranchSlot when Tbit = '1' else Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= BranchSlot when Tbit = '1' else Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpBTS) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3217,9 +3316,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= BranchSlot when Tbit = '1' else Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= BranchSlot when Tbit = '1' else Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpBRA) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3248,9 +3348,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpBRAF) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3279,9 +3380,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rm;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpBSR) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3310,9 +3412,10 @@ begin
 			RegA1Sel <= unused;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpBSRF) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3341,9 +3444,10 @@ begin
 			RegA1Sel <= RegA1Sel_Rm;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
 		elsif std_match(IR, OpJMP) then
 			ALUOpACmd <= (others => '-');
 			ALUOpBCmd <= (others => '-');
@@ -3372,9 +3476,746 @@ begin
 			RegA1Sel <= RegA1Sel_Rm;
 			RegA2Sel <= unused;
 			RegOpSel <= RegOp_None;
-			NextState <= Idle;
 			RD <= '0';
 			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpJSR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrZero;
+			PAU_OffsetSel <= PAU_OffsetReg;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '1';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= unused;
+			RegBSel <= unused;
+			RegAxInSel <= unused;
+			RegAxStore <= '0';
+			RegA1Sel <= RegA1Sel_Rm;
+			RegA2Sel <= unused;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpRTS) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrZero;
+			PAU_OffsetSel <= PAU_OffsetPR;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= unused;
+			RegBSel <= unused;
+			RegAxInSel <= unused;
+			RegAxStore <= '0';
+			RegA1Sel <= unused;
+			RegA2Sel <= unused;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpCLRT) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= FCmd_ONE;
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
+			TbitOp <= Tbit_Zero;
+			UpdateTbit <= '1';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= unused;
+			RegBSel <= unused;
+			RegAxInSel <= unused;
+			RegAxStore <= '0';
+			RegA1Sel <= unused;
+			RegA2Sel <= unused;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpLDC_Rm_To_SR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpLDC_Rm_To_GBR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '1';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpLDC_Rm_To_VBR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_SR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '1';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_INC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_POST;
+			DAU_LoadGBR <= '0';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '1';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '1';
+			WR <= '0';
+			NextState <= WaitForReadPostInc;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_GBR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_INC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_POST;
+			DAU_LoadGBR <= '1';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '1';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '1';
+			WR <= '0';
+			NextState <= WaitForReadPostInc;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_VBR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_INC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_POST;
+			DAU_LoadGBR <= '0';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '1';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '1';
+			WR <= '0';
+			NextState <= WaitForReadPostInc;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpLDS_Rm_To_PR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '1';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= unused;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpLDSL_At_Rm_Inc_To_PR) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '1';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_INC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_POST;
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '1';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '1';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpNOP) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpRTE) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '1';
+			PAU_SrcSel <= PAU_AddrZero;
+			PAU_OffsetSel <= PAU_OffsetReg;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '0';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '0';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= RTE_Init;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSETT) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= FCmd_ZERO;
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
+			TbitOp <= Tbit_Zero;
+			UpdateTbit <= '1';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSTC_SR_To_Rn) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSTC_GBR_To_Rn) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSTC_VBR_To_Rn) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSTCL_SR_To_At_Dec_Rn) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_DEC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_PRE;
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSTCL_GBR_To_At_Dec_Rn) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_DEC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_PRE;
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSTCL_VBR_To_At_Dec_Rn) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_DEC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_PRE;
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '1';
+			NextState <= Fetch;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSTS_PR_To_Rn) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '0';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpSTSL_PR_To_At_Dec_Rn) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_DEC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_PRE;
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '1';
+			NextState <= Idle;
+			UpdateIR <= '1';
+		elsif std_match(IR, OpTRAPA) then
+			ALUOpACmd <= (others => '-');
+			ALUOpBCmd <= (others => '-');
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '0';
+			DAU_LoadGBR <= '0';
+			RegInSel <= 0;
+			RegStore <= '0';
+			RegASel <= 0;
+			RegBSel <= 0;
+			RegAxInSel <= 0;
+			RegAxStore <= '0';
+			RegA1Sel <= 0;
+			RegA2Sel <= 0;
+			RegOpSel <= RegOp_None;
+			RD <= '1';
+			WR <= '0';
+			NextState <= TRAPA_Init;
+			UpdateIR <= '1';
 		end if;
 	 end process;
 
