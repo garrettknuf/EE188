@@ -8,20 +8,20 @@ entity ROM is
         CLK     : in  std_logic;
         AB      : in  std_logic_vector(31 downto 0);
         RD      : in  std_logic;
-        DB      : inout std_logic_vector(15 downto 0)
+        DB      : inout std_logic_vector(31 downto 0)
     );
 end entity;
 
 architecture rtl of ROM is
-    type rom_type is array (0 to 255) of std_logic_vector(15 downto 0);
+    type rom_type is array (0 to 255) of std_logic_vector(31 downto 0);
     signal rom : rom_type := (others => (others => '0'));
 
-    signal rom_data : std_logic_vector(15 downto 0);
+    signal rom_data : std_logic_vector(31 downto 0);
 
     function load_rom_from_file(filename : string) return rom_type is
         file romfile : text open read_mode is filename;
         variable line_buf : line;
-        variable data_str : string(1 to 16);
+        variable data_str : string(1 to 32);
         variable rom_tmp : rom_type := (others => (others => '0'));
         variable i : integer := 0;
     begin

@@ -45,7 +45,7 @@ entity SH2_CPU is
     port (
         CLK     : in    std_logic;
         RST     : in    std_logic;
-        DB      : inout std_logic_vector(15 downto 0);
+        DB      : inout std_logic_vector(31 downto 0);
         AB      : out   std_logic_vector(31 downto 0);
         RD      : out   std_logic;
         WR      : out   std_logic
@@ -145,7 +145,8 @@ architecture structural of SH2_CPU is
             DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
             SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
             
-            IR      : out    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+            IR      : out    std_logic_vector(INST_SIZE - 1 downto 0);
+            DBOutSel : out integer range 5 downto 0;
 
             -- ALU Control Signals
             ALUOpASel   : out     integer range 1 downto 0;
@@ -254,9 +255,10 @@ architecture structural of SH2_CPU is
     signal ALUOpA : std_logic_vector(LONG_SIZE-1 downto 0);
     signal ALUOpB : std_logic_vector(LONG_SIZE-1 downto 0);
 
+    signal DBOutSel : integer range 5 downto 0;
     signal DBOut : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
-    signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+    signal IR : std_logic_vector(INST_SIZE-1 downto 0);
 
     signal RegInSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
     signal RegASelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
@@ -276,7 +278,7 @@ begin
 
     -- ALU inputs (non-control signals)
     ALUOpA <= RegA  when ALUOpASel = ALUOpASel_RegA else
-              (31 downto 16 => DB(15)) & DB    when ALUOpASel = ALUOpASel_DB else
+              DB    when ALUOpASel = ALUOpASel_DB else
               (others => 'X');
     ALUOpB <= RegB  when ALUOpBSel = ALUOpBSel_RegB else
               (31 downto 8 => '0') & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Unsigned else
@@ -307,7 +309,7 @@ begin
             --  PAU_PC when DBOutSel = DBOutSel_PC else
              (others => 'X');
 
-    DB <= DB_Out            when WR = '1' else
+    DB <= DBOut            when WR = '1' else
           (others => 'Z')   when RD = '1' else
           (others => 'X');
 
