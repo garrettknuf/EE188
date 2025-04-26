@@ -31,6 +31,7 @@
 --
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use work.GenericConstants.all;
 use work.ALUConstants.all;
 use work.TbitConstants.all;
@@ -143,11 +144,12 @@ architecture structural of SH2_CPU is
             RST     : in    std_logic;
             DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
             SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
+            
             IR      : out    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
 
             -- ALU Control Signals
-            ALUOpACmd   : out     std_logic_vector(1 downto 0);
-            ALUOpBCmd   : out     std_logic_vector(1 downto 0);                          
+            ALUOpASel   : out     integer range 1 downto 0;
+            ALUOpBSel   : out     integer range 2 downto 0;
             FCmd        : out     std_logic_vector(3 downto 0);            
             CinCmd      : out     std_logic_vector(1 downto 0);            
             SCmd        : out     std_logic_vector(3 downto 0);            
@@ -172,14 +174,14 @@ architecture structural of SH2_CPU is
             DAU_LoadGBR     : out   std_logic;
 
             -- RegArray Control Signals
-            RegInSel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegInSelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
             RegStore   : out   std_logic;
-            RegASel    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegBSel    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegAxInSel : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegASelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegBSelCmd    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegAxInSelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
             RegAxStore : out   std_logic;
-            RegA1Sel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegA2Sel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegA1SelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegA2SelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
             RegOpSel   : out   integer  range REGOp_SrcCnt - 1 downto 0;
         
             -- IO Control signals
@@ -189,8 +191,8 @@ architecture structural of SH2_CPU is
     end component;
 
     -- ALU Signals
-    signal ALU_ALUOpACmd : std_logic_vector(1 downto 0);
-    signal ALU_ALUOpBCmd : std_logic_vector(1 downto 0);
+    signal ALUOpASel : integer range 1 downto 0;
+    signal ALUOpBSel : integer range 2 downto 0;
     signal ALU_Cin       : std_logic;
     signal ALU_FCmd      : std_logic_vector(3 downto 0);
     signal ALU_CinCmd    : std_logic_vector(1 downto 0);
@@ -256,10 +258,46 @@ architecture structural of SH2_CPU is
 
     signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
+    signal RegInSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
+    signal RegASelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
+    signal RegBSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
+    signal RegAxInSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
+    signal RegA1SelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
+    signal RegA2SelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
+
 begin
 
-    ALUOpA <= RegA;
-    ALUOpB <= RegB;
+    -- DAU inputs (non-control signals)
+    DAU_Offset4 <= IR(3 downto 0);
+    DAU_Offset8 <= IR(7 downto 0);
+    DAU_Rn <= RegA1;
+    DAU_R0 <= RegA2;
+    DAU_PC <= PAU_PC;
+
+    -- ALU inputs (non-control signals)
+    ALUOpA <= RegA  when ALUOpASel = ALUOpASel_RegA else
+              (31 downto 16 => DB(15)) & DB    when ALUOpASel = ALUOpASel_DB else
+              (others => 'X');
+    ALUOpB <= RegB  when ALUOpBSel = ALUOpBSel_RegB else
+              (31 downto 8 => '0') & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Unsigned else
+              (31 downto 8 => IR(7)) & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Signed else
+              (others => 'X');
+    ALU_Cin <= SR(0);
+
+    -- PAU inputs (non-control signals)
+    PAU_Offset8 <= IR(7 downto 0);
+    PAU_Offset12 <= IR(11 downto 0);
+    PAU_OffsetReg <= RegA1;
+
+    -- RegArray inputs (non-control signals)
+    RegIn <= ALU_Result;
+    RegAxIn <= DAU_AddrIDOut;
+
+    RegInSel <= to_integer(unsigned(IR(11 downto 8)));
+    RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
+    RegBSel <= to_integer(unsigned(IR(7 downto 4)));
+
+
 
     DB <= DB_Out            when WR = '1' else
           (others => 'Z')   when RD = '1' else
@@ -363,8 +401,8 @@ begin
             IR          => IR,
 
             -- ALU Control Signals
-            ALUOpACmd   => ALU_ALUOpACmd,
-            ALUOpBCmd   => ALU_ALUOpBCmd,
+            ALUOpASel   => ALUOpASel,
+            ALUOpBSel   => ALUOpBSel,
             FCmd        => ALU_FCmd,
             CinCmd      => ALU_CinCmd,
             SCmd        => ALU_SCmd,
@@ -389,14 +427,14 @@ begin
             DAU_LoadGBR     => DAU_LoadGBR,
 
             -- RegArray Control Signals
-            RegInSel     => RegInSel,
+            RegInSelCmd  => RegInSelCmd,
             RegStore     => RegStore,
-            RegASel      => RegASel,
-            RegBSel      => RegBSel,
-            RegAxInSel   => RegAxInSel,
+            RegASelCmd   => RegASelCmd,
+            RegBSelCmd   => RegBSelCmd,
+            RegAxInSelCmd => RegAxInSelCmd,
             RegAxStore   => RegAxStore,
-            RegA1Sel     => RegA1Sel,
-            RegA2Sel     => RegA2Sel,
+            RegA1SelCmd  => RegA1SelCmd,
+            RegA2SelCmd  => RegA2SelCmd,
             RegOpSel     => RegOpSel,
 
             -- IO Control signals

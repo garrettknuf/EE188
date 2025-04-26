@@ -15,7 +15,6 @@ use std.textio.all;
 use work.GenericConstants.all;
 use work.CUConstants.all;
 
-
 library osvvm;
 use osvvm.AlertLogPkg.all;
 
@@ -164,7 +163,7 @@ begin
         while (ROM_Data /= ZERO_WORD and RD = '1') loop
             report integer'image(to_integer(shift_right(unsigned(AB), 1)));
             ROM_Data <= rom(to_integer(shift_right(unsigned(AB), 1)));
-            wait for 10 ns;
+            wait for 20 ns;
         end loop;
 
         dump_rom_to_file;

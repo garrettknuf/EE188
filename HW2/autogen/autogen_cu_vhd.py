@@ -39,8 +39,8 @@ vhdl_str = "process (all)\n"
 vhdl_str += "\tbegin\n\t\t"
 std_logic_signal_list = ['DAU_IncDecSel', 'DAU_PrePostSel']
 integer_signal_list = ['PAU_SrcSel', 'PAU_OffsetSel', 'DAU_SrcSel', 'DAU_OffsetSel',
-                       'DAU_IncDecBit', 'RegInSel', 'RegASel', 'RegBSel',
-                       'RegAxInSel', 'RegA1Sel', 'RegA2Sel', 'RegOpSel']
+                       'DAU_IncDecBit', 'RegInSelCmd', 'RegASelCmd', 'RegBSelCmd',
+                       'RegAxInSelCmd', 'RegA1SelCmd', 'RegA2SelCmd', 'RegOpSel']
 
 for instruction, control_signals in instruction_decoding.items():
     vhdl_str += f"if std_match(IR, {instruction}) then\n"

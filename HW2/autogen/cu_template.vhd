@@ -21,7 +21,7 @@ use ieee.std_logic_1164.all;
 use work.GenericConstants.all;
 use work.RegArrayConstants.all;
 
-package CUConstants is
+package InstConstants is
 
     -- Data Transfer Instructions (Table 5.3)
     constant OpMOV_Imm_To_Rn          : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "1110------------";
@@ -83,7 +83,7 @@ package CUConstants is
     -- TODO: DIV0U
     -- TODO: DMULS.L
     -- TODO: DMULU.L
-    constant OpCMP_DT       : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00010000";
+    constant OpDT           : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00010000";
     constant OpEXTS_B       : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0110--------1110";
     constant OpEXTS_W       : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0110--------1111";
     constant OpEXTU_B       : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0110--------1100";
@@ -180,26 +180,60 @@ package CUConstants is
     
     constant OpBoot                  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000000000";
 
+end package;
 
-    constant ALUOpACmd_RegA  : std_logic_vector(1 downto 0) := "00";
-    constant ALUOpACmd_DB    : std_logic_vector(1 downto 0) := "01";
+--
+-- Package containing constants for the control unit.
+--
 
-    constant ALUOpBCmd_RegB  : std_logic_vector(1 downto 0) := "00";
-    constant ALUOpBCmd_Imm   : std_logic_vector(1 downto 0) := "00";
+library ieee;
+use ieee.std_logic_1164.all;
+use work.GenericConstants.all;
+use work.RegArrayConstants.all;
 
-    constant RegInSel_Rn : integer range 1 downto 0 := 0;
+package CUConstants is
 
-    constant RegASel_Rm : integer range 2 downto 0 := 0;
-    constant RegASel_Rn : integer range 2 downto 0 := 1;
-    constant RegASel_R0 : integer range 2 downto 0 := 2;
+    -- ALUOpASel - select input for ALUOpA
+    constant ALUOpASel_RegA  : integer range 1 downto 0 := 0;
+    constant ALUOpASel_DB    : integer range 1 downto 0 := 1;
 
 
-    constant RegBSel_Rm : integer range 2 downto 0 := 0;
+    -- ALUOpBSel - select input for ALUOpB
+    constant ALUOpBSel_RegB         : integer range 2 downto 0 := 0;
+    constant ALUOpBSel_Imm_Signed   : integer range 2 downto 0 := 1;
+    constant ALUOpBSel_Imm_Unsigned : integer range 2 downto 0 := 2;
+
+    -- RegInSrcSel - select inputs to RegIn
+    -- constant RegInSrcSel_Result : integer
+
+    -- RegInSel - select where to save input to RegIn
+    constant RegInSelCmd_Rn : integer range 1 downto 0 := 0;
+    constant RegInSelCmd_R0 : integer range 1 downto 0 := 1;
+
+    -- RegASelCmd - select what RegA outputs
+    constant RegASelCmd_Rn : integer range 1 downto 0 := 0;
+    constant RegASelCmd_DB : integer range 1 downto 0 := 1;
+
+    -- RegBSelCmd - select what RegB outputs
+    constant RegBSelCmd_Rm : integer range 1 downto 0 := 0;
+    constant RegBSelCmd_R0 : integer range 1 downto 0 := 1;
     
+    -- RegA1SelCmd - select what RegA1 outputs
+    constant RegA1SelCmd_Rn : integer range 2 downto 0 := 0;
+    constant RegA1SelCmd_Rm : integer range 2 downto 0 := 1;
+    constant RegA1SelCmd_R0 : integer range 2 downto 0 := 2;
 
-    constant RegA1Sel_Rn : integer range 2 downto 0 := 0;
-    constant RegA1Sel_Rm : integer range 2 downto 0 := 1;
-    constant RegA1Sel_R0 : integer range 2 downto 0 := 2;
+    -- DBOutSel - select output of databus
+    constant DBOutSel_Result : integer range 5 downto 0 := 0;
+    constant DBOutSel_SR     : integer range 5 downto 0 := 1;
+    constant DBOutSel_GBR    : integer range 5 downto 0 := 2;
+    constant DBOutSel_VBR    : integer range 5 downto 0 := 3;
+    constant DBOutSel_PR     : integer range 5 downto 0 := 4;
+    constant DBOutSel_PC     : integer range 5 downto 0 := 5;
+
+    -- ABSel - select output of address bus
+    constant ABSel_Prog : integer range 1 downto 0 := 0;
+    constant ABSel_Data : integer range 1 downto 0 := 1;
 
     constant unused : integer := 0;
 
@@ -222,6 +256,7 @@ use work.DAUConstants.all;
 use work.PAUConstants.all;
 use work.RegArrayConstants.all;
 use work.StatusRegConstants.all;
+use work.InstConstants.all;
 
 entity CU is
 
@@ -234,8 +269,8 @@ entity CU is
         IR      : out   std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
 
         -- ALU Control Signals
-        ALUOpACmd   : out     std_logic_vector(1 downto 0);
-        ALUOpBCmd   : out     std_logic_vector(1 downto 0);                          
+        ALUOpASel   : out     integer range 1 downto 0 := 0;
+        ALUOpBSel   : out     integer range 2 downto 0 := 0;
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
         SCmd        : out     std_logic_vector(3 downto 0);            
@@ -260,15 +295,15 @@ entity CU is
         DAU_LoadGBR     : out   std_logic;
 
         -- RegArray Control Signals
-        RegInSel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegInSelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegStore   : out   std_logic;
-        RegASel    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegBSel    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegAxInSel : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegASelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegBSelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegAxInSelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegAxStore : out   std_logic;
-        RegA1Sel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegA2Sel   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegOpSel   : out   integer  range REGOp_SrcCnt - 1 downto 0;
+        RegA1SelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegA2SelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegOpSel : out   integer  range REGOp_SrcCnt - 1 downto 0;
     
         -- IO Control signals
         RD      : out   std_logic;

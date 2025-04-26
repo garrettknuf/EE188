@@ -1,10 +1,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                                                                             ;
-;                    Fibonacci Sequence Test                                  ;
+;                          Fibonacci Sequence Test                            ;
 ;                                                                             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .text
+
+InitReg:                        ; just load zeros for simulation so no undefined
+    MOV     #0, R0
+    MOV     #0, R1
+    MOV     #0, R2
+    MOV     #0, R3
+    MOV     #0, R4
 
 FibInit:
     MOV     #0, R1  ; F(0)
