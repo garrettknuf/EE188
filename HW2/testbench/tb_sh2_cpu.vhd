@@ -19,6 +19,9 @@ library osvvm;
 use osvvm.AlertLogPkg.all;
 
 entity tb_sh2_cpu is
+    generic (
+        memory_file_path : string := "no_file_provided.txt"
+    );
 end tb_sh2_cpu;
 
 architecture TB_ARCHITECTURE of tb_sh2_cpu is
@@ -54,6 +57,8 @@ architecture TB_ARCHITECTURE of tb_sh2_cpu is
     -- Signal used to stop clock signal generators
     signal END_SIM  : std_logic   := '0';
 
+    file romfile : text;
+
 begin
 
     -- Unit Under Test port map
@@ -79,7 +84,12 @@ begin
     -- Address bus control
 
 
-
+    process
+    begin
+        -- Read ROM from a file
+        file_open(romfile, memory_file_path, read_mode);
+        wait;
+    end process;
 
     -- Main test loop
     main: process
@@ -89,11 +99,11 @@ begin
         variable rom : rom_type := (others => (others => '0'));
 
         -- Set up loading ROM from a file
-        file romfile : text open read_mode is "../testbench/rom_data.txt";
+        -- file romfile : text open read_mode is memory_file_path;
         variable line_buf : line;
         variable str_buf : string(1 to 16);
         variable i : integer := 0;
-        file file_ROM : text;
+        -- file file_ROM : text;
 
         --
         -- dump_rom_to_file
@@ -102,8 +112,8 @@ begin
         -- It prints a 16-bit binary string on each line for each word in
         -- ascending order of addresses.
         --
-        procedure dump_rom_to_file is
-            file dump_file : text open write_mode is "rom_dump.txt";
+        procedure dump_rom_to_file(dump_filname : in string) is
+            file dump_file : text open write_mode is dump_filname;
             variable dump_line_buf : line;
             variable dump_word_str : string(1 to 16);
         begin
@@ -123,10 +133,10 @@ begin
             end loop;
         end procedure;
 
-    begin
+        
+        
 
-        -- Read ROM from a file
-        file_open(file_ROM, "../testbench/rom_data.txt", read_mode);
+    begin
 
         while not endfile(romfile) loop
             -- Read binary string
@@ -152,21 +162,13 @@ begin
         RST <= '0';
         wait for 20 ns;
         RST <= '1';
-        -- ROM_Data <= rom(to_integer(shift_right(unsigned(AB), 1)));
-
-        -- wait for 20 ns;
-
-        -- ROM_Data <= rom(to_integer(shift_right(unsigned(AB), 1)));
-
-        -- wait for 100 ns;
 
         while (ROM_Data /= ZERO_WORD and RD = '1') loop
-            report integer'image(to_integer(shift_right(unsigned(AB), 1)));
             ROM_Data <= rom(to_integer(shift_right(unsigned(AB), 1)));
             wait for 20 ns;
         end loop;
 
-        dump_rom_to_file;
+        dump_rom_to_file("../asm_tests/mem_dump/dump.txt");
 
         -- End of testbench reached
         END_SIM <= '1';

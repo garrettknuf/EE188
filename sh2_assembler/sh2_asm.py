@@ -6,6 +6,7 @@ import re
 import sys
 import struct
 import math
+import os
 
 # Convert n in Rn to integer value
 REGISTER_MAP = {
@@ -460,7 +461,6 @@ if __name__ == '__main__':
         if branch[0] in ['BF', 'BF/S', 'BT', 'BT/S']:
             # 8-bit displacement
             output_bin = format(offset & 0x00FF, '08b')
-            print(output_bin)
             for i in range(8, 16):
                 old_line = output_lines[(int)(branch_instr_addr / 2)]
                 new_line = old_line[0:8] + output_bin + old_line[16:]
@@ -479,4 +479,4 @@ if __name__ == '__main__':
         for line in output_lines:
             out_file.write(line)
 
-        print(f"Assembly complete...result in '{sys.argv[2]}'")
+        print(f"'{os.path.basename(sys.argv[1])}' to '{sys.argv[2]}'")

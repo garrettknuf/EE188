@@ -178,7 +178,7 @@ package InstConstants is
     constant OpSTSL_PR_To_At_Dec_Rn  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0100----00100010";
     constant OpTRAPA                 : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "11000011--------";
     
-    constant OpBoot                  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000000000";
+    constant OpIdle                  : std_logic_vector(DATA_BUS_SIZE-1 downto 0) := "0000000000000000";
 
 end package;
 
@@ -266,7 +266,7 @@ entity CU is
         RST     : in    std_logic;
         DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
         SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
-        IR      : out   std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+        IR      : out   std_logic_vector(DATA_BUS_SIZE - 1 downto 0) := OpIdle;
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range 1 downto 0 := 0;
@@ -342,7 +342,7 @@ begin
             if RST = '1' then
                 IR <= DB when UpdateIR = '1' else IR;
             else
-                IR <= OpBoot;
+                IR <= OpIdle;
             end if;
         end if;
 
@@ -4255,7 +4255,7 @@ begin
 			WR <= '0';
 			NextState <= TRAPA_Init;
 			UpdateIR <= '1';
-		elsif std_match(IR, OpBoot) then
+		elsif std_match(IR, OpIdle) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
 			FCmd <= (others => '-');

@@ -99,7 +99,7 @@ try:
     # Change the destination file to read-only
     os.chmod(dest_file, 0o444)
     
-    print(f"Successfully auto-generated code for '{dest_file}'")
+    # print(f"Successfully auto-generated code for '{dest_file}'")
     
 except Exception as e:
     print(f"An error occurred: {e}")
