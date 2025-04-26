@@ -3628,8 +3628,8 @@ begin
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
-			DAU_SrcSel <= unused;
-			DAU_OffsetSel <= unused;
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
@@ -3640,7 +3640,7 @@ begin
 			RegBSelCmd <= 0;
 			RegAxInSelCmd <= 0;
 			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
+			RegA1SelCmd <= RegASelCmd_Rn;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
 			RD <= '1';
@@ -3660,8 +3660,8 @@ begin
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
-			DAU_SrcSel <= unused;
-			DAU_OffsetSel <= unused;
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
@@ -3672,7 +3672,7 @@ begin
 			RegBSelCmd <= 0;
 			RegAxInSelCmd <= 0;
 			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
+			RegA1SelCmd <= RegASelCmd_Rn;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
 			RD <= '1';
@@ -3692,8 +3692,8 @@ begin
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
-			DAU_SrcSel <= unused;
-			DAU_OffsetSel <= unused;
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
@@ -3704,7 +3704,7 @@ begin
 			RegBSelCmd <= 0;
 			RegAxInSelCmd <= 0;
 			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
+			RegA1SelCmd <= RegASelCmd_Rn;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
 			RD <= '1';

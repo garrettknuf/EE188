@@ -254,7 +254,7 @@ architecture structural of SH2_CPU is
     signal ALUOpA : std_logic_vector(LONG_SIZE-1 downto 0);
     signal ALUOpB : std_logic_vector(LONG_SIZE-1 downto 0);
 
-    signal DB_Out : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+    signal DBOut : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
     signal IR : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
@@ -297,7 +297,15 @@ begin
     RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
     RegBSel <= to_integer(unsigned(IR(7 downto 4)));
 
+    RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegA1SelCmd_Rn else 0;
 
+    DBOut <= ALU_Result when DBOutSel = DBOutSel_Result else
+            --  SR when DBOutSel = DBOutSel_SR else
+            --  DAU_GBR when DBOutSel = DBOutSel_GBR else
+             -- ALU_Result when DBOutSel = DBOutSel_VBR else
+            --  PAU_PR when DBOutSel = DBOutSel_PR else
+            --  PAU_PC when DBOutSel = DBOutSel_PC else
+             (others => 'X');
 
     DB <= DB_Out            when WR = '1' else
           (others => 'Z')   when RD = '1' else

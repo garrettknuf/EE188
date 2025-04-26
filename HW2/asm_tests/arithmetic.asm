@@ -20,8 +20,8 @@
 .text
 
 InitGBR:                    ; set GBR to prepare writing to memory
-    MOV     #0, R0          ; GBR = 0x00000100 (256)
-    MOV.L   @(64, R0), R1
+    MOV     #100, R1          ; GBR = 0x00000100 (256)
+    ; MOV.L   #100, R1
     LDC     R1, GBR
 
 ADDTests:
