@@ -16,8 +16,8 @@ use std.textio.all;
 use work.GenericConstants.all;
 use work.CUConstants.all;
 
-library osvvm;
-use osvvm.AlertLogPkg.all;
+-- library osvvm;
+-- use osvvm.AlertLogPkg.all;
 
 entity tb_sh2_cpu is
     generic (
@@ -79,11 +79,10 @@ begin
         DB <= (others =>  'Z')  when WR = '1' else
               ROM_Data          when RD = '1' else
               (others => 'X');
-
     end process;
 
     -- Address bus control
-
+    
 
     process
     begin
@@ -114,26 +113,20 @@ begin
         procedure dump_rom_to_file(dump_filname : in string) is
             file dump_file : text open write_mode is dump_filname;
             variable dump_line_buf : line;
-            variable dump_word_str : string(1 to 32);
-        begin
-            for dump_i in rom'range loop
-                for dump_j in 0 to 31 loop
-                    if rom(dump_i)(dump_j) = '1' then
-                        dump_word_str(31 - dump_j + 1) := '1';
-                    elsif rom(dump_i)(dump_j) = '0' then
-                        dump_word_str(31 - dump_j + 1) := '0';
-                    else
-                        dump_word_str(31 - dump_j + 1) := 'X';
-                    end if;                    
-                end loop;
+            variable dump_word_str : string(1 to 16);  -- 16-bit string for output
+            variable byte_value : std_logic_vector(7 downto 0);  -- 8-bit std_logic_vector for the byte value
 
-                write(dump_line_buf, dump_word_str(1 to 32));
+            variable dump_i : integer := 0;
+        begin
+
+            while dump_i < rom'length-1 loop
+                dump_word_str(1 to 8) := to_string(rom(dump_i));
+                dump_word_str(9 to 16) := to_string(rom(dump_i + 1));
+                write(dump_line_buf, dump_word_str(1 to 16));
                 writeline(dump_file, dump_line_buf);
+                dump_i := dump_i + 2;
             end loop;
         end procedure;
-
-        
-        
 
     begin
 
@@ -142,8 +135,6 @@ begin
             -- Read binary string
             readline(romfile, line_buf);
             read(line_buf, str_buf);
-
-            report str_buf;
 
             -- Convert binary string to slv and set in ROM
             for j in 1 to 16 loop
@@ -165,18 +156,29 @@ begin
         wait for 20 ns;
         RST <= '1';
 
-        while (ROM_Data /= ZERO_LONG) loop
+        while (END_SIM = '0' and not(DB(15 downto 0) = "1111111111111111" and RD = '1')) loop
             -- ROM_Data <= rom(to_integer(shift_right(unsigned(AB), 1)));
             ROM_Data <= rom(to_integer(unsigned(AB))) & rom(to_integer(unsigned(AB)+1)) &
                         rom(to_integer(unsigned(AB)+2)) & rom(to_integer(unsigned(AB)+3));
-            wait for 20 ns;
+            wait for 2 ns;
+
+            if WR = '1' and RD = '0' then
+                rom(to_integer(unsigned(AB)))   := DB(31 downto 24);
+                rom(to_integer(unsigned(AB)+1)) := DB(23 downto 16);
+                rom(to_integer(unsigned(AB)+2)) := DB(15 downto 8);
+                rom(to_integer(unsigned(AB)+3)) := DB(7 downto 0);
+            end if;
+
+            -- AlertIf(WR = '1' and RD = '1', "Fail (simultaneous read and write)");
+
         end loop;
 
-        -- dump_rom_to_file("../asm_tests/mem_dump/dump.txt");
+        dump_rom_to_file("../asm_tests/mem_dump/dump.txt");
 
         -- End of testbench reached
         END_SIM <= '1';
-        Log("Testbench executed");
+        -- Log("Testbench executed");
+        report "'" & memory_file_path(20 to memory_file_path'length-4) & "'" & " testbench executed.";
 
         wait;
     end process;
@@ -198,5 +200,13 @@ begin
             wait;
         end if;
     end process;
+
+    -- -- Timeout process forked off
+    -- forked_timeout : process
+    -- begin
+    --     wait for 5 us;  -- <-- adjust this duration as you want
+    --     END_SIM <= '1';  -- this will stop the clock
+    --     wait;
+    -- end process forked_timeout;
 
 end TB_ARCHITECTURE;

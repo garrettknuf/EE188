@@ -211,8 +211,9 @@ package CUConstants is
     constant RegInSelCmd_R0 : integer range 1 downto 0 := 1;
 
     -- RegASelCmd - select what RegA outputs
-    constant RegASelCmd_Rn : integer range 1 downto 0 := 0;
-    constant RegASelCmd_DB : integer range 1 downto 0 := 1;
+    constant RegASelCmd_Rn : integer range 2 downto 0 := 0;
+    constant RegASelCmd_DB : integer range 2 downto 0 := 1;
+    constant RegASelCmd_R0 : integer range 2 downto 0 := 2;
 
     -- RegBSelCmd - select what RegB outputs
     constant RegBSelCmd_Rm : integer range 1 downto 0 := 0;
@@ -232,8 +233,8 @@ package CUConstants is
     constant DBOutSel_PC     : integer range 5 downto 0 := 5;
 
     -- ABSel - select output of address bus
-    constant ABSel_Prog : integer range 1 downto 0 := 0;
-    constant ABSel_Data : integer range 1 downto 0 := 1;
+    constant ABOutSel_Prog : integer range 1 downto 0 := 0;
+    constant ABOutSel_Data : integer range 1 downto 0 := 1;
 
     constant unused : integer := 0;
 
@@ -269,6 +270,8 @@ entity CU is
         IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := OpIdle;
 
         DBOutSel : out integer range 5 downto 0;
+
+        ABOutSel : out integer range 1 downto 0;
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range 1 downto 0 := 0;
@@ -317,40 +320,102 @@ end CU;
 
 architecture behavioral of CU is
 
-    constant Idle           : integer := 0;
-    constant Fetch          : integer := 1;
-    constant WaitForRead    : integer := 2;
-    constant BranchSlot     : integer := 3;
+    constant Normal         : integer := 0;
+    constant WaitForFetch   : integer := 1;
+    constant WriteByte_Mask : integer := 2;
+    constant WriteWord_Mask     : integer := 3;
     constant WaitForReadPostInc : integer := 4;
     constant RTE_Init : integer := 5;
     constant TRAPA_Init : integer := 6;
     constant STATE_CNT      : integer := 7;
 
     signal NextState : integer range STATE_CNT-1 downto 0;
+    signal CurrentState : integer range STATE_CNT-1 downto 0;
 
     signal UpdateIR : std_logic;
 
     signal Tbit : std_logic;
 
+    signal MemRD : std_logic;
+    signal MemWR : std_logic;
+
 begin
 
     Tbit <= SR(0);
 
-    -- Control Unit FSM
+    -- Control Unit Registers
     process (CLK)
     begin
 
         if rising_edge(CLK) then
             if RST = '1' then
                 IR <= DB(31 downto 16) when UpdateIR = '1' else IR;
+                CurrentState <= NextState;
             else
                 IR <= OpIdle;
+                CurrentState <= Normal;
             end if;
-        end if;
 
+            -- Memory access avoided since address bus changing
+            RD <= '0';
+            WR <= '0';
+        end if;
+        
+        if falling_edge(CLK) then
+            RD <= MemRD;
+            WR <= MemWR;
+        end if;
     end process;
+    
+    process (all)
+    begin
 
     -- Instruction decoding (auto-generated)
     -- <AUTO-GEN PLACEHOLDER (do not remove or modify): Instruction decoding>
+
+    -- end of auto-generated code (continue process)
+
+    -- Finite State Machine (FSM)
+    -- These commands override the above instruction decoding when the control
+    -- unit is in the non-default state.
+
+        if CurrentState = WaitForFetch then
+            ALUOpASel <= ALUOpASel_RegA;
+            ALUOpBSel <= ALUOpBSel_RegB;
+            FCmd <= (others => '-');
+            CinCmd <= (others => '-');
+            SCmd <= (others => '-');
+            ALUCmd <= (others => '-');
+            TbitOp <= (others => '-');
+            UpdateTbit <= '0';
+            PAU_SrcSel <= PAU_AddrPC;
+            PAU_OffsetSel <= PAU_OffsetWord;
+            PAU_UpdatePC <= '1';
+            PAU_UpdatePR <= '0';
+            DAU_SrcSel <= unused;
+            DAU_OffsetSel <= unused;
+            DAU_IncDecSel <= '-';
+            DAU_IncDecBit <= unused;
+            DAU_PrePostSel <= '-';
+            DAU_LoadGBR <= '0';
+            RegInSelCmd <= unused;
+            RegStore <= '0';
+            RegASelCmd <= unused;
+            RegBSelCmd <= unused;
+            RegAxInSelCmd <= unused;
+            RegAxStore <= '0';
+            RegA1SelCmd <= unused;
+            RegA2SelCmd <= unused;
+            RegOpSel <= RegOp_None;
+            MemRD <= '1';
+            MemWR <= '0';
+            ABOutSel <= ABOutSel_Prog;
+            DBOutSel <= unused;
+            NextState <= Normal;
+            UpdateIR <= '1';
+        end if;
+        
+    end process;
+
 
 end behavioral;

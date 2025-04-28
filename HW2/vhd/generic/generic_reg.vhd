@@ -100,7 +100,7 @@ architecture  behavioral  of  GenericRegArray  is
     type  RegType  is array (regcnt - 1 downto 0) of
                       std_logic_vector(wordsize - 1 downto 0);
 
-    signal  Registers : RegType;                -- the register array
+    signal Registers : RegType := (others => (others => '0')); -- the register array
 
     -- aliases for the upper and lower input word
     alias  RegDInHigh : std_logic_vector(wordsize - 1 downto 0) IS

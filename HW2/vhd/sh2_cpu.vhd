@@ -22,7 +22,7 @@
 --    RST   - active-low system reset
 --
 --  In/outs:
---    DB    - data bus (16-bit)
+--    DB    - data bus (32-bit)
 --
 --  Outputs:
 --    AB    - address bus (32-bit)
@@ -147,6 +147,7 @@ architecture structural of SH2_CPU is
             
             IR      : out    std_logic_vector(INST_SIZE - 1 downto 0);
             DBOutSel : out integer range 5 downto 0;
+            ABOutSel : out integer range 1 downto 0;
 
             -- ALU Control Signals
             ALUOpASel   : out     integer range 1 downto 0;
@@ -258,6 +259,8 @@ architecture structural of SH2_CPU is
     signal DBOutSel : integer range 5 downto 0;
     signal DBOut : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
+    signal ABOutSel : integer range 1 downto 0;
+
     signal IR : std_logic_vector(INST_SIZE-1 downto 0);
 
     signal RegInSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
@@ -295,11 +298,11 @@ begin
     RegIn <= ALU_Result;
     RegAxIn <= DAU_AddrIDOut;
 
-    RegInSel <= to_integer(unsigned(IR(11 downto 8)));
+    RegInSel <= to_integer(unsigned(IR(11 downto 8))) when RegInSelCmd = RegInSelCmd_Rn else 0;
     RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
     RegBSel <= to_integer(unsigned(IR(7 downto 4)));
 
-    RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegA1SelCmd_Rn else 0;
+    RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegA1SelCmd = RegA1SelCmd_Rn else 0;
 
     DBOut <= ALU_Result when DBOutSel = DBOutSel_Result else
             --  SR when DBOutSel = DBOutSel_SR else
@@ -313,7 +316,11 @@ begin
           (others => 'Z')   when RD = '1' else
           (others => 'X');
 
-    AB <= PAU_ProgAddr;
+    AB <= PAU_ProgAddr when ABOutSel = ABOutSel_Prog else
+          DAU_DataAddr when ABOutSel = ABOutSel_Data else
+          (others => 'X');
+    -- AB <= PAU_ProgAddr;
+
 
     PAU_Offset8 <= IR(7 downto 0);
     PAU_Offset12 <= IR(11 downto 0);
@@ -409,6 +416,9 @@ begin
             DB          => DB,
             SR          => SR,
             IR          => IR,
+
+            DBOutSel    => DBOutSel,
+            ABOutSel    => ABOutSel,
 
             -- ALU Control Signals
             ALUOpASel   => ALUOpASel,

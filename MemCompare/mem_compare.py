@@ -1,90 +1,91 @@
 import sys
-import re
+from pathlib import Path
 
-def convert_to_16bit_patterns_from_file(filename):
-    """
-    Read in file with B.x, W.X, or L.x (byte, word, or long) where x is the value.
-    Convert these into 16-bit binary strings and return a list of them.
-    """
-    # Regular expression to match B.x, w.x, l.x format
-    pattern = re.compile(r'([Bwl])\.(\d+)')
-    bit_positions = set()  # Use a set to avoid duplicates
+def parse_memory(memory_text):
+    """ Read in memory contents generated from assembly build """
+    binary_values = []
     
-    try:
-        # Open the file and read its contents
-        with open(filename, 'r') as file:
-            text = file.read()
+    for line in memory_text.strip().splitlines():
+        # Split at semicolon to remove comments
+        parts = line.split(';')
+        bin_part = parts[0].strip()
         
-        # Find all occurrences of B.x, w.x, l.x
-        matches = pattern.findall(text)
-        print(matches)
-        
-        for match in matches:
-            type_, position = match
-            position = int(position)
-            
-            # Add the bit position to the set
-            bit_positions.add(position)
-        
-        # Convert bit positions to 16-bit patterns
-        bit_patterns = []
-        for pos in bit_positions:
-            if pos < 16:
-                bit_pattern = 1 << pos  # Set the bit at the position
-                # Convert to binary string, pad to 16 bits
-                bit_patterns.append(f'{bit_pattern:016b}')
-        
-        return bit_patterns
-    except FileNotFoundError:
-        print(f"Error: The file '{filename}' was not found.")
-        return []
+        # Only process non-empty binary parts
+        if bin_part:
+            binary_values.append(bin_part)
     
-def read_16bit_binary_file(filename):
-    """Read a file containing 16-bit binary strings."""
-    try:
-        with open(filename, 'r') as file:
-            # Read each line, strip any leading/trailing spaces and store as a list
-            return [line.strip() for line in file.readlines()]
-    except FileNotFoundError:
-        print(f"Error: The file '{filename}' was not found.")
-        return []
+    return binary_values
 
-def compare_patterns(expected_patterns_file, actual_instructions_file):
-    # Step 1: Get the expected 16-bit patterns from the first file
-    expected_patterns = convert_to_16bit_patterns_from_file(expected_patterns_file)
-    
-    if not expected_patterns:
-        print("No expected patterns to compare.")
-        return
-    
-    # Step 2: Read the actual 16-bit binary instructions from the second file
-    actual_instructions = read_16bit_binary_file(actual_instructions_file)
-    
-    if not actual_instructions:
-        print("No actual instructions to compare.")
-        return
-    
-    # Step 3: Compare each 16-bit instruction against expected patterns
-    print("Comparing expected patterns with actual instructions:")
-    for instruction in actual_instructions:
-        if instruction in expected_patterns:
-            print(f"Match: {instruction}")
-        else:
-            print(f"Mismatch: {instruction}")
-
-# Entry point for the script
 if __name__ == "__main__":
 
+
+
     # Check if the correct number of arguments is passed
-    if len(sys.argv) != 3:
-        print("Usage: python script.py <actual_instructions_file> <expected_patterns_file>")
+    if len(sys.argv) != 4:
+        print("Usage: python mem_compare.py <asm_build_file> <mem_dump_file> <expected_mem_file")
         sys.exit(1)
 
-    # Get the filenames from command-line arguments
-    actual_instructions_file = sys.argv[1]
-    expected_patterns_file = sys.argv[2]
+    asm_build_file = sys.argv[1]
+    memory_dump_file = sys.argv[2]
+    expected_memory_file = sys.argv[3]
+    
+    # asm_build_file = '../HW2/asm_tests/build/logic.txt'
+    # memory_dump_file = '../HW2/asm_tests/mem_dump/dump.txt'
+    # expected_memory_file = '../HW2/asm_tests/expected/logic_exp.txt'
 
-    # Call the function to compare patterns
-    compare_patterns(expected_patterns_file, actual_instructions_file)
+    # Open assembly memory build
+    with open(asm_build_file, "r") as asm_file:
+        asm_build_text = asm_file.read()
 
+    # Open memory dump after test
+    with open(memory_dump_file, "r") as dump_file:
+        mem_dump_text = dump_file.read()
+
+    # Open expect data file
+    start_addr = 0
+    exp_value_list = []
+    with open(expected_memory_file, "r") as exp_file:
+        for line_num, line in enumerate(exp_file):
+            line = line.split(';', 1)[0].strip()
+            if line_num == 0:
+                addr_str = line.split(": ")[1]
+                start_addr = int(addr_str, 16)
+            else:
+                if line.startswith("L."):
+                    # Parse the value
+                    value = int(line[2:])
+                    # Split 32-bit value into two 16-bit words
+                    high = (value >> 16) & 0xFFFF
+                    low = value & 0xFFFF
+                    exp_value_list.append(f"{high:016b}")
+                    exp_value_list.append(f"{low:016b}")
+                elif line.startswith("W."):
+                    value = int(line[2:])
+                    exp_value_list.append(f"{value & 0xFFFF:016b}")
+                elif line.startswith("B."):
+                    value = int(line[2:])
+                    # Expand 8-bit byte into a 16-bit word (typically zero-extend)
+                    exp_value_list.append(f"{value & 0xFF:08b}".rjust(16, '0'))
+                else:
+                    print(f"Unknown line: {line}")
+
+    # Move expected values into correct memory contents
+    mem_arr = parse_memory(asm_build_text)
+    for i, bin_str in enumerate(exp_value_list):
+        mem_arr[start_addr//2 + i] = bin_str
+
+    # Check memory contents match
+    dump_arr = parse_memory(mem_dump_text)
+    err_cnt = 0
+    for i, bin in enumerate(mem_arr):
+        if mem_arr[i] != dump_arr[i]:
+            print(f"Error @ 0x{i * 2:04X}: {mem_arr[i]} != {dump_arr[i]}")
+            err_cnt += 1
+
+    # Output test results
+    test_name = Path(asm_build_file).stem
+    if err_cnt == 0:
+        print(f"'{test_name}.asm' tests passed!")
+    else:
+        print(f"Tests failed: {err_cnt} errors.")
 

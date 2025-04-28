@@ -20,7 +20,11 @@
 .text
 
 InitGBR:                    ; set GBR to prepare writing to memory
-    MOV     #100, R1          ; GBR = 0x00000100 (256)
+    MOV     #100, R1          ; GBR = 
+    MOV     #100, R2          ; GBR = 
+    ADD     R2, R1
+    MOV     #56, R2          ; GBR = 
+    ADD     R2, R1
     ; MOV.L   #100, R1
     LDC     R1, GBR
 
@@ -92,33 +96,33 @@ CMPEQTest:
 CMPHSTest:
     CMP/HS  R3, R5       ; 17 >= 17 (true)
     BF      TestFail
-    CMP/HS  R3, R4       ; 17 >= -9 (unsigned) (false)
+    CMP/HS  R4, R3       ; 17 >= -9 (unsigned) (false)
     BT      TestFail
-    CMP/HS  R6, R5       ; 30 >= 17 (true)
+    CMP/HS  R5, R6       ; 30 >= 17 (true)
     BF      TestFail
 
 CMPGETest:
     CMP/GE  R3, R5       ; 17 >= 17 (true)
     BF      TestFail
-    CMP/GE  R3, R4       ; 17 >= -9 (true)
+    CMP/GE  R4, R3       ; 17 >= -9 (true)
     BF      TestFail
-    CMP/GE  R5, R6       ; 17 >= 30 (false)
+    CMP/GE  R6, R5       ; 17 >= 30 (false)
     BT      TestFail
 
 CMPHITest:
     CMP/HI  R3, R5       ; 17 > 17 (false)
     BT      TestFail
-    CMP/HI  R3, R4       ; 17 > -9 (unsigned) (false)
+    CMP/HI  R4, R3       ; 17 > -9 (unsigned) (false)
     BT      TestFail
-    CMP/HI  R6, R5       ; 30 > 17 (true)
+    CMP/HI  R5, R6       ; 30 > 17 (true)
     BF      TestFail
 
 CMPGTTest:
     CMP/HI  R3, R5       ; 17 > 17 (false)
     BT      TestFail
-    CMP/HI  R3, R4       ; 17 > -9 (true)
+    CMP/HI  R4, R3       ; 17 > -9 (true)
     BF      TestFail
-    CMP/HI  R6, R5       ; 30 > 17 (true)
+    CMP/HI  R5, R6       ; 30 > 17 (true)
     BF      TestFail
 
 CMPPLTest:
@@ -141,4 +145,9 @@ CMPSTRTest:
     ; TODO
 
 TestFail:
+    MOV #-1, R0
+
+TestEnd:
+    END_SIM true
+
     

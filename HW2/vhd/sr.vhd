@@ -68,10 +68,10 @@ begin
     process (CLK)
     begin
 
-        if rising_edge(CLK) then
+        if rising_edge(CLK)  and UpdateTbit = '1' then
 
             -- Change T bit if it should be updated
-            SR(StatusReg_Tbit) <= Tbit when UpdateTbit = '1' else SR(StatusReg_Tbit);
+            SR(StatusReg_Tbit) <= Tbit;
 
         end if;
 

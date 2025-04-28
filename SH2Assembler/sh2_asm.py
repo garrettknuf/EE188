@@ -108,6 +108,7 @@ INSTRUCTION_SET = {
     ("MOV", ("reg", "reg")):        lambda rm, rn: 0x6003 | (rn << 8) | (rm << 4),
     ("NEG", ("reg", "reg")):        lambda rm, rn: 0x600B | (rn << 8) | (rm << 4),
     ("NEGC", ("reg", "reg")):       lambda rm, rn: 0x600A | (rn << 8) | (rm << 4),
+    ("NOT", ("reg", "reg")):        lambda rm, rn: 0x6007 | (rn << 8) | (rm << 4),
     ("OR", ("reg", "reg")):         lambda rm, rn: 0x200B | (rn << 8) | (rm << 4),
     ("SUBC", ("reg", "reg")):       lambda rm, rn: 0x300A | (rn << 8) | (rm << 4),
     ("SUBV", ("reg", "reg")):       lambda rm, rn: 0x300B | (rn << 8) | (rm << 4),
@@ -122,9 +123,9 @@ INSTRUCTION_SET = {
     ("MOV.B", ("reg", "mem")):  lambda rm, rn: 0x2000 | (rn << 8) | (rm << 4),
     ("MOV.W", ("reg", "mem")):  lambda rm, rn: 0x2001 | (rn << 8) | (rm << 4),
     ("MOV.L", ("reg", "mem")):  lambda rm, rn: 0x2002 | (rn << 8) | (rm << 4),
-    ("MOV.B", ("reg", "mem")):  lambda rm, rn: 0x6000 | (rn << 8) | (rm << 4),
-    ("MOV.W", ("reg", "mem")):  lambda rm, rn: 0x6001 | (rn << 8) | (rm << 4),
-    ("MOV.L", ("reg", "mem")):  lambda rm, rn: 0x6002 | (rn << 8) | (rm << 4),
+    ("MOV.B", ("mem", "reg")):  lambda rm, rn: 0x6000 | (rn << 8) | (rm << 4),
+    ("MOV.W", ("mem", "mem")):  lambda rm, rn: 0x6001 | (rn << 8) | (rm << 4),
+    ("MOV.L", ("mem", "reg")):  lambda rm, rn: 0x6002 | (rn << 8) | (rm << 4),
 
     # nm Format Post Increment Indirect Register (Multiply/Accumulate Operation)
     # Table A.34
@@ -167,8 +168,8 @@ INSTRUCTION_SET = {
     # d Format Indirect GBR with Displacement
     # Table A.41
     ("MOV.B", ("reg", "indexed_gbr")): lambda r0, d: 0xC000 | (d & 0x00FF),
-    ("MOV.W", ("reg", "indexed_gbr")): lambda r0, d: 0xC001 | (d & 0x00FF),
-    ("MOV.L", ("reg", "indexed_gbr")): lambda r0, d: 0xC002 | (d & 0x00FF),
+    ("MOV.W", ("reg", "indexed_gbr")): lambda r0, d: 0xC100 | (d & 0x00FF),
+    ("MOV.L", ("reg", "indexed_gbr")): lambda r0, d: 0xC200 | (d & 0x00FF),
     ("MOV.B", ("indexed_gbr", "reg")): lambda d, r0: 0xC400 | (d & 0x00FF),
     ("MOV.W", ("indexed_gbr", "reg")): lambda d, r0: 0xC500 | (d & 0x00FF),
     ("MOV.L", ("indexed_gbr", "reg")): lambda d, r0: 0xC600 | (d & 0x00FF),
@@ -192,7 +193,7 @@ INSTRUCTION_SET = {
     # nd8 Format
     # Table A.45
     ("MOV.W", ("indexed_pc", "reg")): lambda d, rn: 0x9000 | (rn << 8) | (d & 0x00FF),
-    ("MOV.W", ("indexed_pc", "reg")): lambda d, rn: 0xD000 | (rn << 8) | (d & 0x00FF),
+    ("MOV.L", ("indexed_pc", "reg")): lambda d, rn: 0xD000 | (rn << 8) | (d & 0x00FF),
 
     # i Format Indirect Indexed GBR Addressing
     # Table A.46
@@ -217,6 +218,9 @@ INSTRUCTION_SET = {
     # Table A.49
     ("ADD", ("imm", "reg")):    lambda imm, rn: 0x7000 | (rn << 8) | (imm & 0x00FF),
     ("MOV", ("imm", "reg")):    lambda imm, rn: 0xE000 | (rn << 8) | (imm & 0x00FF),
+
+    # debugging instructions
+    ("END_SIM", ("label",)):    lambda label: 0xFFFF,
 
 }
 
@@ -430,7 +434,8 @@ if __name__ == '__main__':
                     data_arr.append(data)
 
         # Start address of data segment
-        DATA_SEG_ADDR = 80
+        DATA_SEG_ADDR = 256
+        DATA_SEG_LEN = 256
 
         # Fill in reset of program code memory up until start of data segment
         while addr < DATA_SEG_ADDR:
@@ -447,6 +452,11 @@ if __name__ == '__main__':
                 output_lines.append(f"{word}\t; 0x{addr:08X} : {left_byte}," +
                                     f"{right_byte} / {dec_val} / {hex_val}\n")
                 addr += 2
+
+        # Fill in data segment with zeros
+        while addr < DATA_SEG_ADDR + DATA_SEG_LEN:
+            output_lines.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
+            addr += 2
 
     # Handle PC relative branches
     for branch in pc_rel_branch_list:
