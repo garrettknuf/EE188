@@ -21,7 +21,8 @@ use work.CUConstants.all;
 
 entity tb_sh2_cpu is
     generic (
-        memory_file_path : string := "no_file_provided.txt" -- file to read memory from
+        mem0_filepath : string := "no_file_provided"; -- file to read memory from
+        mem1_filepath : string := "no_file_provided"  -- file to read memory from
     );
 end tb_sh2_cpu;
 
@@ -31,182 +32,170 @@ architecture TB_ARCHITECTURE of tb_sh2_cpu is
     component SH2_CPU
 
         port (
-            CLK     : in    std_logic;
-            RST     : in    std_logic;
-            DB      : inout std_logic_vector(31 downto 0);
-            AB      : out   std_logic_vector(31 downto 0);
-            RD      : out   std_logic;
-            WR      : out   std_logic
+            Reset   :  in     std_logic;                       -- reset signal (active low)
+            NMI     :  in     std_logic;                       -- non-maskable interrupt signal (falling edge)
+            INT     :  in     std_logic;                       -- maskable interrupt signal (active low)
+            clock   :  in     std_logic;                       -- system clock
+            AB      :  out    std_logic_vector(31 downto 0);   -- memory address bus
+            RE0     :  out    std_logic;                       -- first byte active low read enable
+            RE1     :  out    std_logic;                       -- second byte active low read enable
+            RE2     :  out    std_logic;                       -- third byte active low read enable
+            RE3     :  out    std_logic;                       -- fourth byte active low read enable
+            WE0     :  out    std_logic;                       -- first byte active low write enable
+            WE1     :  out    std_logic;                       -- second byte active low write enable
+            WE2     :  out    std_logic;                       -- third byte active low write enable
+            WE3     :  out    std_logic;                       -- fourth byte active low write enable
+            DB      :  inout  std_logic_vector(31 downto 0)    -- memory data bus
         );
 
     end component;
 
+    -- Component declaration of memory subsystem
+    component MEMORY32x32
+        generic (
+            MEMSIZE     : integer := 256;   -- default size is 256 words
+            START_ADDR0 : integer;          -- starting address of first block
+            START_ADDR1 : integer;          -- starting address of second block
+            START_ADDR2 : integer;          -- starting address of third block
+            START_ADDR3 : integer;          -- starting address of fourth block
+            MEM_FILEPATH0 : string;         -- filepath to first block initial values
+            MEM_FILEPATH1 : string;         -- filepath to second block initial values
+            MEM_FILEPATH2 : string;         -- filepath to third block initial values
+            MEM_FILEPATH3 : string          -- filepath to fourth block initial values
+        );
+        port (
+            RE0    : in     std_logic;      -- low byte read enable (active low)
+            RE1    : in     std_logic;      -- byte 1 read enable (active low)
+            RE2    : in     std_logic;      -- byte 2 read enable (active low)
+            RE3    : in     std_logic;      -- high byte read enable (active low)
+            WE0    : in     std_logic;      -- low byte write enable (active low)
+            WE1    : in     std_logic;      -- byte 1 write enable (active low)
+            WE2    : in     std_logic;      -- byte 2 write enable (active low)
+            WE3    : in     std_logic;      -- high byte write enable (active low)
+            MemAB  : in     std_logic_vector(31 downto 0);  -- memory address bus
+            MemDB  : inout  std_logic_vector(31 downto 0);  -- memory data bus
+            END_SIM : in    std_logic       -- end of simulation
+        );
+    end component;
+
     -- Stimulus signals
-    signal DB   : std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
-    signal RST  : std_logic;
-    signal CLK  : std_logic;
+    signal Reset    : std_logic;
+    signal NMI      : std_logic;
+    signal INT      : std_logic;
+    signal clock    : std_logic;
 
     -- Observed signals
     signal AB  : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-    signal RD  : std_logic;
-    signal WR  : std_logic;
+    signal RE0 : std_logic;
+    signal RE1 : std_logic;
+    signal RE2 : std_logic;
+    signal RE3 : std_logic;
+    signal WE0 : std_logic;
+    signal WE1 : std_logic;
+    signal WE2 : std_logic;
+    signal WE3 : std_logic;
 
-    signal ROM_Data : std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
-
-    constant ZERO_LONG : std_logic_vector(LONG_SIZE-1 downto 0) := "00000000000000000000000000000000";
+    -- Bi-directional signals
+    signal DB   : std_logic_vector(31 downto 0);
 
     -- Signal used to stop clock signal generators
     signal END_SIM  : std_logic   := '0';
 
     file romfile : text;
 
+    signal RE : std_logic_vector(3 downto 0);
+    signal wE : std_logic_vector(3 downto 0);
+
 begin
+
+    RE <= RE3 & RE2 & RE1 & RE0;
+    WE <= WE3 & WE2 & WE1 & WE0;
 
     -- Unit Under Test port map
     UUT : SH2_CPU
-        port map(
-            CLK     => CLK,
-            RST     => RST,
-            DB      => DB,
-            AB      => AB,
-            RD      => RD,
-            WR      => WR
+        port map (
+            Reset => Reset,
+            NMI => NMI,
+            INT => INT,
+            clock => clock,
+            AB => AB,
+            RE0 => RE0,
+            RE1 => RE1,
+            RE2 => RE2,
+            RE3 => RE3,
+            WE0 => WE0,
+            WE1 => WE1,
+            WE2 => WE2,
+            WE3 => WE3,
+            DB => DB
         );
 
-    -- Data bus control
-    databus: process (DB, RD, WR, ROM_Data, AB)
-    begin
-        DB <= (others =>  'Z')  when WR = '1' else
-              ROM_Data          when RD = '1' else
-              (others => 'X');
-    end process;
+    MUT : MEMORY32x32
+        generic map(
+            MEMSIZE         => 256,
+            START_ADDR0     => 0,
+            START_ADDR1     => 256,
+            START_ADDR2     => 512,
+            START_ADDR3     => 768,
+            MEM_FILEPATH0  => mem0_filepath,
+            MEM_FILEPATH1  => mem1_filepath,
+            MEM_FILEPATH2  => "memfile2.txt",
+            MEM_FILEPATH3  => "memfile3.txt"
+        )
+        port map (
+            RE0 => RE0,
+            RE1 => RE1,
+            RE2 => RE2,
+            RE3 => RE3,
+            WE0 => WE0,
+            WE1 => WE1,
+            WE2 => WE2,
+            WE3 => WE3,
+            MemAB => AB,
+            MemDB => DB,
+            END_SIM => END_SIM
+        );
 
-    -- Address bus control
-    
-
-    process
-    begin
-        -- Read ROM from a file
-        file_open(romfile, memory_file_path, read_mode);
-        wait;
-    end process;
 
     -- Main test loop
     main: process
 
-        -- Set up ROM data structure
-        type rom_type is array(0 to 1024) of std_logic_vector(7 downto 0);
-        variable rom : rom_type := (others => (others => '0'));
-
-        -- Set up loading ROM from a file
-        variable line_buf : line;
-        variable str_buf : string(1 to 16);
-        variable i : integer := 0;
-
-        --
-        -- dump_rom_to_file
-        --
-        -- This procedure dumps the contents of the rom array to rom_dump.txt.
-        -- It prints a 32-bit binary string on each line for each word in
-        -- ascending order of addresses.
-        --
-        procedure dump_rom_to_file(dump_filname : in string) is
-            file dump_file : text open write_mode is dump_filname;
-            variable dump_line_buf : line;
-            variable dump_word_str : string(1 to 16);  -- 16-bit string for output
-            variable byte_value : std_logic_vector(7 downto 0);  -- 8-bit std_logic_vector for the byte value
-
-            variable dump_i : integer := 0;
-        begin
-
-            while dump_i < rom'length-1 loop
-                dump_word_str(1 to 8) := to_string(rom(dump_i));
-                dump_word_str(9 to 16) := to_string(rom(dump_i + 1));
-                write(dump_line_buf, dump_word_str(1 to 16));
-                writeline(dump_file, dump_line_buf);
-                dump_i := dump_i + 2;
-            end loop;
-        end procedure;
-
     begin
 
-        i := 0;
-        while not endfile(romfile) loop
-            -- Read binary string
-            readline(romfile, line_buf);
-            read(line_buf, str_buf);
-
-            -- Convert binary string to slv and set in ROM
-            for j in 1 to 16 loop
-                if str_buf(j) = '1' then
-                    rom(i + (j-1)/8)((16-j) rem 8) := '1';
-                elsif str_buf(j) = '0' then
-                    rom(i + (j-1)/8)((16-j) rem 8) := '0';
-                else
-                    rom(i + (j-1)/8)((16-j) rem 8) := 'X';
-                end if;
-            end loop;
-
-            -- Move to next word in ROM
-            i := i + 2;
-        end loop;
-
         -- Active low reset
-        RST <= '0';
+        reset <= '0';
         wait for 20 ns;
-        RST <= '1';
+        reset <= '1';
 
-        while (END_SIM = '0' and not(DB(15 downto 0) = "1111111111111111" and RD = '1')) loop
-            -- ROM_Data <= rom(to_integer(shift_right(unsigned(AB), 1)));
-            ROM_Data <= rom(to_integer(unsigned(AB))) & rom(to_integer(unsigned(AB)+1)) &
-                        rom(to_integer(unsigned(AB)+2)) & rom(to_integer(unsigned(AB)+3));
-            wait for 2 ns;
+        -- while (END_SIM = '0' and not(DB(15 downto 0) = "1111111111111111" and RE = "0000")) loop
+        --     wait for 2 ns;
+        -- end loop;
 
-            if WR = '1' and RD = '0' then
-                rom(to_integer(unsigned(AB)))   := DB(31 downto 24);
-                rom(to_integer(unsigned(AB)+1)) := DB(23 downto 16);
-                rom(to_integer(unsigned(AB)+2)) := DB(15 downto 8);
-                rom(to_integer(unsigned(AB)+3)) := DB(7 downto 0);
-            end if;
-
-            -- AlertIf(WR = '1' and RD = '1', "Fail (simultaneous read and write)");
-
-        end loop;
-
-        dump_rom_to_file("../asm_tests/mem_dump/dump.txt");
+        wait for 2600 ns;
 
         -- End of testbench reached
         END_SIM <= '1';
-        -- Log("Testbench executed");
-        report "'" & memory_file_path(20 to memory_file_path'length-4) & "'" & " testbench executed.";
 
         wait;
     end process;
 
     -- Clock generation
-    clock: process
+    process
     begin
         if END_SIM = '0' then
-            CLK <= '0';
+            clock <= '0';
             wait for 10 ns;
         else
             wait;
         end if;
 
         if END_SIM = '0' then
-            CLK <= '1';
+            clock <= '1';
             wait for 10 ns;
         else
             wait;
         end if;
     end process;
 
-    -- -- Timeout process forked off
-    -- forked_timeout : process
-    -- begin
-    --     wait for 5 us;  -- <-- adjust this duration as you want
-    --     END_SIM <= '1';  -- this will stop the clock
-    --     wait;
-    -- end process forked_timeout;
 
 end TB_ARCHITECTURE;

@@ -16,30 +16,30 @@ def parse_memory(memory_text):
     
     return binary_values
 
+
 if __name__ == "__main__":
 
-
-
     # Check if the correct number of arguments is passed
-    if len(sys.argv) != 4:
-        print("Usage: python mem_compare.py <asm_build_file> <mem_dump_file> <expected_mem_file")
+    if len(sys.argv) != 2:
+        print("Usage: python mem_compare.py <test_name>")
         sys.exit(1)
 
-    asm_build_file = sys.argv[1]
-    memory_dump_file = sys.argv[2]
-    expected_memory_file = sys.argv[3]
-    
-    # asm_build_file = '../HW2/asm_tests/build/logic.txt'
-    # memory_dump_file = '../HW2/asm_tests/mem_dump/dump.txt'
-    # expected_memory_file = '../HW2/asm_tests/expected/logic_exp.txt'
+    asm_build_file = f"../asm_tests/build/{sys.argv[1]}_mem0.txt"
+    data_build_file = f"../asm_tests/build/{sys.argv[1]}_mem1.txt"
+    expected_memory_file = f"../asm_tests/expected/{sys.argv[1]}_exp.txt"
+    memory_dump_file0 = f"../asm_tests/mem_dump/dump0.txt"
+    memory_dump_file1 = f"../asm_tests/mem_dump/dump1.txt"
 
     # Open assembly memory build
     with open(asm_build_file, "r") as asm_file:
         asm_build_text = asm_file.read()
 
     # Open memory dump after test
-    with open(memory_dump_file, "r") as dump_file:
-        mem_dump_text = dump_file.read()
+    with open(memory_dump_file0, "r") as dump_file0:
+        mem_dump_text0 = dump_file0.read()
+
+    with open(memory_dump_file1, "r") as dump_file1:
+        mem_dump_text1 = dump_file1.read()
 
     # Open expect data file
     start_addr = 0
@@ -72,20 +72,22 @@ if __name__ == "__main__":
     # Move expected values into correct memory contents
     mem_arr = parse_memory(asm_build_text)
     for i, bin_str in enumerate(exp_value_list):
-        mem_arr[start_addr//2 + i] = bin_str
+        mem_arr.append(bin_str)
 
     # Check memory contents match
-    dump_arr = parse_memory(mem_dump_text)
+    dump_arr0 = parse_memory(mem_dump_text0)
+    dump_arr1 = parse_memory(mem_dump_text1)
+    dump_arr0.extend(dump_arr1)
     err_cnt = 0
     for i, bin in enumerate(mem_arr):
-        if mem_arr[i] != dump_arr[i]:
-            print(f"Error @ 0x{i * 2:04X}: {mem_arr[i]} != {dump_arr[i]}")
+        if mem_arr[i] != dump_arr0[i]:
+            print(f"Error @ 0x{i * 2:04X} - expected {mem_arr[i]} - actual {dump_arr0[i]}")
             err_cnt += 1
 
     # Output test results
     test_name = Path(asm_build_file).stem
     if err_cnt == 0:
-        print(f"'{test_name}.asm' tests passed!")
+        print(f"'{test_name[:-5]}.asm' tests passed!")
     else:
         print(f"Tests failed: {err_cnt} errors.")
 

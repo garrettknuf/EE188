@@ -1,5 +1,4 @@
-StartAddr: 0x0100
-L.256   ; start addr
+StartAddr: 0x0400
 L.0     ; fibonacci terms...
 L.1
 L.1

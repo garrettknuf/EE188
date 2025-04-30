@@ -386,8 +386,8 @@ def parse_data(line):
 if __name__ == '__main__':
 
     # Make sure input and output files provided
-    if len(sys.argv) < 3:
-        print("Usage: python3 sh2_asm.py <asm_file> <output_file>")
+    if len(sys.argv) < 2:
+        print("Usage: python3 sh2_asm.py <asm_file>")
         sys.exit(1)
 
     # Code Section
@@ -396,7 +396,16 @@ if __name__ == '__main__':
     SEG_DATA = 2
 
     # List of text lines to output
-    output_lines = []
+    chunk0_output = []
+    chunk1_output = []
+    chunk2_output = []
+    chunk3_output = []
+
+    CHUNK0_ADDR = 1024*0
+    CHUNK1_ADDR = 1024*1
+    CHUNK2_ADDR = 1024*2
+    CHUNK3_ADDR = 1024*3
+    CHUNK_SIZE = 1024
 
     # Read assembly file
     with open(sys.argv[1], 'r') as asm_file:
@@ -424,7 +433,7 @@ if __name__ == '__main__':
                 if asm:
                     text = format(asm, '016b') + f'\t; 0x{addr:08X} : ' + \
                             f"{(lines[line_num].lstrip())}".rstrip('\n') + '\n'
-                    output_lines.append(text)
+                    chunk0_output.append(text)
                     addr += 2
 
             # Parse data segment
@@ -433,29 +442,26 @@ if __name__ == '__main__':
                 if data:
                     data_arr.append(data)
 
-        # Start address of data segment
-        DATA_SEG_ADDR = 256
-        DATA_SEG_LEN = 256
-
-        # Fill in reset of program code memory up until start of data segment
-        while addr < DATA_SEG_ADDR:
-            output_lines.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
+        # Fill in reset of program code memory up until start of next chunk
+        while addr < CHUNK0_ADDR + CHUNK_SIZE:
+            chunk0_output.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
             addr += 2
 
         # Add data segment with comments
+        addr = CHUNK1_ADDR
         for var in data_arr:
             for word in var: 
                 dec_val = int(word, 2)
                 hex_val = hex(dec_val)
                 left_byte = int(word[:8], 2)
                 right_byte = int(word[8:16], 2)
-                output_lines.append(f"{word}\t; 0x{addr:08X} : {left_byte}," +
+                chunk1_output.append(f"{word}\t; 0x{addr:08X} : {left_byte}," +
                                     f"{right_byte} / {dec_val} / {hex_val}\n")
                 addr += 2
 
         # Fill in data segment with zeros
-        while addr < DATA_SEG_ADDR + DATA_SEG_LEN:
-            output_lines.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
+        while addr < CHUNK1_ADDR + CHUNK_SIZE:
+            chunk1_output.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
             addr += 2
 
     # Handle PC relative branches
@@ -472,21 +478,27 @@ if __name__ == '__main__':
             # 8-bit displacement
             output_bin = format(offset & 0x00FF, '08b')
             for i in range(8, 16):
-                old_line = output_lines[(int)(branch_instr_addr / 2)]
+                old_line = chunk0_output[(int)(branch_instr_addr / 2)]
                 new_line = old_line[0:8] + output_bin + old_line[16:]
         elif branch[0] in ['BRA', 'BSR']:
             # 12-bit displacement
             output_bin = format(offset & 0x0FFF, '012b')
             for i in range(4, 16):
-                old_line = output_lines[(int)(branch_instr_addr / 2)]
+                old_line = chunk0_output[(int)(branch_instr_addr / 2)]
                 new_line = old_line[0:4] + output_bin + old_line[16:]
         
-        output_lines[(int)(branch_instr_addr / 2)] = new_line
+        chunk0_output[(int)(branch_instr_addr / 2)] = new_line
 
 
     # Write to output file
-    with open(sys.argv[2], 'w') as out_file:
-        for line in output_lines:
+    output_file_basename =  os.path.splitext(os.path.basename(sys.argv[1]))[0]
+    output_file_path = '../asm_tests/build/'
+
+    with open(output_file_path + output_file_basename + "_mem0.txt", 'w') as out_file:
+        for line in chunk0_output:
             out_file.write(line)
 
-        print(f"'{os.path.basename(sys.argv[1])}' to '{sys.argv[2]}'")
+    with open(output_file_path + output_file_basename + "_mem1.txt", 'w') as out_file:
+        for line in chunk1_output:
+            out_file.write(line)
+

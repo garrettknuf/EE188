@@ -13,21 +13,27 @@
 ----------------------------------------------------------------------------
 
 --
--- SH2_CPU
+--  SH2_CPU
 --
--- This is 
+--  This is the complete entity declaration for the SH-2 CPU.  It is used to
+--  test the complete design.
 --
 --  Inputs:
---    CLK   - system clock
---    RST   - active-low system reset
---
---  In/outs:
---    DB    - data bus (32-bit)
+--    Reset  - active low reset signal
+--    NMI    - active falling edge non-maskable interrupt
+--    INT    - active low maskable interrupt
+--    clock  - the system clock
 --
 --  Outputs:
---    AB    - address bus (32-bit)
---    RD    - read from memory active-high
---    WR    - write to memory active-high
+--    AB     - memory address bus (32 bits)
+--    RE0    - first byte read signal, active low
+--    RE1    - second byte read signal, active low
+--    RE2    - third byte read signal, active low
+--    RE3    - fourth byte read signal, active low
+--    WE0    - first byte write signal, active low
+--    WE1    - second byte write signal, active low
+--    WE2    - third byte write signal, active low
+--    WE3    - fourth byte write signal, active low
 --
 library ieee;
 use ieee.std_logic_1164.all;
@@ -40,18 +46,26 @@ use work.DAUConstants.all;
 use work.RegArrayConstants.all;
 use work.CUConstants.all;
 
-entity SH2_CPU is
+entity  SH2_CPU  is
 
     port (
-        CLK     : in    std_logic;
-        RST     : in    std_logic;
-        DB      : inout std_logic_vector(31 downto 0);
-        AB      : out   std_logic_vector(31 downto 0);
-        RD      : out   std_logic;
-        WR      : out   std_logic
+        Reset   :  in     std_logic;                       -- reset signal (active low)
+        NMI     :  in     std_logic;                       -- non-maskable interrupt signal (falling edge)
+        INT     :  in     std_logic;                       -- maskable interrupt signal (active low)
+        clock   :  in     std_logic;                       -- system clock
+        AB      :  out    std_logic_vector(31 downto 0);   -- memory address bus
+        RE0     :  out    std_logic;                       -- first byte active low read enable
+        RE1     :  out    std_logic;                       -- second byte active low read enable
+        RE2     :  out    std_logic;                       -- third byte active low read enable
+        RE3     :  out    std_logic;                       -- fourth byte active low read enable
+        WE0     :  out    std_logic;                       -- first byte active low write enable
+        WE1     :  out    std_logic;                       -- second byte active low write enable
+        WE2     :  out    std_logic;                       -- third byte active low write enable
+        WE3     :  out    std_logic;                       -- fourth byte active low write enable
+        DB      :  inout  std_logic_vector(31 downto 0)    -- memory data bus
     );
 
-end SH2_CPU;
+end  SH2_CPU;
 
 architecture structural of SH2_CPU is
 
@@ -144,7 +158,7 @@ architecture structural of SH2_CPU is
             RST     : in    std_logic;
             DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
             SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
-            
+            AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
             IR      : out    std_logic_vector(INST_SIZE - 1 downto 0);
             DBOutSel : out integer range 5 downto 0;
             ABOutSel : out integer range 1 downto 0;
@@ -187,8 +201,16 @@ architecture structural of SH2_CPU is
             RegOpSel   : out   integer  range REGOp_SrcCnt - 1 downto 0;
         
             -- IO Control signals
-            RD      : out   std_logic;
-            WR      : out   std_logic
+            RE0     : out   std_logic;
+            RE1     : out   std_logic;
+            RE2     : out   std_logic;
+            RE3     : out   std_logic;
+            WE0     : out   std_logic;
+            WE1     : out   std_logic;
+            WE2     : out   std_logic;
+            WE3     : out   std_logic;
+
+            DB_WR   : out std_logic
         );
     end component;
 
@@ -263,6 +285,8 @@ architecture structural of SH2_CPU is
 
     signal IR : std_logic_vector(INST_SIZE-1 downto 0);
 
+    signal DB_WR : std_logic;
+
     signal RegInSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
     signal RegASelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
     signal RegBSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
@@ -312,9 +336,11 @@ begin
             --  PAU_PC when DBOutSel = DBOutSel_PC else
              (others => 'X');
 
-    DB <= DBOut            when WR = '1' else
-          (others => 'Z')   when RD = '1' else
-          (others => 'X');
+    DB <= DBOut when DB_WR = '0' else (others => 'Z');
+    -- DB <= DBOut            when  (WE0 = '0' or WE1 = '0' or WE2 = '0' or WE3 = '0') else
+    --       (others => 'Z')   when (RE0 = '0' or RE1 = '0' or RE2 = '0' or RE3 = '0') else
+    --       (others => 'X');
+    -- DB <= (others => 'Z');
 
     AB <= PAU_ProgAddr when ABOutSel = ABOutSel_Prog else
           DAU_DataAddr when ABOutSel = ABOutSel_Data else
@@ -324,6 +350,8 @@ begin
 
     PAU_Offset8 <= IR(7 downto 0);
     PAU_Offset12 <= IR(11 downto 0);
+
+
 
     -- Create 32-bit ALU for standard logic and arithmetic operations
     SH2_ALU : ALU
@@ -354,7 +382,7 @@ begin
             RegA1Sel    => RegA1Sel,
             RegA2Sel    => RegA2Sel,
             RegOpSel    => RegOpSel,
-            CLK         => CLK,
+            CLK         => clock,
             RegA        => RegA,
             RegB        => RegB,
             RegA1       => RegA1,
@@ -371,8 +399,8 @@ begin
             OffsetReg  => PAU_OffsetReg,
             UpdatePC   => PAU_UpdatePC,
             UpdatePR   => PAU_UpdatePR,
-            CLK        => CLK,
-            RST        => RST,
+            CLK        => clock,
+            RST        => reset,
             ProgAddr   => PAU_ProgAddr,
             PC         => PAU_PC,
             PR         => PAU_PR
@@ -392,7 +420,7 @@ begin
             IncDecBit  => DAU_IncDecBit,
             PrePostSel => DAU_PrePostSel,
             LoadGBR    => DAU_LoadGBR,
-            CLK        => CLK,
+            CLK        => clock,
             AddrIDOut  => DAU_AddrIDOut,
             DataAddr   => DAU_DataAddr,
             GBR        => DAU_GBR
@@ -403,7 +431,7 @@ begin
         port map (
             Tbit        => ALU_Tbit,
             UpdateTbit  => SR_UpdateTbit,
-            CLK         => CLK,
+            CLK         => clock,
             SR          => SR
         );
 
@@ -411,9 +439,10 @@ begin
     SH2_CU : CU
         port map (
             -- CU Input Signals
-            CLK         => CLK,
-            RST         => RST,
+            CLK         => clock,
+            RST         => reset,
             DB          => DB,
+            AB          => AB,
             SR          => SR,
             IR          => IR,
 
@@ -458,8 +487,16 @@ begin
             RegOpSel     => RegOpSel,
 
             -- IO Control signals
-            RD          => RD,
-            WR          => WR
+            RE0 => RE0,
+            RE1 => RE1,
+            RE2 => RE2,
+            RE3 => RE3,
+            WE0 => WE0,
+            WE1 => WE1,
+            WE2 => WE2,
+            WE3 => WE3,
+
+            DB_WR => DB_WR
         );
 
 end structural;

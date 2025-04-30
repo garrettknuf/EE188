@@ -25,6 +25,8 @@ InitGBR:                    ; set GBR to prepare writing to memory
     ADD     R2, R1
     MOV     #56, R2          ; GBR = 
     ADD     R2, R1
+    SHLL    R1
+    SHLL    R1
     ; MOV.L   #100, R1
     LDC     R1, GBR
 

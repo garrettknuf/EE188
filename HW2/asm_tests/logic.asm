@@ -17,9 +17,12 @@
 .text
 
 InitDataSegAddr:
-    MOV.L   @(64,PC),R0     ; 0x0010
-    ADD     #4, R0          ; add data offset
-    MOV     R0, R10
+    MOV     #64, R0
+    SHLL    R0
+    SHLL    R0
+    SHLL    R0
+    SHLL    R0
+    MOV     R0, R10 ; 1024
 
 ANDTest:
     MOV     #3, R0
@@ -91,8 +94,3 @@ TestFail:
 
 TestEnd:
     END_SIM true
-
-
-.data
-
-DataSegAddr: .long  256
