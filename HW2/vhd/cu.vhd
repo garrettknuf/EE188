@@ -5157,7 +5157,7 @@ begin
 			UpdateIR <= '1';
 		end if;
 
--- State Decoding Autogen
+		-- State Decoding Autogen
 		if CurrentState = WaitForFetch then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
