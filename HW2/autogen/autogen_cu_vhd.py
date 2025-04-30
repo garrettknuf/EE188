@@ -23,20 +23,25 @@ import pandas as pd
 
 # Create dataframe from spreadsheets and use instructions (column 0) as the index
 spreadsheet_file = '../autogen/CUSignals.xlsx'
-df = pd.read_excel(spreadsheet_file, sheet_name="master", index_col=0)
+normal_df = pd.read_excel(spreadsheet_file, sheet_name="master", index_col=0)
+state_df = pd.read_excel(spreadsheet_file, sheet_name="states", index_col=0)
 
 # Create dictionary to store instructions
 instruction_decoding = {}
+state_decoding = {}
 
 # Iterate through each row (each instruction)
-for index, row, in df.iterrows():
+for index, row, in normal_df.iterrows():
     # Convert the row to a dictionary of control signals and add it to dataframe
-    control_signals = row.to_dict()
-    instruction_decoding[index] = control_signals
+    normal_control_signals = row.to_dict()
+    instruction_decoding[index] = normal_control_signals
+
+for index, row, in state_df.iterrows():
+    # Convert the row to a dictionary of control signals and add it to dataframe
+    state_control_signals = row.to_dict()
+    state_decoding[index] = state_control_signals
 
 # Format VHDL
-# vhdl_str = "process (all)\n"
-# vhdl_str += "\tbegin\n\t\t"
 vhdl_str = ""
 std_logic_signal_list = ['DAU_IncDecSel', 'DAU_PrePostSel']
 integer_signal_list = ['PAU_SrcSel', 'PAU_OffsetSel', 'DAU_SrcSel', 'DAU_OffsetSel',
@@ -44,10 +49,11 @@ integer_signal_list = ['PAU_SrcSel', 'PAU_OffsetSel', 'DAU_SrcSel', 'DAU_OffsetS
                        'RegAxInSelCmd', 'RegA1SelCmd', 'RegA2SelCmd', 'RegOpSel',
                        'DBOutSel', 'ABOutSel']
 
-for instruction, control_signals in instruction_decoding.items():
+# Create normal instruction decoding
+for instruction, normal_control_signals in instruction_decoding.items():
     vhdl_str += f"if std_match(IR, {instruction}) then\n"
-    for signal, value in control_signals.items():
-        value = control_signals.get(signal, 'X')
+    for signal, value in normal_control_signals.items():
+        value = normal_control_signals.get(signal, 'X')
 
         if value == '-':
             if signal in std_logic_signal_list:
@@ -67,10 +73,31 @@ for instruction, control_signals in instruction_decoding.items():
         vhdl_str += f"\t\t\t{signal} <= {value};\n"
     vhdl_str += f"\t\tels"
 vhdl_str = vhdl_str[:-3] + "end if;\n" 
-# vhdl_str += "\t end process;"
+vhdl_str += "\n\t\t-- State Decoding Autogen\n\t\t"
+# Create state decoding
+for state, state_control_signals in state_decoding.items():
+    vhdl_str += f"if CurrentState = {state} then\n"
+    for signal, value in state_control_signals.items():
+        value = state_control_signals.get(signal, 'X')
 
-# with open('ir_decoding.vhdl', 'w') as f:
-#     f.write(vhdl_str)
+        if value == '-':
+            if signal in std_logic_signal_list:
+                value = "'-'"
+            else:
+                value = "(others => '-')"
+        elif value == 0:
+            if signal not in integer_signal_list:
+                value = "'0'"
+            else:
+                value = "0"
+        elif value == 1:
+            if signal not in integer_signal_list:
+                value = "'1'"
+            else:
+                value = "1"
+        vhdl_str += f"\t\t\t{signal} <= {value};\n"
+    vhdl_str += f"\t\tels"
+vhdl_str = vhdl_str[:-3] + "end if;\n" 
 
 # Set the paths for your source and destination files
 src_file = '../autogen/cu_template.vhd'
