@@ -1,0 +1,31 @@
+StartAddr: 0x0400
+B.-5    ; should be byte
+B.68    ; should be byte
+W.2000
+L.-6000
+L.0
+L.0
+L.0
+L.0
+L.0
+L.0
+L.0x0000243A
+L.0x64377B04
+B.1
+B.17
+B.3
+B.-1
+W.0x7B04
+W.0x0000
+L.-3937
+L.-6000
+W.2000
+B.68
+B.-7
+L.1
+L.0
+L.0
+L.0
+L.0
+L.0
+L.0

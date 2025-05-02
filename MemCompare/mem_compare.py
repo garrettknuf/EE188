@@ -12,10 +12,19 @@ def parse_memory(memory_text):
         
         # Only process non-empty binary parts
         if bin_part:
-            binary_values.append(bin_part)
+            binary_values.append(bin_part[:8])
+            binary_values.append(bin_part[8:])
     
     return binary_values
 
+def parse_value(val):
+    val = val.strip()
+    if val.startswith("b"):  # Binary literal
+        return int(val[1:], 2)
+    elif val.startswith("0x"):  # Hexadecimal
+        return int(val, 16)
+    else:  # Decimal
+        return int(val)
 
 if __name__ == "__main__":
 
@@ -44,30 +53,29 @@ if __name__ == "__main__":
     # Open expect data file
     start_addr = 0
     exp_value_list = []
-    with open(expected_memory_file, "r") as exp_file:
-        for line_num, line in enumerate(exp_file):
-            line = line.split(';', 1)[0].strip()
-            if line_num == 0:
-                addr_str = line.split(": ")[1]
-                start_addr = int(addr_str, 16)
+with open(expected_memory_file, "r") as exp_file:
+    for line_num, line in enumerate(exp_file):
+        line = line.split(';', 1)[0].strip()
+        if line_num == 0:
+            addr_str = line.split(": ")[1]
+            start_addr = int(addr_str, 16)
+        else:
+            if line.startswith("L."):
+                value = parse_value(line[2:])  # 32-bit value
+                # Split into four 8-bit chunks (big endian: MSB first)
+                for shift in (24, 16, 8, 0):
+                    byte = (value >> shift) & 0xFF
+                    exp_value_list.append(f"{byte:08b}")
+            elif line.startswith("W."):
+                value = parse_value(line[2:])  # 16-bit value
+                for shift in (8, 0):
+                    byte = (value >> shift) & 0xFF
+                    exp_value_list.append(f"{byte:08b}")
+            elif line.startswith("B."):
+                value = parse_value(line[2:])  # 8-bit value
+                exp_value_list.append(f"{value & 0xFF:08b}")
             else:
-                if line.startswith("L."):
-                    # Parse the value
-                    value = int(line[2:])
-                    # Split 32-bit value into two 16-bit words
-                    high = (value >> 16) & 0xFFFF
-                    low = value & 0xFFFF
-                    exp_value_list.append(f"{high:016b}")
-                    exp_value_list.append(f"{low:016b}")
-                elif line.startswith("W."):
-                    value = int(line[2:])
-                    exp_value_list.append(f"{value & 0xFFFF:016b}")
-                elif line.startswith("B."):
-                    value = int(line[2:])
-                    # Expand 8-bit byte into a 16-bit word (typically zero-extend)
-                    exp_value_list.append(f"{value & 0xFF:08b}".rjust(16, '0'))
-                else:
-                    print(f"Unknown line: {line}")
+                print(f"Unknown line: {line}")
 
     # Move expected values into correct memory contents
     mem_arr = parse_memory(asm_build_text)
@@ -81,7 +89,7 @@ if __name__ == "__main__":
     err_cnt = 0
     for i, bin in enumerate(mem_arr):
         if mem_arr[i] != dump_arr0[i]:
-            print(f"Error @ 0x{i * 2:04X} - expected {mem_arr[i]} - actual {dump_arr0[i]}")
+            print(f"Error @ 0x{i:04X} - expected {mem_arr[i]} - actual {dump_arr0[i]}")
             err_cnt += 1
 
     # Output test results

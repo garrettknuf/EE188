@@ -24,35 +24,36 @@ use work.RegArrayConstants.all;
 package CUConstants is
 
     -- ALUOpASel - select input for ALUOpA
-    constant ALUOpASel_RegA  : integer range 1 downto 0 := 0;
-    constant ALUOpASel_DB    : integer range 1 downto 0 := 1;
-
+    constant ALUOpASel_RegA  : integer range 1 downto 0 := 0;   -- RegA of RegArray
+    constant ALUOpASel_DB    : integer range 1 downto 0 := 1;   -- DataBus
 
     -- ALUOpBSel - select input for ALUOpB
-    constant ALUOpBSel_RegB         : integer range 2 downto 0 := 0;
-    constant ALUOpBSel_Imm_Signed   : integer range 2 downto 0 := 1;
-    constant ALUOpBSel_Imm_Unsigned : integer range 2 downto 0 := 2;
-
-    -- RegInSrcSel - select inputs to RegIn
-    -- constant RegInSrcSel_Result : integer
+    constant ALUOpBSel_RegB         : integer range 2 downto 0 := 0;    -- RegB of RegArray
+    constant ALUOpBSel_Imm_Signed   : integer range 2 downto 0 := 1;    -- immediate signed
+    constant ALUOpBSel_Imm_Unsigned : integer range 2 downto 0 := 2;    -- immediate unsigned
 
     -- RegInSel - select where to save input to RegIn
-    constant RegInSelCmd_Rn : integer range 1 downto 0 := 0;
-    constant RegInSelCmd_R0 : integer range 1 downto 0 := 1;
+    constant RegInSelCmd_Rn : integer range 1 downto 0 := 0;    -- generic register
+    constant RegInSelCmd_R0 : integer range 1 downto 0 := 1;    -- register R0
 
     -- RegASelCmd - select what RegA outputs
-    constant RegASelCmd_Rn : integer range 2 downto 0 := 0;
-    constant RegASelCmd_DB : integer range 2 downto 0 := 1;
-    constant RegASelCmd_R0 : integer range 2 downto 0 := 2;
+    constant RegASelCmd_Rn : integer range 2 downto 0 := 0;     -- generic register
+    constant RegASelCmd_DB : integer range 2 downto 0 := 1;     -- databus
+    constant RegASelCmd_R0 : integer range 2 downto 0 := 2;     -- register R0
 
     -- RegBSelCmd - select what RegB outputs
-    constant RegBSelCmd_Rm : integer range 1 downto 0 := 0;
-    constant RegBSelCmd_R0 : integer range 1 downto 0 := 1;
+    constant RegBSelCmd_Rm : integer range 1 downto 0 := 0;     -- generic register
+    constant RegBSelCmd_R0 : integer range 1 downto 0 := 1;     -- register R0
     
     -- RegA1SelCmd - select what RegA1 outputs
     constant RegA1SelCmd_Rn : integer range 2 downto 0 := 0;
     constant RegA1SelCmd_Rm : integer range 2 downto 0 := 1;
     constant RegA1SelCmd_R0 : integer range 2 downto 0 := 2;
+
+    -- RegAxInSelCmd - select what RegA1 outputs
+    constant RegAxInSelCmd_Rn : integer range 2 downto 0 := 0;
+    constant RegAxInSelCmd_Rm : integer range 2 downto 0 := 1;
+    constant RegAxInSelCmd_R0 : integer range 2 downto 0 := 2;
 
     -- DBOutSel - select output of databus
     constant DBOutSel_Result : integer range 5 downto 0 := 0;
@@ -65,6 +66,14 @@ package CUConstants is
     -- ABSel - select output of address bus
     constant ABOutSel_Prog : integer range 1 downto 0 := 0;
     constant ABOutSel_Data : integer range 1 downto 0 := 1;
+
+    -- DataAccessMode - size of data access (read or write)
+    constant DataAccessMode_BYTE : integer range 2 downto 0 := 0;
+    constant DataAccessMode_WORD : integer range 2 downto 0 := 1;
+    constant DataAccessMode_LONG : integer range 2 downto 0 := 2;
+
+    constant DBInMode_Signed : integer range 1 downto 0 := 0;
+    constant DBInMode_Unsigned : integer range 1 downto 0 := 1;
 
     constant unused : integer := 0;
 
@@ -101,9 +110,6 @@ entity CU is
 
         IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := OpIdle;
 
-        DBOutSel : out integer range 5 downto 0;
-
-        ABOutSel : out integer range 1 downto 0;
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range 1 downto 0 := 0;
@@ -143,17 +149,12 @@ entity CU is
         RegOpSel        : out   integer  range REGOp_SrcCnt - 1 downto 0;
     
         -- IO Control signals
-        RE0     : out   std_logic;
-        RE1     : out   std_logic;
-        RE2     : out   std_logic;
-        RE3     : out   std_logic;
-        WE0     : out   std_logic;
-        WE1     : out   std_logic;
-        WE2     : out   std_logic;
-        WE3     : out   std_logic;
-
-        DB_WR   : out   std_logic
-
+        DBOutSel : out integer range 5 downto 0;
+        ABOutSel : out integer range 1 downto 0;
+        DBInMode : out integer range 1 downto 0;
+        RD     : out   std_logic;
+        WR     : out   std_logic;
+        DataAccessMode : out integer range 2 downto 0
     );
 
 end CU;
@@ -162,12 +163,8 @@ architecture behavioral of CU is
 
     constant Normal         : integer := 0;
     constant WaitForFetch   : integer := 1;
-    constant WriteByte_Mask : integer := 2;
-    constant WriteWord_Mask     : integer := 3;
-    constant WaitForReadPostInc : integer := 4;
-    constant RTE_Init : integer := 5;
-    constant TRAPA_Init : integer := 6;
-    constant STATE_CNT      : integer := 7;
+    constant Sleep : integer := 7;
+    constant STATE_CNT      : integer := 8;
 
     signal NextState : integer range STATE_CNT-1 downto 0;
     signal CurrentState : integer range STATE_CNT-1 downto 0;
@@ -176,21 +173,9 @@ architecture behavioral of CU is
 
     signal Tbit : std_logic;
 
-    signal MemRE0 : std_logic;
-    signal MemRE1 : std_logic;
-    signal MemRE2 : std_logic;
-    signal MemRE3 : std_logic;
-    signal MemWE0 : std_logic;
-    signal MemWE1 : std_logic;
-    signal MemWE2 : std_logic;
-    signal MemWE3 : std_logic;
-
-
 begin
 
     Tbit <= SR(0);
-
-    DB_WR <= MemWE0 and MemWE1 and MemWE2 and MemWE3;
 
     -- Control Unit Registers
     process (CLK)
@@ -198,36 +183,21 @@ begin
 
         if rising_edge(CLK) then
             if RST = '1' then
+                -- Since databus is 32-bits, the IR is the high 16 bits when the
+                -- program address when is at an address that is a multiple of 4.
+                -- When it's not a multiple of 4 them the IR is the low 16 bits.
                 IR <= DB(31 downto 16) when UpdateIR = '1' and AB(1 downto 0) = "00" else
                       DB(15 downto 0) when UpdateIR = '1' and AB(1 downto 0) = "10" else
                       IR;
+
+                -- Set state of FSM
                 CurrentState <= NextState;
             else
+                -- Reset to idle instruction (rising edge after reset)
                 IR <= OpIdle;
                 CurrentState <= Normal;
             end if;
 
-            -- Memory access avoided since address bus changing
-            RE0 <= '1';
-            RE1 <= '1';
-            RE2 <= '1';
-            RE3 <= '1';
-            WE0 <= '1';
-            WE1 <= '1';
-            WE2 <= '1';
-            WE3 <= '1';
-
-        end if;
-        
-        if falling_edge(CLK) then
-            RE0 <= MemRE0;
-            RE1 <= MemRE1;
-            RE2 <= MemRE2;
-            RE3 <= MemRE3;
-            WE0 <= MemWE0;
-            WE1 <= MemWE1;
-            WE2 <= MemWE2;
-            WE3 <= MemWE3;
         end if;
     end process;
     

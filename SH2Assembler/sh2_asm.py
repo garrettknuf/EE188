@@ -124,7 +124,7 @@ INSTRUCTION_SET = {
     ("MOV.W", ("reg", "mem")):  lambda rm, rn: 0x2001 | (rn << 8) | (rm << 4),
     ("MOV.L", ("reg", "mem")):  lambda rm, rn: 0x2002 | (rn << 8) | (rm << 4),
     ("MOV.B", ("mem", "reg")):  lambda rm, rn: 0x6000 | (rn << 8) | (rm << 4),
-    ("MOV.W", ("mem", "mem")):  lambda rm, rn: 0x6001 | (rn << 8) | (rm << 4),
+    ("MOV.W", ("mem", "reg")):  lambda rm, rn: 0x6001 | (rn << 8) | (rm << 4),
     ("MOV.L", ("mem", "reg")):  lambda rm, rn: 0x6002 | (rn << 8) | (rm << 4),
 
     # nm Format Post Increment Indirect Register (Multiply/Accumulate Operation)
@@ -333,6 +333,15 @@ def assemble_instruction(line, addr):
     return INSTRUCTION_SET[key](*operand_values)
 
 
+def parse_value(val):
+    val = val.strip()
+    if val.startswith("b"):  # Binary literal
+        return int(val[1:], 2)
+    elif val.startswith("0x"):  # Hexadecimal
+        return int(val, 16)
+    else:  # Decimal
+        return int(val)
+
 def parse_data(line):
     data = bytearray()
     labels = {}
@@ -350,34 +359,51 @@ def parse_data(line):
     label, directive, value = label_match.groups()
     labels[label] = current_offset
 
+    isbyte = False
+
     if directive == ".ascii":
         data.extend(value.strip('"').encode('ascii'))
     elif directive == ".asciiz":
         data.extend(value.strip('"').encode('ascii') + b'\x00')
     elif directive == ".byte":
-        data.extend(int(v.strip()) & 0xFF for v in value.split(','))
+        data.extend(parse_value(v) & 0xFF for v in value.split(','))
+        isbyte = True
     elif directive == ".word":
         for v in value.split(','):
-            data.extend(struct.pack('>H', int(v.strip())))
+            intval = parse_value(v)
+            # Convert to unsigned 16-bit if negative
+            if intval < 0:
+                intval = (1 << 16) + intval  # Two's complement
+            data.extend(struct.pack('>H', intval))
     elif directive == ".long":
         for v in value.split(','):
-            data.extend(struct.pack('>I', int(v.strip())))
+            intval = parse_value(v)
+            # Convert to unsigned 32-bit if negative
+            if intval < 0:
+                intval = (1 << 32) + intval  # Two's complement
+            data.extend(struct.pack('>I', intval))
+            
     else:
         raise ValueError(f"Unknown directive: {directive}")
     
     binary_strs = []
-    # Pad to 16-bit boundary if needed
-    if len(data) % 2 != 0:
-        data.append(0)
 
-    # Convert to 16-bit binary strings
-    for i in range(0, len(data), 2):
-        high = data[i]
-        low = data[i + 1]
-        word = (high << 8) | low
-        binary_strs.append(f"{word:016b}")
+    if not isbyte:
+        # Pad to 16-bit boundary if needed
+        if len(data) % 2 != 0:
+            data.append(0)
 
-    current_offset += len(data)
+        # Convert to 16-bit binary strings
+        for i in range(0, len(data), 2):
+            high = data[i]
+            low = data[i + 1]
+            word = (high << 8) | low
+            binary_strs.append(f"{word:016b}")
+    else:
+        for byte in data:
+            binary_strs.append(f"{byte:08b}")
+
+    current_offset += len(data)        
     
     return binary_strs
 
@@ -406,6 +432,8 @@ if __name__ == '__main__':
     CHUNK2_ADDR = 1024*2
     CHUNK3_ADDR = 1024*3
     CHUNK_SIZE = 1024
+
+    between_bytes = False
 
     # Read assembly file
     with open(sys.argv[1], 'r') as asm_file:
@@ -440,7 +468,17 @@ if __name__ == '__main__':
             elif seg == SEG_DATA:
                 data = parse_data(line)
                 if data:
-                    data_arr.append(data)
+                    if len(data[0]) == 8:   # is byte
+                        if not between_bytes:
+                            temp_byte = data[0]
+                        else:
+                            data_arr.append([temp_byte + data[0]])
+                        between_bytes = not between_bytes
+                    else:
+                        data_arr.append(data)
+
+                # if data:
+                #     data_arr.append(data)
 
         # Fill in reset of program code memory up until start of next chunk
         while addr < CHUNK0_ADDR + CHUNK_SIZE:
@@ -453,6 +491,7 @@ if __name__ == '__main__':
             for word in var: 
                 dec_val = int(word, 2)
                 hex_val = hex(dec_val)
+                # print(word)
                 left_byte = int(word[:8], 2)
                 right_byte = int(word[8:16], 2)
                 chunk1_output.append(f"{word}\t; 0x{addr:08X} : {left_byte}," +

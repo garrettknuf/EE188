@@ -159,9 +159,9 @@ architecture structural of SH2_CPU is
             DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
             SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
             AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+
+            -- CU Registers
             IR      : out    std_logic_vector(INST_SIZE - 1 downto 0);
-            DBOutSel : out integer range 5 downto 0;
-            ABOutSel : out integer range 1 downto 0;
 
             -- ALU Control Signals
             ALUOpASel   : out     integer range 1 downto 0;
@@ -201,16 +201,12 @@ architecture structural of SH2_CPU is
             RegOpSel   : out   integer  range REGOp_SrcCnt - 1 downto 0;
         
             -- IO Control signals
-            RE0     : out   std_logic;
-            RE1     : out   std_logic;
-            RE2     : out   std_logic;
-            RE3     : out   std_logic;
-            WE0     : out   std_logic;
-            WE1     : out   std_logic;
-            WE2     : out   std_logic;
-            WE3     : out   std_logic;
-
-            DB_WR   : out std_logic
+            DBOutSel : out integer range 5 downto 0;
+            ABOutSel : out integer range 1 downto 0;
+            DBInMode : out integer range 1 downto 0;
+            RD     : out   std_logic;
+            WR     : out   std_logic;
+            DataAccessMode : out integer range 2 downto 0
         );
     end component;
 
@@ -285,7 +281,7 @@ architecture structural of SH2_CPU is
 
     signal IR : std_logic_vector(INST_SIZE-1 downto 0);
 
-    signal DB_WR : std_logic;
+    signal DataAccessMode : integer range 2 downto 0;
 
     signal RegInSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
     signal RegASelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
@@ -294,7 +290,45 @@ architecture structural of SH2_CPU is
     signal RegA1SelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
     signal RegA2SelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
 
+    signal WE : std_logic_vector(3 downto 0);
+    signal RE : std_logic_vector(3 downto 0);
+
+    signal WR : std_logic;
+    signal RD : std_logic;
+
+    signal MemAccessBits : std_logic_vector(3 downto 0);
+
+    signal DBInMode : integer range 1 downto 0;
+
+    signal DBIn : std_logic_vector(31 downto 0);
+
+    signal DBSignExtBit : std_logic;
+
 begin
+
+    process (clock)
+    begin
+        if falling_edge(clock) then
+            WE3 <= WE(3);
+            WE2 <= WE(2);
+            WE1 <= WE(1);
+            WE0 <= WE(0);
+
+            RE3 <= RD;
+            RE2 <= RD;
+            RE1 <= RD;
+            RE0 <= RD;
+        else
+            WE3 <= '1';
+            WE2 <= '1';
+            WE1 <= '1';
+            WE0 <= '1';
+            RE3 <= '1';
+            RE2 <= '1';
+            RE1 <= '1';
+            RE0 <= '1';
+        end if;
+    end process;
 
     -- DAU inputs (non-control signals)
     DAU_Offset4 <= IR(3 downto 0);
@@ -305,7 +339,7 @@ begin
 
     -- ALU inputs (non-control signals)
     ALUOpA <= RegA  when ALUOpASel = ALUOpASel_RegA else
-              DB    when ALUOpASel = ALUOpASel_DB else
+              DBIn    when ALUOpASel = ALUOpASel_DB else
               (others => 'X');
     ALUOpB <= RegB  when ALUOpBSel = ALUOpBSel_RegB else
               (31 downto 8 => '0') & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Unsigned else
@@ -326,32 +360,113 @@ begin
     RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
     RegBSel <= to_integer(unsigned(IR(7 downto 4)));
 
-    RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegA1SelCmd = RegA1SelCmd_Rn else 0;
-
-    DBOut <= ALU_Result when DBOutSel = DBOutSel_Result else
-            --  SR when DBOutSel = DBOutSel_SR else
-            --  DAU_GBR when DBOutSel = DBOutSel_GBR else
-             -- ALU_Result when DBOutSel = DBOutSel_VBR else
-            --  PAU_PR when DBOutSel = DBOutSel_PR else
-            --  PAU_PC when DBOutSel = DBOutSel_PC else
-             (others => 'X');
-
-    DB <= DBOut when DB_WR = '0' else (others => 'Z');
-    -- DB <= DBOut            when  (WE0 = '0' or WE1 = '0' or WE2 = '0' or WE3 = '0') else
-    --       (others => 'Z')   when (RE0 = '0' or RE1 = '0' or RE2 = '0' or RE3 = '0') else
-    --       (others => 'X');
-    -- DB <= (others => 'Z');
+    RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegA1SelCmd = RegA1SelCmd_Rn else
+                to_integer(unsigned(IR(7 downto 4))) when RegA1SelCmd = RegA1SelCmd_Rm else
+                0;
+    RegAxInSel <= to_integer(unsigned(IR(11 downto 8))) when RegAxInSelCmd = RegAxInSelCmd_Rn else
+                  to_integer(unsigned(IR(7 downto 4))) when RegAxInSelCmd = RegAxInSelCmd_Rm else
+                  0;
 
     AB <= PAU_ProgAddr when ABOutSel = ABOutSel_Prog else
-          DAU_DataAddr when ABOutSel = ABOutSel_Data else
-          (others => 'X');
-    -- AB <= PAU_ProgAddr;
-
+        DAU_DataAddr when ABOutSel = ABOutSel_Data else
+        (others => 'X');
 
     PAU_Offset8 <= IR(7 downto 0);
     PAU_Offset12 <= IR(11 downto 0);
 
+    DB <= DBOut when WR = '0' else (others => 'Z');
 
+    process(MemAccessBits)
+    begin
+        if WR = '0' then
+            WE <= MemAccessBits;
+            RE <= "1111";
+        elsif RD = '0' then
+            RE <= MemAccessBits;
+            WE <= "1111";
+        end if;
+    end process;
+
+    process(all)
+    begin
+        if (DBOutSel = DBOutSel_Result) then
+            case DataAccessMode is
+                when DataAccessMode_Byte =>
+
+                    -- Select position of byte to output on data bus
+                    if (AB(1 downto 0) = "11") then
+                        DBOut(7 downto 0) <= ALU_Result(7 downto 0);    -- byte 3
+                        DBIn(7 downto 0) <= DB(7 downto 0);
+                        DBSignExtBit <= DB(7);
+                        MemAccessBits <= "1110";
+                    elsif (AB(1 downto 0) = "10") then 
+                        DBOut(15 downto 8) <= ALU_Result(7 downto 0);   -- byte 2
+                        DBIn(7 downto 0) <= DB(15 downto 8);
+                        DBSignExtBit <= DB(15);
+                        MemAccessBits <= "1101";
+                    elsif (AB(1 downto 0) = "01") then
+                        DBOut(23 downto 16) <= ALU_Result(7 downto 0);  -- byte 1
+                        DBIn(7 downto 0) <= DB(23 downto 16);
+                        DBSignExtBit <= DB(23);
+                        MemAccessBits <= "1011";
+                    elsif (AB(1 downto 0) = "00") then 
+                        DBOut(31 downto 24) <= ALU_Result(7 downto 0);  -- byte 0
+                        DBIn(7 downto 0) <= DB(31 downto 24);
+                        DBSignExtBit <= DB(31);
+                        MemAccessBits <= "0111";
+                    else
+                        DBOut(7 downto 0) <= (others => 'X');   -- invalid addr
+                        DBIn(7 downto 0) <= (others => 'X');
+                        MemAccessBits <= "1111";
+                    end if;
+
+                    DBIn(31 downto 8) <= (31 downto 8 => '0') when DBInMode = DBInMode_Unsigned else
+                                        (31 downto 8 => DBSignExtBit) when DBInMode = DBInMode_Signed else
+                                        (31 downto 8 => 'X');
+
+                when DataAccessMode_Word =>
+
+                    -- Select position of word output on data bus
+                    if AB(1 downto 0) = "10" then
+                        -- Address on low word (higher address)
+                        DBOut(15 downto 0) <= ALU_Result(15 downto 0);
+                        DBIn(15 downto 0) <= DB(15 downto 0);
+                        DBSignExtBit <= DB(15);
+                        MemAccessBits <= "1100";
+                    elsif AB(1 downto 0) = "00" then
+                        -- Address on high word (lower address)
+                        DBOut(31 downto 16) <= ALU_Result(15 downto 0);
+                        DBIn(15 downto 0) <= DB(31 downto 16);
+                        DBSignExtBit <= DB(31);
+                        MemAccessBits <= "0011";
+                    else
+                        -- Invalid address access for long
+                        DBOut <= (others => 'X');
+                        MemAccessBits <= "1111";
+                    end if;
+
+                    DBIn(31 downto 16) <= (31 downto 16 => '0') when DBInMode = DBInMode_Unsigned else
+                                        (31 downto 16 => DBSignExtBit) when DBInMode = DBInMode_Signed else
+                                        (31 downto 16 => 'X');
+
+                when DataAccessMode_Long =>
+                    -- Check that address accessed is a valid multiple of 4
+                    if (AB(1 downto 0) = "00") then
+                        DBOut <= ALU_Result;
+                        DBIn <= DB(31 downto 0);
+                        MemAccessBits <= "0000";
+                    else
+                        DBOut <= (others => 'X');
+                        MemAccessBits <= "1111";
+                    end if;
+                when others =>
+                    DBOut <= (others => 'X');
+            end case;
+        else
+            DBOut <= (others => 'Z');
+        end if;
+
+    end process;
 
     -- Create 32-bit ALU for standard logic and arithmetic operations
     SH2_ALU : ALU
@@ -487,16 +602,10 @@ begin
             RegOpSel     => RegOpSel,
 
             -- IO Control signals
-            RE0 => RE0,
-            RE1 => RE1,
-            RE2 => RE2,
-            RE3 => RE3,
-            WE0 => WE0,
-            WE1 => WE1,
-            WE2 => WE2,
-            WE3 => WE3,
-
-            DB_WR => DB_WR
+            RD => RD,
+            WR => WR,
+            DataAccessMode => DataAccessMode,
+            DBInMode => DBInMode
         );
 
 end structural;

@@ -171,7 +171,7 @@ begin
         --     wait for 2 ns;
         -- end loop;
 
-        wait for 2600 ns;
+        wait for 5000 ns;
 
         -- End of testbench reached
         END_SIM <= '1';

@@ -34,9 +34,9 @@ package OpcodeConstants is
     constant OpMOVB_At_Rm_To_Rn       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------0000";
     constant OpMOVW_At_Rm_To_Rn       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------0001";
     constant OpMOVL_At_Rm_Rn          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------0010";
-    constant OpMOVB_Rm_To_At_Dec_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------0000";
-    constant OpMOVW_Rm_To_At_Dec_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------0001";
-    constant OpMOVL_Rm_To_At_Dec_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------0010";
+    constant OpMOVB_Rm_To_At_Dec_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------0100";
+    constant OpMOVW_Rm_To_At_Dec_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------0101";
+    constant OpMOVL_Rm_To_At_Dec_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------0110";
     constant OpMOVB_At_Rm_Inc_To_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------0100";
     constant OpMOVW_At_Rm_Inc_To_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------0101";
     constant OpMOVL_At_Rm_Inc_To_Rn   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------0110";
@@ -162,7 +162,7 @@ package OpcodeConstants is
     constant OpNOP                   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000001001";
     constant OpRTE                   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000101011";
     constant OpSETT                  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000011000";
-    -- TODO: Sleep
+    constant OpSLEEP                 : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000011011";
     constant OpSTC_SR_To_Rn          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000----00000010";
     constant OpSTC_GBR_To_Rn         : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000----00010010";
     constant OpSTC_VBR_To_Rn         : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000----00100010";

@@ -243,7 +243,6 @@ begin
             else
                 -- outside of any allowable address range - set output to X
                 MemDB <= (others => 'X');
-                report "here1";
             end if;
 
             -- only set the bytes that are being read
@@ -284,7 +283,6 @@ begin
                 MemData := RAMbits3((to_integer(unsigned(MemAB))/4 - START_ADDR3));
             else
                 MemData := (others => 'X');
-                report "here2";
             end if;
 
             -- now update the data based on the write enable signals

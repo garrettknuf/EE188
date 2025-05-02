@@ -24,35 +24,36 @@ use work.RegArrayConstants.all;
 package CUConstants is
 
     -- ALUOpASel - select input for ALUOpA
-    constant ALUOpASel_RegA  : integer range 1 downto 0 := 0;
-    constant ALUOpASel_DB    : integer range 1 downto 0 := 1;
-
+    constant ALUOpASel_RegA  : integer range 1 downto 0 := 0;   -- RegA of RegArray
+    constant ALUOpASel_DB    : integer range 1 downto 0 := 1;   -- DataBus
 
     -- ALUOpBSel - select input for ALUOpB
-    constant ALUOpBSel_RegB         : integer range 2 downto 0 := 0;
-    constant ALUOpBSel_Imm_Signed   : integer range 2 downto 0 := 1;
-    constant ALUOpBSel_Imm_Unsigned : integer range 2 downto 0 := 2;
-
-    -- RegInSrcSel - select inputs to RegIn
-    -- constant RegInSrcSel_Result : integer
+    constant ALUOpBSel_RegB         : integer range 2 downto 0 := 0;    -- RegB of RegArray
+    constant ALUOpBSel_Imm_Signed   : integer range 2 downto 0 := 1;    -- immediate signed
+    constant ALUOpBSel_Imm_Unsigned : integer range 2 downto 0 := 2;    -- immediate unsigned
 
     -- RegInSel - select where to save input to RegIn
-    constant RegInSelCmd_Rn : integer range 1 downto 0 := 0;
-    constant RegInSelCmd_R0 : integer range 1 downto 0 := 1;
+    constant RegInSelCmd_Rn : integer range 1 downto 0 := 0;    -- generic register
+    constant RegInSelCmd_R0 : integer range 1 downto 0 := 1;    -- register R0
 
     -- RegASelCmd - select what RegA outputs
-    constant RegASelCmd_Rn : integer range 2 downto 0 := 0;
-    constant RegASelCmd_DB : integer range 2 downto 0 := 1;
-    constant RegASelCmd_R0 : integer range 2 downto 0 := 2;
+    constant RegASelCmd_Rn : integer range 2 downto 0 := 0;     -- generic register
+    constant RegASelCmd_DB : integer range 2 downto 0 := 1;     -- databus
+    constant RegASelCmd_R0 : integer range 2 downto 0 := 2;     -- register R0
 
     -- RegBSelCmd - select what RegB outputs
-    constant RegBSelCmd_Rm : integer range 1 downto 0 := 0;
-    constant RegBSelCmd_R0 : integer range 1 downto 0 := 1;
+    constant RegBSelCmd_Rm : integer range 1 downto 0 := 0;     -- generic register
+    constant RegBSelCmd_R0 : integer range 1 downto 0 := 1;     -- register R0
     
     -- RegA1SelCmd - select what RegA1 outputs
     constant RegA1SelCmd_Rn : integer range 2 downto 0 := 0;
     constant RegA1SelCmd_Rm : integer range 2 downto 0 := 1;
     constant RegA1SelCmd_R0 : integer range 2 downto 0 := 2;
+
+    -- RegAxInSelCmd - select what RegA1 outputs
+    constant RegAxInSelCmd_Rn : integer range 2 downto 0 := 0;
+    constant RegAxInSelCmd_Rm : integer range 2 downto 0 := 1;
+    constant RegAxInSelCmd_R0 : integer range 2 downto 0 := 2;
 
     -- DBOutSel - select output of databus
     constant DBOutSel_Result : integer range 5 downto 0 := 0;
@@ -65,6 +66,14 @@ package CUConstants is
     -- ABSel - select output of address bus
     constant ABOutSel_Prog : integer range 1 downto 0 := 0;
     constant ABOutSel_Data : integer range 1 downto 0 := 1;
+
+    -- DataAccessMode - size of data access (read or write)
+    constant DataAccessMode_BYTE : integer range 2 downto 0 := 0;
+    constant DataAccessMode_WORD : integer range 2 downto 0 := 1;
+    constant DataAccessMode_LONG : integer range 2 downto 0 := 2;
+
+    constant DBInMode_Signed : integer range 1 downto 0 := 0;
+    constant DBInMode_Unsigned : integer range 1 downto 0 := 1;
 
     constant unused : integer := 0;
 
@@ -101,9 +110,6 @@ entity CU is
 
         IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := OpIdle;
 
-        DBOutSel : out integer range 5 downto 0;
-
-        ABOutSel : out integer range 1 downto 0;
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range 1 downto 0 := 0;
@@ -143,17 +149,12 @@ entity CU is
         RegOpSel        : out   integer  range REGOp_SrcCnt - 1 downto 0;
     
         -- IO Control signals
-        RE0     : out   std_logic;
-        RE1     : out   std_logic;
-        RE2     : out   std_logic;
-        RE3     : out   std_logic;
-        WE0     : out   std_logic;
-        WE1     : out   std_logic;
-        WE2     : out   std_logic;
-        WE3     : out   std_logic;
-
-        DB_WR   : out   std_logic
-
+        DBOutSel : out integer range 5 downto 0;
+        ABOutSel : out integer range 1 downto 0;
+        DBInMode : out integer range 1 downto 0;
+        RD     : out   std_logic;
+        WR     : out   std_logic;
+        DataAccessMode : out integer range 2 downto 0
     );
 
 end CU;
@@ -162,12 +163,8 @@ architecture behavioral of CU is
 
     constant Normal         : integer := 0;
     constant WaitForFetch   : integer := 1;
-    constant WriteByte_Mask : integer := 2;
-    constant WriteWord_Mask     : integer := 3;
-    constant WaitForReadPostInc : integer := 4;
-    constant RTE_Init : integer := 5;
-    constant TRAPA_Init : integer := 6;
-    constant STATE_CNT      : integer := 7;
+    constant Sleep : integer := 7;
+    constant STATE_CNT      : integer := 8;
 
     signal NextState : integer range STATE_CNT-1 downto 0;
     signal CurrentState : integer range STATE_CNT-1 downto 0;
@@ -176,21 +173,9 @@ architecture behavioral of CU is
 
     signal Tbit : std_logic;
 
-    signal MemRE0 : std_logic;
-    signal MemRE1 : std_logic;
-    signal MemRE2 : std_logic;
-    signal MemRE3 : std_logic;
-    signal MemWE0 : std_logic;
-    signal MemWE1 : std_logic;
-    signal MemWE2 : std_logic;
-    signal MemWE3 : std_logic;
-
-
 begin
 
     Tbit <= SR(0);
-
-    DB_WR <= MemWE0 and MemWE1 and MemWE2 and MemWE3;
 
     -- Control Unit Registers
     process (CLK)
@@ -198,36 +183,21 @@ begin
 
         if rising_edge(CLK) then
             if RST = '1' then
+                -- Since databus is 32-bits, the IR is the high 16 bits when the
+                -- program address when is at an address that is a multiple of 4.
+                -- When it's not a multiple of 4 them the IR is the low 16 bits.
                 IR <= DB(31 downto 16) when UpdateIR = '1' and AB(1 downto 0) = "00" else
                       DB(15 downto 0) when UpdateIR = '1' and AB(1 downto 0) = "10" else
                       IR;
+
+                -- Set state of FSM
                 CurrentState <= NextState;
             else
+                -- Reset to idle instruction (rising edge after reset)
                 IR <= OpIdle;
                 CurrentState <= Normal;
             end if;
 
-            -- Memory access avoided since address bus changing
-            RE0 <= '1';
-            RE1 <= '1';
-            RE2 <= '1';
-            RE3 <= '1';
-            WE0 <= '1';
-            WE1 <= '1';
-            WE2 <= '1';
-            WE3 <= '1';
-
-        end if;
-        
-        if falling_edge(CLK) then
-            RE0 <= MemRE0;
-            RE1 <= MemRE1;
-            RE2 <= MemRE2;
-            RE3 <= MemRE3;
-            WE0 <= MemWE0;
-            WE1 <= MemWE1;
-            WE2 <= MemWE2;
-            WE3 <= MemWE3;
         end if;
     end process;
     
@@ -263,16 +233,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVW_At_Disp_PC_To_Rn) then
@@ -303,16 +269,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_At_Disp_PC_To_Rn) then
@@ -343,16 +305,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOV_Rm_To_Rn) then
@@ -383,16 +341,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Rn) then
@@ -423,17 +377,13 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteByte_Mask;
+			DataAccessMode <= DataAccessMode_Byte;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -463,17 +413,13 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteWord_Mask;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -503,25 +449,21 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_At_Rm_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -540,28 +482,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_At_Rm_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -580,28 +518,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_At_Rm_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -620,19 +554,15 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Dec_Rn) then
@@ -658,22 +588,18 @@ begin
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= RegBSelCmd_Rm;
-			RegAxInSelCmd <= unused;
-			RegAxStore <= '0';
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteByte_Mask;
+			DataAccessMode <= DataAccessMode_Byte;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -698,22 +624,18 @@ begin
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= RegBSelCmd_Rm;
-			RegAxInSelCmd <= unused;
-			RegAxStore <= '0';
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteWord_Mask;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -738,30 +660,26 @@ begin
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= RegBSelCmd_Rm;
-			RegAxInSelCmd <= unused;
-			RegAxStore <= '0';
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_At_Rm_Inc_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -778,30 +696,26 @@ begin
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= RegBSelCmd_Rm;
-			RegAxInSelCmd <= unused;
-			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegAxInSelCmd <= RegAxInSelCmd_Rm;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_At_Rm_Inc_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -818,30 +732,26 @@ begin
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= RegBSelCmd_Rm;
-			RegAxInSelCmd <= unused;
-			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegAxInSelCmd <= RegAxInSelCmd_Rm;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_At_Rm_Inc_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -858,21 +768,17 @@ begin
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= RegBSelCmd_Rm;
-			RegAxInSelCmd <= unused;
-			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegAxInSelCmd <= RegAxInSelCmd_Rm;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_Rn) then
@@ -900,20 +806,16 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_R0;
+			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteByte_Mask;
+			DataAccessMode <= DataAccessMode_Byte;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -940,20 +842,16 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_R0;
+			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteWord_Mask;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -980,28 +878,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_R0;
+			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_At_Disp_Rm_To_R0) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1020,28 +914,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_At_Disp_Rm_To_R0) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1060,28 +950,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_At_Disp_Rm_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1100,19 +986,15 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_Rm_To_At_R0_Rn) then
@@ -1143,17 +1025,13 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteByte_Mask;
+			DataAccessMode <= DataAccessMode_Byte;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -1183,17 +1061,13 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteWord_Mask;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -1223,25 +1097,21 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_At_R0_Rm_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1260,28 +1130,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_At_R0_Rm_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1300,28 +1166,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_At_R0_Rm_To_Rn) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1340,19 +1202,15 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_GBR) then
@@ -1380,20 +1238,16 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_R0;
+			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteByte_Mask;
+			DataAccessMode <= DataAccessMode_Byte;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -1420,20 +1274,16 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_R0;
+			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
-			NextState <= WriteWord_Mask;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
@@ -1460,28 +1310,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_R0;
+			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= DBOutSel_Result;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVB_At_Disp_GBR_To_R0) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1500,28 +1346,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVW_At_Disp_GBR_To_R0) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1540,28 +1382,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVL_At_Disp_GBR_To_R0) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1580,28 +1418,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= unused;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVA) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= unused;
@@ -1620,28 +1454,24 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
 		elsif std_match(IR, OpMOVT) then
-			ALUOpASel <= unused;
-			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			ALUOpASel <= ALUOpASel_RegA;
+			ALUOpBSel <= ALUOpBSel_RegB;
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -1663,16 +1493,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSwapB) then
@@ -1703,16 +1529,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSwapW) then
@@ -1743,16 +1565,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpXTRCT) then
@@ -1783,16 +1601,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Signed;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Long;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpADD_Rm_Rn) then
@@ -1823,16 +1637,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpADD_Imm_Rn) then
@@ -1863,16 +1673,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpADDC) then
@@ -1903,16 +1709,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpADDV) then
@@ -1943,16 +1745,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_EQ_Imm) then
@@ -1983,16 +1781,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_EQ_RmRn) then
@@ -2023,16 +1817,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_HS) then
@@ -2063,16 +1853,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_GE) then
@@ -2103,16 +1889,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_HI) then
@@ -2143,16 +1925,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_GT) then
@@ -2183,16 +1961,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_PL) then
@@ -2223,16 +1997,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_PZ) then
@@ -2263,16 +2033,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCMP_STR) then
@@ -2303,16 +2069,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpDT) then
@@ -2343,16 +2105,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpEXTS_B) then
@@ -2383,16 +2141,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpEXTS_W) then
@@ -2423,16 +2177,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpEXTU_B) then
@@ -2463,16 +2213,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpEXTU_W) then
@@ -2503,16 +2249,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpNEG) then
@@ -2543,16 +2285,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpNEGC) then
@@ -2583,16 +2321,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSUB) then
@@ -2623,16 +2357,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSUBC) then
@@ -2663,16 +2393,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSUBV) then
@@ -2703,16 +2429,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpAND_Rm_Rn) then
@@ -2743,16 +2465,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpAND_Imm_Rn) then
@@ -2783,16 +2501,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpAND_Imm_B) then
@@ -2823,16 +2537,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_R0;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Unsigned;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpNOT) then
@@ -2863,16 +2573,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpOR_Rm_Rn) then
@@ -2903,16 +2609,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpOR_Imm) then
@@ -2943,16 +2645,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpOR_Imm_B) then
@@ -2983,16 +2681,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_R0;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Unsigned;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpTAS_B) then
@@ -3023,16 +2717,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Unsigned;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpTST_Rm_Rn) then
@@ -3063,16 +2753,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpTST_Imm) then
@@ -3103,16 +2789,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpTST_Imm_B) then
@@ -3143,16 +2825,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_R0;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Unsigned;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpXOR_Rm_Rn) then
@@ -3183,16 +2861,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpXOR_Imm) then
@@ -3223,16 +2897,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpXOR_Imm_B) then
@@ -3263,21 +2933,17 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_R0;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Unsigned;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpROTL) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_ROL;
@@ -3303,21 +2969,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpROTR) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_ROR;
@@ -3343,21 +3005,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpROTCL) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_RLC;
@@ -3383,21 +3041,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpROTCR) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_RRC;
@@ -3423,21 +3077,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHAL) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSL;
@@ -3463,21 +3113,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHAR) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_ASR;
@@ -3503,21 +3149,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLL) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSL;
@@ -3543,21 +3185,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLR) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSR;
@@ -3583,21 +3221,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLL2) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSL2;
@@ -3623,21 +3257,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLR2) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSR2;
@@ -3663,21 +3293,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLL8) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSL8;
@@ -3703,21 +3329,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLR8) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSR8;
@@ -3743,21 +3365,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLL16) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSL16;
@@ -3783,21 +3401,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSHLR16) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= unused;
+			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= SCmd_LSR16;
@@ -3823,16 +3437,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpBF) then
@@ -3863,16 +3473,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpBFS) then
@@ -3903,16 +3509,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpBT) then
@@ -3943,16 +3545,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpBTS) then
@@ -3983,16 +3581,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpBRA) then
@@ -4023,16 +3617,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpBRAF) then
@@ -4063,16 +3653,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpBSR) then
@@ -4103,16 +3689,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpBSRF) then
@@ -4143,16 +3725,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpJMP) then
@@ -4183,16 +3761,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpJSR) then
@@ -4223,16 +3797,12 @@ begin
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpRTS) then
@@ -4263,16 +3833,12 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpCLRT) then
@@ -4303,16 +3869,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpLDC_Rm_To_SR) then
@@ -4343,16 +3905,12 @@ begin
 			RegA1SelCmd <= RegASelCmd_Rn;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpLDC_Rm_To_GBR) then
@@ -4383,16 +3941,12 @@ begin
 			RegA1SelCmd <= RegASelCmd_Rn;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpLDC_Rm_To_VBR) then
@@ -4423,16 +3977,12 @@ begin
 			RegA1SelCmd <= RegASelCmd_Rn;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_SR) then
@@ -4463,16 +4013,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_GBR) then
@@ -4503,16 +4049,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_VBR) then
@@ -4543,16 +4085,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpLDS_Rm_To_PR) then
@@ -4583,16 +4121,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpLDSL_At_Rm_Inc_To_PR) then
@@ -4623,18 +4157,50 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
+		elsif std_match(IR, OpSLEEP) then
+			ALUOpASel <= unused;
+			ALUOpBSel <= unused;
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= unused;
+			PAU_OffsetSel <= unused;
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSelCmd <= 0;
+			RegStore <= '0';
+			RegASelCmd <= 0;
+			RegBSelCmd <= 0;
+			RegAxInSelCmd <= 0;
+			RegAxStore <= '0';
+			RegA1SelCmd <= 0;
+			RegA2SelCmd <= 0;
+			RegOpSel <= 0;
+			RD <= '1';
+			WR <= '1';
+			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
+			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= Sleep;
+			UpdateIR <= '0';
 		elsif std_match(IR, OpNOP) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4663,16 +4229,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpRTE) then
@@ -4703,16 +4265,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSETT) then
@@ -4743,16 +4301,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSTC_SR_To_Rn) then
@@ -4783,16 +4337,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSTC_GBR_To_Rn) then
@@ -4823,16 +4373,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSTC_VBR_To_Rn) then
@@ -4863,16 +4409,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSTCL_SR_To_At_Dec_Rn) then
@@ -4903,16 +4445,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSTCL_GBR_To_At_Dec_Rn) then
@@ -4943,16 +4481,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSTCL_VBR_To_At_Dec_Rn) then
@@ -4983,16 +4517,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSTS_PR_To_Rn) then
@@ -5023,16 +4553,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpSTSL_PR_To_At_Dec_Rn) then
@@ -5063,16 +4589,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '1';
-			MemRE1 <= '1';
-			MemRE2 <= '1';
-			MemRE3 <= '1';
-			MemWE0 <= '0';
-			MemWE1 <= '0';
-			MemWE2 <= '0';
-			MemWE3 <= '0';
+			RD <= '1';
+			WR <= '0';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpTRAPA) then
@@ -5103,16 +4625,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		elsif std_match(IR, OpIdle) then
@@ -5143,16 +4661,12 @@ begin
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= 0;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= 0;
 			DBOutSel <= 0;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 		end if;
@@ -5186,21 +4700,17 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '0';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-		elsif CurrentState = TRAPA_Init then
-			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= ALUOpBSel_RegB;
+		elsif CurrentState = Sleep then
+			ALUOpASel <= unused;
+			ALUOpBSel <= unused;
 			FCmd <= (others => '-');
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
@@ -5208,8 +4718,8 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_OffsetSel <= PAU_OffsetZero;
+			PAU_UpdatePC <= '0';
 			PAU_UpdatePR <= '0';
 			DAU_SrcSel <= unused;
 			DAU_OffsetSel <= unused;
@@ -5226,18 +4736,14 @@ begin
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
-			MemRE0 <= '0';
-			MemRE1 <= '0';
-			MemRE2 <= '0';
-			MemRE3 <= '0';
-			MemWE0 <= '1';
-			MemWE1 <= '1';
-			MemWE2 <= '1';
-			MemWE3 <= '1';
+			RD <= '1';
+			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
 			DBOutSel <= unused;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= Sleep;
+			UpdateIR <= '0';
 		end if;
 
 
