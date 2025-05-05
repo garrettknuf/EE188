@@ -20,7 +20,7 @@ InitDataSegAddr:
     SHLL    R9
     SHLL    R9
     MOV     R9, R10     ; R10 is address of data to read from
-    MOV     #32, R11
+    MOV     #48, R11
     ADD     R10, R11    ; R11 is address to write data to (also move reg to reg)
 
 TestMOV_At_Disp_PC_To_Rn:   ; store PC relative values into reg
@@ -83,9 +83,63 @@ TestWritePreDec:
     MOV.L   R3,@-R11    ; WRITE -6000
     ADD     #8, R11
 
-TestWritePreInc:
+TestReadPostInc:
+    MOV.B   @R10+,R0
+    ADD     #1, R10
+    MOV.W   @R10+,R1
+    MOV.L   @R10+,R2
+    MOV.L   R0, @R11
+    ADD     #4, R11
+    MOV.L   R1, @R11
+    ADD     #4, R11
+    MOV.L   R2, @R11
+    ADD     #4, R11
 
-; TODO: a lot more
+Test_Rn_to_At_Disp_Reg:
+    MOV     #-11, R0
+    ; MOV.W   R0,@(0,R1)
+    MOV     #8, R0
+    MOV     #8, R0
+    MOV     #8, R0
+    ; MOV.B   R0,@(5,R11)
+    ; MOV     #65, R0
+    ; MOV.W   R0,@(4,R11)
+    ; MOV     #-123, R1
+    ; MOV.L   R1,@(2,R11)
+
+Test_At_Disp_Rm_To_Rn:
+    ; TODO
+
+Test_Rm_To_At_R0_Rn:
+    ; TODO
+
+Test_At_R0_Rm_To_Rn:
+    ; TODO
+
+Test_R0_To_At_Disp_GBR:
+    ; TODO
+
+Test_At_Disp_GBR_To_R0:
+    ; TODO
+
+TestMOVA:
+    ; TODO
+
+TestMOVT:
+    ; SETT
+    ; MOVT    R5
+    ; CMP/EQ  #1, R5
+    ; BF      TestFail
+    ; CLRT
+    ; MOVT    R5
+    ; CMP/EQ  #0, R5
+    ; BF      TestFail
+
+TestSWAP:
+    ; TODO
+
+TestXTRCT:
+    ; TODO
 
 TestSuccess:
     MOV     #1, R9
@@ -106,3 +160,7 @@ Num0: .byte -5
 Num1: .byte 68
 Num2: .word 2000
 Num3: .long -6000
+Num4: .byte -36
+Num5: .byte 0
+Num6: .word -4500
+Num7: .long 1357902468

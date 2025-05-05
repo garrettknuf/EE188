@@ -163,6 +163,8 @@ architecture behavioral of CU is
 
     constant Normal         : integer := 0;
     constant WaitForFetch   : integer := 1;
+    constant BranchSlot    : integer := 2;
+
     constant Sleep : integer := 7;
     constant STATE_CNT      : integer := 8;
 
@@ -3491,7 +3493,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_Offset8 when Tbit = '0' else PAU_OffsetWord;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
 			DAU_SrcSel <= unused;
@@ -3563,7 +3565,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_Offset8 when Tbit = '1' else PAU_OffsetWord;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
 			DAU_SrcSel <= unused;
@@ -3599,7 +3601,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_Offset12;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
 			DAU_SrcSel <= unused;
@@ -3635,7 +3637,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_OffsetReg;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
 			DAU_SrcSel <= unused;
@@ -3671,7 +3673,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_Offset12;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '1';
 			DAU_SrcSel <= unused;
@@ -3707,7 +3709,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_OffsetReg;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '1';
 			DAU_SrcSel <= unused;
@@ -3743,7 +3745,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrZero;
-			PAU_OffsetSel <= PAU_OffsetReg;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
 			DAU_SrcSel <= unused;
@@ -3779,7 +3781,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrZero;
-			PAU_OffsetSel <= PAU_OffsetReg;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '1';
 			DAU_SrcSel <= unused;
@@ -3815,7 +3817,7 @@ begin
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
 			PAU_SrcSel <= PAU_AddrZero;
-			PAU_OffsetSel <= PAU_OffsetPR;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
 			DAU_SrcSel <= unused;
@@ -4744,6 +4746,7 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Sleep;
 			UpdateIR <= '0';
+		elsif CurrentState = BranchSlot then
 		end if;
 
 

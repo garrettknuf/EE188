@@ -70,6 +70,7 @@ for instruction, normal_control_signals in instruction_decoding.items():
                 value = "'1'"
             else:
                 value = "1"
+
         vhdl_str += f"\t\t\t{signal} <= {value};\n"
     vhdl_str += f"\t\tels"
 vhdl_str = vhdl_str[:-3] + "end if;\n" 
@@ -95,7 +96,10 @@ for state, state_control_signals in state_decoding.items():
                 value = "'1'"
             else:
                 value = "1"
-        vhdl_str += f"\t\t\t{signal} <= {value};\n"
+
+        if value != "ignored":
+            # print(value)
+            vhdl_str += f"\t\t\t{signal} <= {value};\n"
     vhdl_str += f"\t\tels"
 vhdl_str = vhdl_str[:-3] + "end if;\n" 
 

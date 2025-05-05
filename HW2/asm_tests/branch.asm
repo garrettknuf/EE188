@@ -106,10 +106,10 @@ JMPTest:
     MOVA    @(0, PC), R0    ; get 
     MOV     R0, R13         
     MOV     R14, R0         ; restore R0
-    
+    ;BRA    JSRTest
 
 JSRTest:
-    JMP     @R13        ; jump to TestFunction
+    ; JMP     @R13        ; jump to TestFunction
 
 
 
@@ -124,10 +124,10 @@ TestFail:
     ;BRA    TestEnd
 
 TestEnd:
-    END_SIM true
+    SLEEP
 
 .data
 
-SRVal:  .long   b; TODO
-GBRVal: .long   1024
-VBRVal: .long   1028
+; SRVal:  .long   b; TODO
+; GBRVal: .long   1024
+; VBRVal: .long   1028

@@ -163,6 +163,8 @@ architecture behavioral of CU is
 
     constant Normal         : integer := 0;
     constant WaitForFetch   : integer := 1;
+    constant BranchSlot    : integer := 2;
+
     constant Sleep : integer := 7;
     constant STATE_CNT      : integer := 8;
 

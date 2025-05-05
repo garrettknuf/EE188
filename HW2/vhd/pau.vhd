@@ -29,12 +29,13 @@ use ieee.std_logic_1164.all;
 
 package PAUConstants is
 
-    constant PAU_SRC_CNT    : integer := 2;     -- number of PAU address sources
-    constant PAU_OFFSET_CNT : integer := 6;     -- number of PAU offset sources
+    constant PAU_SRC_CNT    : integer := 3;     -- number of PAU address sources
+    constant PAU_OFFSET_CNT : integer := 5;     -- number of PAU offset sources
 
     -- Address source mux select
     constant PAU_AddrZero   : integer := 0;     -- zero
     constant PAU_AddrPC     : integer := 1;     -- PC
+    constant PAU_AddrPR     : integer := 2;     -- PR
 
     -- Offset source mux select
     constant PAU_OffsetZero : integer := 0;     -- zero
@@ -42,7 +43,6 @@ package PAUConstants is
     constant PAU_Offset8    : integer := 2;     -- 8-bit offset (sign ext.)
     constant PAU_Offset12   : integer := 3;     -- 12-bit offset (sign ext.)
     constant PAU_OffsetReg  : integer := 4;     -- register value
-    constant PAU_OffsetPR   : integer := 5;     -- PR
 
 end package;
 
@@ -138,6 +138,7 @@ begin
     -- Inputs to address source mux
     AddrSrc(PAU_AddrZero) <= (others => '0');   -- Zero
     AddrSrc(PAU_AddrPC) <= PC;                  -- PC
+    AddrSrc(PAU_AddrPR) <= PR;
 
     -- Inputs to offset mux
     AddrOff(PAU_OffsetZero) <= (others => '0');                                 -- Zero
@@ -145,7 +146,6 @@ begin
     AddrOff(PAU_Offset8) <= (31 downto 9 => Offset8(7)) & Offset8 & '0';        -- disp8 x 2 (sign-extended)
     AddrOff(PAU_Offset12) <= (31 downto 13 => Offset12(11)) & Offset12 & '0';   -- disp12 x 2 (sign-extended)
     AddrOff(PAU_OffsetReg) <= OffsetReg;                                        -- register value
-    AddrOff(PAU_OffsetPR) <= PR;                                                -- procedure register
 
     -- Incrementer/decrement controls
     IncDecSel <= MemUnit_INC;   -- not used (preventing undefined value)
@@ -165,7 +165,7 @@ begin
             end if;
 
             -- Update PR
-            PR <= ProgAddr when UpdatePR = '1' else PR;
+            PR <= PC when UpdatePR = '1' else PR;
         end if;
     end process;
 

@@ -85,7 +85,11 @@ XORTest:
 TestSuccess:
     MOV     #1, R9
     MOV.L   R9, @R10 ; store SUCCESS (1)
-    BRA     TestEnd
+
+    SETT
+    BT      TestEnd
+
+    ;BRA     TestEnd
 
 TestFail:
     MOV     #0, R9
