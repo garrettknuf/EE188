@@ -24,13 +24,15 @@ use work.RegArrayConstants.all;
 package CUConstants is
 
     -- ALUOpASel - select input for ALUOpA
-    constant ALUOpASel_RegA  : integer range 1 downto 0 := 0;   -- RegA of RegArray
-    constant ALUOpASel_DB    : integer range 1 downto 0 := 1;   -- DataBus
+    constant ALUOpASel_RegA  : integer range 3 downto 0 := 0;   -- RegA of RegArray
+    constant ALUOpASel_DB    : integer range 3 downto 0 := 1; 
 
     -- ALUOpBSel - select input for ALUOpB
-    constant ALUOpBSel_RegB         : integer range 2 downto 0 := 0;    -- RegB of RegArray
-    constant ALUOpBSel_Imm_Signed   : integer range 2 downto 0 := 1;    -- immediate signed
-    constant ALUOpBSel_Imm_Unsigned : integer range 2 downto 0 := 2;    -- immediate unsigned
+    constant ALUOpBSel_RegB         : integer range 5 downto 0 := 0;    -- RegB of RegArray
+    constant ALUOpBSel_Imm_Signed   : integer range 5 downto 0 := 1;    -- immediate signed
+    constant ALUOpBSel_Imm_Unsigned : integer range 5 downto 0 := 2;    -- immediate unsigned
+    constant ALUOpBSel_Offset8      : integer range 5 downto 0 := 3;    -- 8-bit signed offsetx2
+    constant ALUOpBSel_Offset12     : integer range 5 downto 0 := 4;    -- 12-bit signed offsetx2
 
     -- RegInSel - select where to save input to RegIn
     constant RegInSelCmd_Rn : integer range 1 downto 0 := 0;    -- generic register
@@ -42,8 +44,9 @@ package CUConstants is
     constant RegASelCmd_R0 : integer range 2 downto 0 := 2;     -- register R0
 
     -- RegBSelCmd - select what RegB outputs
-    constant RegBSelCmd_Rm : integer range 1 downto 0 := 0;     -- generic register
-    constant RegBSelCmd_R0 : integer range 1 downto 0 := 1;     -- register R0
+    constant RegBSelCmd_Rm : integer range 2 downto 0 := 0;     -- generic register
+    constant RegBSelCmd_R0 : integer range 2 downto 0 := 1;     -- register R0
+    constant RegBSelCmd_Rn : integer range 2 downto 0 := 2;     -- generic register
     
     -- RegA1SelCmd - select what RegA1 outputs
     constant RegA1SelCmd_Rn : integer range 2 downto 0 := 0;
@@ -74,6 +77,13 @@ package CUConstants is
 
     constant DBInMode_Signed : integer range 1 downto 0 := 0;
     constant DBInMode_Unsigned : integer range 1 downto 0 := 1;
+
+    constant TempRegSel_Offset8 : integer range 4 downto 0 := 0;
+    constant TempRegSel_Offset12 : integer range 4 downto 0 := 1;
+    constant TempRegSel_RegB : integer range 4 downto 0 := 2;
+
+    constant RegAxDataIn_AddrIDOut : integer range 1 downto 0 := 0;
+    constant RegAxDataIn_DataAddr : integer range 1 downto 0 := 1;
 
     constant unused : integer := 0;
 
@@ -108,12 +118,12 @@ entity CU is
         SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
         AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
 
-        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := OpIdle;
-
+        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := OpIdle; 
+        
 
         -- ALU Control Signals
-        ALUOpASel   : out     integer range 1 downto 0 := 0;
-        ALUOpBSel   : out     integer range 2 downto 0 := 0;
+        ALUOpASel   : out     integer range 2 downto 0 := 0;
+        ALUOpBSel   : out     integer range 4 downto 0 := 0;
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
         SCmd        : out     std_logic_vector(3 downto 0);            
@@ -128,6 +138,8 @@ entity CU is
         PAU_OffsetSel   : out   integer range PAU_OFFSET_CNT - 1 downto 0;
         PAU_UpdatePC    : out   std_logic;
         PAU_UpdatePR    : out   std_logic;
+        PAU_IncDecBit   : out   integer range 2 downto 0;
+        PAU_PrePostSel  : out   std_logic;
 
         -- DAU Control Signals
         DAU_SrcSel      : out   integer range DAU_SRC_CNT - 1 downto 0;
@@ -147,6 +159,7 @@ entity CU is
         RegA1SelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegA2SelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegOpSel        : out   integer  range REGOp_SrcCnt - 1 downto 0;
+        RegAxDataInSel  : out   integer  range 1 downto 0;
     
         -- IO Control signals
         DBOutSel : out integer range 5 downto 0;
@@ -154,7 +167,12 @@ entity CU is
         DBInMode : out integer range 1 downto 0;
         RD     : out   std_logic;
         WR     : out   std_logic;
-        DataAccessMode : out integer range 2 downto 0
+        DataAccessMode : out integer range 2 downto 0;
+
+        TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+        TempRegSel : out integer range 4 downto 0;
+
+        RegB : in std_logic_vector(REG_SIZE - 1 downto 0)
     );
 
 end CU;
@@ -164,6 +182,8 @@ architecture behavioral of CU is
     constant Normal         : integer := 0;
     constant WaitForFetch   : integer := 1;
     constant BranchSlot    : integer := 2;
+    constant BranchSlotRet  : integer := 3;
+    constant BranchSlotDirect  : integer := 4;
 
     constant Sleep : integer := 7;
     constant STATE_CNT      : integer := 8;
@@ -175,12 +195,19 @@ architecture behavioral of CU is
 
     signal Tbit : std_logic;
 
-    signal TempReg : std_logic_vector(15 downto 0);
     signal UpdateTempReg : std_logic;
+
+    signal TempRegMuxOut : std_logic_vector(31 downto 0);
 
 begin
 
     Tbit <= SR(0);
+
+    --
+    TempRegMuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempRegSel = TempRegSel_Offset8 else
+                    (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempRegSel = TempRegSel_Offset12 else
+                    RegB when TempRegSel = TempRegSel_RegB else
+                    (others => 'X');
 
     -- Control Unit Registers
     process (CLK)
@@ -195,8 +222,9 @@ begin
                       DB(15 downto 0) when UpdateIR = '1' and AB(1 downto 0) = "10" else
                       IR;
 
+
                 --
-                TempReg <= IR when UpdateTempReg = '1' else TempReg;
+                TempReg <= TempRegMuxOut when UpdateTempReg = '1' else TempReg;
 
                 -- Set state of FSM
                 CurrentState <= NextState;

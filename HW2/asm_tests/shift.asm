@@ -83,5 +83,14 @@ TestEnd:
 
 .data
 
+Addr1REstsVec : .long x3523994
+Addr1REstsVec : .long x3523994
+Addr1REstsVec : .long x3523994
+Addr1REstsVec : .long x3523994
+Addr1REstsVec : .long x3523994
+Addr1REstsVec : .long x3523994
+
 Num0:   .long b10010010101010111110101000101100
 Num1:   .long b01101001001011100010001101100011
+
+

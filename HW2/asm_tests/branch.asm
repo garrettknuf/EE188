@@ -11,6 +11,12 @@
 ; Revision History:
 ;   27 Apr 25   Garrett Knuf    Initial revision.
 
+.vectable
+    PC: 1024
+    KeyobardInt: 1028
+    ...
+    REsetInt: 
+
 .text
 
 InitDataSegAddr:
@@ -69,10 +75,11 @@ BRAFTest:
     NOP
 
 BSR_RTSTest:
-    MOV     #2, R11
-    BSR     TestFunction
-    MOV     #1, R4          ; should execute
-    MOV     R11, R5         ; should be 2-1=1
+    MOV    #10, R11
+    BSR    TestFunction
+    MOV    #1, R4          ; should execute
+    MOV.L  R11, @R10       ; should write 9
+    ADD    #4, R10
     BRA    BSRF_RTSTest
     NOP
 
@@ -83,40 +90,41 @@ BSR_RTSTest:
 ; @return R11 = value-1
 ;
 TestFunction:
-    MOV     R0, R14         ; save R0
-    MOVA    @(0, PC), R0    ; save address of function  ;; WRONG WRONG WRONG
-    ; TODO: fix
-    MOV     R0, R13         
-    MOV     R14, R0         ; restore R0
-    DT  R11
+    DT          R11
     RTS                     ; return from function call
     MOV     #1, R6          ; should execute
     BRA     TestFail        ; this should not
 
 BSRF_RTSTest:
-    MOV     #-8, R12        ; offset to TestFunction
-    MOV     #2, R11
+    MOV     #-12, R12       ; offset to TestFunction
     BSRF    R12             ; call test function
-    MOV     #1, R7          ; should execute
-    MOV     R11, R8         ; should be 2-1=1
-    ;BRA    JMPTest
+    MOV     #20, R11        ; should execute
+    MOV.L  R11, @R10        ; should write 19
+    ADD    #4, R10
+    ; BRA    JMPTest
 
 JMPTest:
-    MOV     R0, R14         ; save R0
-    MOVA    @(0, PC), R0    ; get 
-    MOV     R0, R13         
-    MOV     R14, R0         ; restore R0
-    ;BRA    JSRTest
+    MOVA    @(3, PC), R0
+    JMP     @R0
+    NOP
+    NOP
+    BRA     TestFail
+    NOP
 
 JSRTest:
-    ; JMP     @R13        ; jump to TestFunction
-
-
+    MOVA    @(0,PC),R0
+    ADD     #-30, R0
+    MOV     R0, R13
+    JSR     @R13        ; jump to TestFunction
+    MOV     #37, R11
+    MOV.L   R11, @R10
+    ADD     #4, R10
 
 TestSuccess:
     MOV     #1, R9
     MOV.L   R9, @R10 ; store SUCCESS (1)
-    BRA     TestEnd
+    SETT    
+    BT      TestEnd
 
 TestFail:
     MOV     #0, R9
@@ -127,7 +135,3 @@ TestEnd:
     SLEEP
 
 .data
-
-; SRVal:  .long   b; TODO
-; GBRVal: .long   1024
-; VBRVal: .long   1028

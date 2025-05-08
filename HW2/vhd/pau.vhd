@@ -30,7 +30,7 @@ use ieee.std_logic_1164.all;
 package PAUConstants is
 
     constant PAU_SRC_CNT    : integer := 3;     -- number of PAU address sources
-    constant PAU_OFFSET_CNT : integer := 5;     -- number of PAU offset sources
+    constant PAU_OFFSET_CNT : integer := 7;     -- number of PAU offset sources
 
     -- Address source mux select
     constant PAU_AddrZero   : integer := 0;     -- zero
@@ -40,9 +40,11 @@ package PAUConstants is
     -- Offset source mux select
     constant PAU_OffsetZero : integer := 0;     -- zero
     constant PAU_OffsetWord : integer := 1;     -- wordsize (2)
-    constant PAU_Offset8    : integer := 2;     -- 8-bit offset (sign ext.)
-    constant PAU_Offset12   : integer := 3;     -- 12-bit offset (sign ext.)
-    constant PAU_OffsetReg  : integer := 4;     -- register value
+    constant PAU_OffsetLong : integer := 2;     -- wordsize (2)
+    constant PAU_Offset8    : integer := 3;     -- 8-bit offset (sign ext.)
+    constant PAU_Offset12   : integer := 4;     -- 12-bit offset (sign ext.)
+    constant PAU_OffsetReg  : integer := 5;     -- register value
+    constant PAU_TempReg    : integer := 6;     -- temporary register
 
 end package;
 
@@ -85,8 +87,11 @@ entity PAU is
         Offset8     : in    std_logic_vector(7 downto 0);
         Offset12    : in    std_logic_vector(11 downto 0);
         OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+        TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         UpdatePC    : in    std_logic;
         UpdatePR    : in    std_logic;
+        IncDecBit   : in    integer range 2 downto 0;
+        PrePostSel  : in    std_logic;
         CLK         : in    std_logic;
         RST         : in    std_logic;
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -126,9 +131,9 @@ architecture behavioral of PAU is
     signal AddrOff  : std_logic_array(PAU_OFFSET_CNT - 1 downto 0)(ADDR_BUS_SIZE - 1 downto 0);
 
     -- Incrementer/decrementer controls
-    signal IncDecSel    : std_logic;                -- not used
-    signal IncDecBit    : integer range 0 downto 0; -- not used
-    signal PrePostSel   : std_logic;                -- mux select for pre/post
+    signal IncDecSel    : std_logic;                --
+    -- signal IncDecBit    : integer range 0 downto 0; -- not used
+    -- signal PrePostSel   : std_logic;                -- mux select for pre/post
     signal AddrSrcOut   : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0); -- not used
 
     constant PC_INIT_VALUE : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := (others => '0');
@@ -143,14 +148,16 @@ begin
     -- Inputs to offset mux
     AddrOff(PAU_OffsetZero) <= (others => '0');                                 -- Zero
     AddrOff(PAU_OffsetWord) <= (31 downto 2 => '0') & "10";                     -- Two (offset to next word)
+    AddrOff(PAU_OffsetLong) <= (31 downto 3 => '0') & "100";                    -- Four (offset to word after the next)
     AddrOff(PAU_Offset8) <= (31 downto 9 => Offset8(7)) & Offset8 & '0';        -- disp8 x 2 (sign-extended)
     AddrOff(PAU_Offset12) <= (31 downto 13 => Offset12(11)) & Offset12 & '0';   -- disp12 x 2 (sign-extended)
     AddrOff(PAU_OffsetReg) <= OffsetReg;                                        -- register value
+    AddrOff(PAU_TempReg) <= TempReg;                                            -- temporary register
 
     -- Incrementer/decrement controls
-    IncDecSel <= MemUnit_INC;   -- not used (preventing undefined value)
-    IncDecBit <= 0;             -- not used (preventing undefined value)
-    PrePostSel <= MemUnit_POST; -- use post value to ignore inc/dec
+    IncDecSel <= MemUnit_DEC;   -- not used (preventing undefined value)
+    -- IncDecBit <= 0;             -- not used (preventing undefined value)
+    -- PrePostSel <= MemUnit_POST; -- use post value to ignore inc/dec
 
     -- Update registors of PAU
     PAU_registers : process (CLK)
@@ -174,7 +181,7 @@ begin
         generic map (
             srcCnt => PAU_SRC_CNT,          -- number of address sources
             offsetCnt => PAU_OFFSET_CNT,    -- number of offset sources
-            maxIncDecBit => 0,              -- no inc/dec
+            maxIncDecBit => 2,              -- 
             wordsize => ADDR_BUS_SIZE       -- 32-bit addressing
         )
         port map (
@@ -182,8 +189,8 @@ begin
             SrcSel => SrcSel,           -- address source mux select
             AddrOff => AddrOff,         -- offset source
             OffsetSel => OffsetSel,     -- offset source mux select
-            IncDecSel => IncDecSel,     -- not used
-            IncDecBit => IncDecBit,     -- not used
+            IncDecSel => IncDecSel,     --
+            IncDecBit => IncDecBit,     --
             PrePostSel => PrePostSel,   -- always post
             Address => ProgAddr,        -- address bus
             AddrSrcOut => AddrSrcOut    -- inc/dec source
