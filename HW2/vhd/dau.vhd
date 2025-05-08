@@ -30,8 +30,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 package DAUConstants is
-    constant DAU_SRC_CNT    : integer := 4;     -- number of DAU address sources
-    constant DAU_OFFSET_CNT : integer := 8;     -- number of DAU offset sources
+    constant DAU_SRC_CNT    : integer := 6;     -- number of DAU address sources
+    constant DAU_OFFSET_CNT : integer := 9;     -- number of DAU offset sources
     constant DAU_MAX_INCDEC_BIT : integer := 2; -- max value for DAU IncDecBit input
 
     -- Address source mux select
@@ -39,6 +39,8 @@ package DAUConstants is
     constant DAU_AddrPC_LW  : integer := 1; -- PC for long word
     constant DAU_AddrRn     : integer := 2; -- register value
     constant DAU_AddrGBR    : integer := 3; -- GBR
+    constant DAU_AddrVBR    : integer := 4; -- VBR
+    constant DAU_AddrZero   : integer := 5; -- Zero
 
     -- Offset source mux select
     constant DAU_OffsetZero : integer := 0; -- zero
@@ -49,6 +51,7 @@ package DAUConstants is
     constant DAU_Offset8x1  : integer := 5; -- 8-bit offset x 1
     constant DAU_Offset8x2  : integer := 6; -- 8-bit offset x 2
     constant DAU_Offset8x4  : integer := 7; -- 8-bit offset x 4
+    constant DAU_OffsetWord : integer := 8; -- word offset (2)
 
 end package;
 
@@ -99,10 +102,13 @@ entity DAU is
         IncDecBit   : in    integer range 2 downto 0;
         PrePostSel  : in    std_logic;
         LoadGBR     : in    std_logic;
+        LoadVBR     : in    std_logic;
         CLK         : in    std_logic;
+        RST         : in    std_logic;
         AddrIDOut   : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         DataAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   
-        GBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
+        GBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+        VBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
     );
 
 end DAU;
@@ -143,6 +149,7 @@ begin
     AddrSrc(DAU_AddrPC_LW) <= PC and x"FFFFFFFC"; -- mask bottom two bits if long word
     AddrSrc(DAU_AddrRn) <= Rn;
     AddrSrc(DAU_AddrGBR) <= GBR;
+    AddrSrc(DAU_AddrZero) <= (others => '0');
 
     -- Inputs to offset mux
     AddrOff(DAU_OffsetZero) <= (others => '0');
@@ -153,6 +160,7 @@ begin
     AddrOff(DAU_Offset8x1) <= (31 downto 8 => '0') & Offset8;
     AddrOff(DAU_Offset8x2) <= (31 downto 9 => '0') & Offset8 & '0';
     AddrOff(DAU_Offset8x4) <= (31 downto 10 => '0') & Offset8 & "00";
+    AddrOff(DAU_OffsetWord) <= (31 downto 2 => '0') & "10";
 
     -- Update registers of DAU
     DAU_registers : process (CLK)
@@ -162,6 +170,13 @@ begin
             -- Update GBR
             GBR <= Rn when LoadGBR = '1' else GBR;
 
+        end if;
+    end process;
+
+    VBR_reset : process (CLK)
+    begin
+        if rising_edge(CLK) then
+            VBR <= (others => '0') when RST = '0' else VBR;
         end if;
     end process;
 

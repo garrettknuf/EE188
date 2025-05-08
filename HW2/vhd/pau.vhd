@@ -29,13 +29,14 @@ use ieee.std_logic_1164.all;
 
 package PAUConstants is
 
-    constant PAU_SRC_CNT    : integer := 3;     -- number of PAU address sources
+    constant PAU_SRC_CNT    : integer := 4;     -- number of PAU address sources
     constant PAU_OFFSET_CNT : integer := 7;     -- number of PAU offset sources
 
     -- Address source mux select
     constant PAU_AddrZero   : integer := 0;     -- zero
     constant PAU_AddrPC     : integer := 1;     -- PC
     constant PAU_AddrPR     : integer := 2;     -- PR
+    constant PAU_AddrDB     : integer := 3;     -- DB
 
     -- Offset source mux select
     constant PAU_OffsetZero : integer := 0;     -- zero
@@ -92,8 +93,8 @@ entity PAU is
         UpdatePR    : in    std_logic;
         IncDecBit   : in    integer range 2 downto 0;
         PrePostSel  : in    std_logic;
+        DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         CLK         : in    std_logic;
-        RST         : in    std_logic;
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
@@ -136,7 +137,6 @@ architecture behavioral of PAU is
     -- signal PrePostSel   : std_logic;                -- mux select for pre/post
     signal AddrSrcOut   : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0); -- not used
 
-    constant PC_INIT_VALUE : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := (others => '0');
 
 begin
 
@@ -144,6 +144,7 @@ begin
     AddrSrc(PAU_AddrZero) <= (others => '0');   -- Zero
     AddrSrc(PAU_AddrPC) <= PC;                  -- PC
     AddrSrc(PAU_AddrPR) <= PR;
+    AddrSrc(PAU_AddrDB) <= DB;
 
     -- Inputs to offset mux
     AddrOff(PAU_OffsetZero) <= (others => '0');                                 -- Zero
@@ -164,12 +165,7 @@ begin
     begin
         if rising_edge(CLK) then
 
-            if RST = '1' then
-                -- Update PC
-                PC <= ProgAddr when UpdatePC = '1' else PC;
-            else
-                PC <= PC_INIT_VALUE;
-            end if;
+            PC <= ProgAddr when UpdatePC = '1' else PC;
 
             -- Update PR
             PR <= PC when UpdatePR = '1' else PR;

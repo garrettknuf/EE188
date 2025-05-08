@@ -420,6 +420,7 @@ if __name__ == '__main__':
     SEG_UNKNOWN = 0
     SEG_TEXT = 1
     SEG_DATA = 2
+    SEG_VEC_TABLE = 3
 
     # List of text lines to output
     chunk0_output = []
@@ -443,6 +444,7 @@ if __name__ == '__main__':
         seg = SEG_UNKNOWN
         data_arr = []
         data_map = {}
+        vector_words = []
 
         # Iterate through all lines of file
         for line_num, line in enumerate(lines):
@@ -454,12 +456,29 @@ if __name__ == '__main__':
             elif len(line.split())> 0 and line.split()[0] == '.data':
                 seg = SEG_DATA
                 continue
+            elif len(line.split())> 0 and line.split()[0] == '.vectable':
+                seg = SEG_VEC_TABLE
+                continue
+
+            # Parse vector table
+            if seg == SEG_VEC_TABLE:
+                if not line or line.startswith(';'):
+                    continue  # skip empty or comment lines
+                line = line.split(';')[0].strip()  # remove inline comment
+                parts = line.split(':')
+                if len(parts) < 2:
+                    continue
+                address_part = parts[1].strip().split()[0]  # Get '0x00000020'
+                address_int = int(address_part, 16)         # Convert hex to int
+                address_bin = format(address_int, '032b')   # Convert int to 32-bit binary string
+                vector_words.append(address_bin[:16] + '\t; ' + parts[0] + '\n')
+                vector_words.append(address_bin[16:] + '\n')
 
             # Parse program code
             if seg == SEG_TEXT:
                 asm = assemble_instruction(line, addr)
                 if asm:
-                    text = format(asm, '016b') + f'\t; 0x{addr:08X} : ' + \
+                    text = format(asm, '016b') + f'\t; 0x{addr + len(vector_words)*2:08X} : ' + \
                             f"{(lines[line_num].lstrip())}".rstrip('\n') + '\n'
                     chunk0_output.append(text)
                     addr += 2
@@ -477,10 +496,8 @@ if __name__ == '__main__':
                     else:
                         data_arr.append(data)
 
-                # if data:
-                #     data_arr.append(data)
-
         # Fill in reset of program code memory up until start of next chunk
+        addr += 2*len(vector_words)
         while addr < CHUNK0_ADDR + CHUNK_SIZE:
             chunk0_output.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
             addr += 2
@@ -534,6 +551,8 @@ if __name__ == '__main__':
     output_file_path = '../asm_tests/build/'
 
     with open(output_file_path + output_file_basename + "_mem0.txt", 'w') as out_file:
+        for word in vector_words:
+            out_file.write(word)
         for line in chunk0_output:
             out_file.write(line)
 

@@ -35,8 +35,9 @@ package CUConstants is
     constant ALUOpBSel_Offset12     : integer range 5 downto 0 := 4;    -- 12-bit signed offsetx2
 
     -- RegInSel - select where to save input to RegIn
-    constant RegInSelCmd_Rn : integer range 1 downto 0 := 0;    -- generic register
-    constant RegInSelCmd_R0 : integer range 1 downto 0 := 1;    -- register R0
+    constant RegInSelCmd_Rn : integer range 2 downto 0 := 0;    -- generic register
+    constant RegInSelCmd_R0 : integer range 2 downto 0 := 1;    -- register R0
+    constant RegInSelCmd_R15 : integer range 2 downto 0 := 2;    -- register R15
 
     -- RegASelCmd - select what RegA outputs
     constant RegASelCmd_Rn : integer range 2 downto 0 := 0;     -- generic register
@@ -118,7 +119,7 @@ entity CU is
         SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
         AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
 
-        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := OpIdle; 
+        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0);
         
 
         -- ALU Control Signals
@@ -179,11 +180,13 @@ end CU;
 
 architecture behavioral of CU is
 
-    constant Normal         : integer := 0;
-    constant WaitForFetch   : integer := 1;
-    constant BranchSlot    : integer := 2;
-    constant BranchSlotRet  : integer := 3;
-    constant BranchSlotDirect  : integer := 4;
+    constant Normal             : integer := 0;
+    constant WaitForFetch       : integer := 1;
+    constant BranchSlot         : integer := 2;
+    constant BranchSlotRet      : integer := 3;
+    constant BranchSlotDirect   : integer := 4;
+    constant BootReadSP         : integer := 5;
+    constant BootWaitForFetch   : integer := 6;
 
     constant Sleep : integer := 7;
     constant STATE_CNT      : integer := 8;
@@ -230,7 +233,7 @@ begin
                 CurrentState <= NextState;
             else
                 -- Reset to idle instruction (rising edge after reset)
-                IR <= OpIdle;
+                IR <= OpBoot;
                 CurrentState <= Normal;
             end if;
 

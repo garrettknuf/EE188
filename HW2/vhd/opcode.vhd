@@ -178,6 +178,6 @@ package OpcodeConstants is
     constant OpSTSL_PR_To_At_Dec_Rn  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00100010";
     constant OpTRAPA                 : std_logic_vector(OPCODE_SIZE-1 downto 0) := "11000011--------";
     
-    constant OpIdle                  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000000000";
+    constant OpBoot                  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000000000";
 
 end package;

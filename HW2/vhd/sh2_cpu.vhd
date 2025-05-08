@@ -117,8 +117,8 @@ architecture structural of SH2_CPU is
             UpdatePR    : in    std_logic;
             IncDecBit   : in    integer range 2 downto 0;
             PrePostSel  : in    std_logic;
+            DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             CLK         : in    std_logic;
-            RST         : in    std_logic;
             ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
@@ -138,10 +138,13 @@ architecture structural of SH2_CPU is
             IncDecBit   : in    integer range 2 downto 0;
             PrePostSel  : in    std_logic;
             LoadGBR     : in    std_logic;
+            LoadVBR     : in    std_logic;
             CLK         : in    std_logic;
+            RST         : in    std_logic;
             AddrIDOut   : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             DataAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   
-            GBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
+            GBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+            VBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
         );
     end component;
 
@@ -275,9 +278,11 @@ architecture structural of SH2_CPU is
     signal DAU_IncDecBit      : integer range 2 downto 0;
     signal DAU_PrePostSel     : std_logic;
     signal DAU_LoadGBR        : std_logic;
+    signal DAU_LoadVBR        : std_logic;
     signal DAU_AddrIDOut      : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_DataAddr       : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_GBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+    signal DAU_VBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
 
     -- StatusReg Signals
     signal SR_UpdateTbit     : std_logic;
@@ -374,7 +379,8 @@ begin
     RegAxIn <= DAU_AddrIDOut when RegAxDataInSel = RegAxDataIn_AddrIDOut else 
                DAU_DataAddr when RegAxDataInSel = RegAxDataIn_DataAddr;
 
-    RegInSel <= to_integer(unsigned(IR(11 downto 8))) when RegInSelCmd = RegInSelCmd_Rn else 0;
+    RegInSel <= to_integer(unsigned(IR(11 downto 8))) when RegInSelCmd = RegInSelCmd_Rn else
+                15 when RegInSelCmd = RegInSelCmd_R15 else 0;
     RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
     RegBSel <= to_integer(unsigned(IR(7 downto 4))) when RegBSelCmd = RegBSelCmd_Rm else
                to_integer(unsigned(IR(11 downto 8))) when RegBSelCmd = RegBSelCmd_Rn else 0;
@@ -534,10 +540,10 @@ begin
             TempReg    => TempReg,
             IncDecBit  => PAU_IncDecBit,
             PrePostSel => PAU_PrePostSel,
+            DB         => DB,
             UpdatePC   => PAU_UpdatePC,
             UpdatePR   => PAU_UpdatePR,
             CLK        => clock,
-            RST        => reset,
             ProgAddr   => PAU_ProgAddr,
             PC         => PAU_PC,
             PR         => PAU_PR
@@ -557,10 +563,13 @@ begin
             IncDecBit  => DAU_IncDecBit,
             PrePostSel => DAU_PrePostSel,
             LoadGBR    => DAU_LoadGBR,
+            LoadVBR    => DAU_LoadVBR,
             CLK        => clock,
+            RST        => Reset,
             AddrIDOut  => DAU_AddrIDOut,
             DataAddr   => DAU_DataAddr,
-            GBR        => DAU_GBR
+            GBR        => DAU_GBR,
+            VBR        => DAU_VBR
         );
 
     -- Status Register (SR)

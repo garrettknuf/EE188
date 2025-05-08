@@ -35,8 +35,9 @@ package CUConstants is
     constant ALUOpBSel_Offset12     : integer range 5 downto 0 := 4;    -- 12-bit signed offsetx2
 
     -- RegInSel - select where to save input to RegIn
-    constant RegInSelCmd_Rn : integer range 1 downto 0 := 0;    -- generic register
-    constant RegInSelCmd_R0 : integer range 1 downto 0 := 1;    -- register R0
+    constant RegInSelCmd_Rn : integer range 2 downto 0 := 0;    -- generic register
+    constant RegInSelCmd_R0 : integer range 2 downto 0 := 1;    -- register R0
+    constant RegInSelCmd_R15 : integer range 2 downto 0 := 2;    -- register R15
 
     -- RegASelCmd - select what RegA outputs
     constant RegASelCmd_Rn : integer range 2 downto 0 := 0;     -- generic register
@@ -118,7 +119,7 @@ entity CU is
         SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
         AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
 
-        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := OpIdle; 
+        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0);
         
 
         -- ALU Control Signals
@@ -179,11 +180,13 @@ end CU;
 
 architecture behavioral of CU is
 
-    constant Normal         : integer := 0;
-    constant WaitForFetch   : integer := 1;
-    constant BranchSlot    : integer := 2;
-    constant BranchSlotRet  : integer := 3;
-    constant BranchSlotDirect  : integer := 4;
+    constant Normal             : integer := 0;
+    constant WaitForFetch       : integer := 1;
+    constant BranchSlot         : integer := 2;
+    constant BranchSlotRet      : integer := 3;
+    constant BranchSlotDirect   : integer := 4;
+    constant BootReadSP         : integer := 5;
+    constant BootWaitForFetch   : integer := 6;
 
     constant Sleep : integer := 7;
     constant STATE_CNT      : integer := 8;
@@ -230,7 +233,7 @@ begin
                 CurrentState <= NextState;
             else
                 -- Reset to idle instruction (rising edge after reset)
-                IR <= OpIdle;
+                IR <= OpBoot;
                 CurrentState <= Normal;
             end if;
 
@@ -5284,7 +5287,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
-		elsif std_match(IR, OpIdle) then
+		elsif std_match(IR, OpBoot) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
 			FCmd <= (others => '-');
@@ -5293,17 +5296,17 @@ begin
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
 			UpdateTbit <= '0';
-			PAU_SrcSel <= PAU_AddrZero;
+			PAU_SrcSel <= PAU_AddrDB;
 			PAU_OffsetSel <= PAU_OffsetZero;
 			PAU_UpdatePC <= '1';
 			PAU_UpdatePR <= '0';
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
-			DAU_SrcSel <= unused;
-			DAU_OffsetSel <= unused;
+			DAU_SrcSel <= DAU_AddrZero;
+			DAU_OffsetSel <= DAU_OffsetZero;
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
-			DAU_PrePostSel <= '-';
+			DAU_PrePostSel <= MemUnit_POST;
 			DAU_LoadGBR <= '0';
 			RegInSelCmd <= 0;
 			RegStore <= '0';
@@ -5317,11 +5320,11 @@ begin
 			RegAxDataInSel <= 0;
 			RD <= '0';
 			WR <= '1';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
 			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= BootReadSP;
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
@@ -5434,6 +5437,63 @@ begin
 			PAU_UpdatePR <= '0';
 			NextState <= Normal;
 			UpdateTempReg <= '1';
+			TempRegSel <= unused;
+			PAU_IncDecBit <= 0;
+			PAU_PrePostSel <= MemUnit_POST;
+		elsif CurrentState = BootReadSP then
+			PAU_UpdatePC <= '0';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= DAU_AddrZero;
+			DAU_OffsetSel <= DAU_OffsetWord;
+			DAU_PrePostSel <= MemUnit_POST;
+			RegInSelCmd <= RegInSelCmd_R15;
+			RegStore <= '1';
+			RD <= '0';
+			WR <= '1';
+			ABOutSel <= ABOutSel_Data;
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= BootWaitForFetch;
+			UpdateTempReg <= '0';
+			TempRegSel <= unused;
+			PAU_IncDecBit <= 0;
+			PAU_PrePostSel <= MemUnit_PRE;
+		elsif CurrentState = BootWaitForFetch then
+			ALUOpASel <= ALUOpASel_RegA;
+			ALUOpBSel <= ALUOpBSel_RegB;
+			FCmd <= (others => '-');
+			CinCmd <= (others => '-');
+			SCmd <= (others => '-');
+			ALUCmd <= (others => '-');
+			TbitOp <= (others => '-');
+			UpdateTbit <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetZero;
+			PAU_UpdatePC <= '1';
+			PAU_UpdatePR <= '0';
+			DAU_SrcSel <= unused;
+			DAU_OffsetSel <= unused;
+			DAU_IncDecSel <= '-';
+			DAU_IncDecBit <= unused;
+			DAU_PrePostSel <= '-';
+			DAU_LoadGBR <= '0';
+			RegInSelCmd <= unused;
+			RegStore <= '0';
+			RegASelCmd <= unused;
+			RegBSelCmd <= unused;
+			RegAxInSelCmd <= unused;
+			RegAxStore <= '0';
+			RegA1SelCmd <= unused;
+			RegA2SelCmd <= unused;
+			RegOpSel <= RegOp_None;
+			RD <= '0';
+			WR <= '1';
+			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= unused;
+			DBOutSel <= unused;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= Normal;
+			UpdateIR <= '1';
+			UpdateTempReg <= '0';
 			TempRegSel <= unused;
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;

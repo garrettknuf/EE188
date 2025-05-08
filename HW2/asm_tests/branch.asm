@@ -12,10 +12,34 @@
 ;   27 Apr 25   Garrett Knuf    Initial revision.
 
 .vectable
-    PC: 1024
-    KeyobardInt: 1028
-    ...
-    REsetInt: 
+    PowerResetPC:           0x00000050  ; PC for power reset (0)
+    PowerResetSP:           0xFFFFFFFF  ; SP for power reset (1)
+    ManualResetPC:          0x00000000  ; PC for manual reset (2)
+    ManualResetSP:          0x00000000  ; SP for manual reset (3)
+    InvalidInstruction:     0x00000000  ; General invalid instruction (4)
+    Reserved:               0x00000000  ; reserved (5)
+    SlotInvalidInstruction: 0x00000000  ; Slot invalid instruction (6)
+    Reserved:               0x00000000  ; reserved (7)
+    Reserved:               0x00000000  ; reserved (8)
+    CPUAddrError:           0x00000000  ; CPU address error (9)
+    DTCAddrError:           0x00000000  ; DTC address error (10)
+    InterruptNMI:           0x00000000  ; Interrupt NMI (11)
+    InterruptUserBreak:     0x00000000  ; Interrupt UserBreak (12)
+    Reserved:               0x00000000  ; reserved (13)
+    Reserved:               0x00000000  ; reserved (14)
+    Reserved:               0x00000000  ; reserved (15)
+    ; 16-31 typically reserved (but ignoring here)
+    TrapInstUser0:          0x00000000  ; trap instruction (uservector) (13) (typically 32)
+    TrapInstUser1:          0x00000000  ; trap instruction (uservector) (14) (typically 33)
+    TrapInstUser2:          0x00000000  ; trap instruction (uservector) (15) (typically 34)
+    TrapInstUser3:          0x00000000  ; trap instruction (uservector) (16) (typically 35)
+    ; 36-63 trap instruction (user vector)
+    ; 64 RQ0
+    ; 65 IRQ1
+    ; 66 IRQ2
+    ; 67 IRQ3
+    ; 68-71 reserved
+    ; 72-255 built-in peripheral modules
 
 .text
 
