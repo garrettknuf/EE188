@@ -96,7 +96,7 @@ entity PAU is
         DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         CLK         : in    std_logic;
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+        PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := x"DEADBEEF";
         PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
     );
 

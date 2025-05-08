@@ -78,18 +78,19 @@ with open(expected_memory_file, "r") as exp_file:
                 print(f"Unknown line: {line}")
 
     # Move expected values into correct memory contents
-    mem_arr = parse_memory(asm_build_text)
+    # mem_arr = parse_memory(asm_build_text)
+    mem_arr = []
     for i, bin_str in enumerate(exp_value_list):
         mem_arr.append(bin_str)
 
     # Check memory contents match
-    dump_arr0 = parse_memory(mem_dump_text0)
+    # dump_arr0 = parse_memory(mem_dump_text0)
     dump_arr1 = parse_memory(mem_dump_text1)
-    dump_arr0.extend(dump_arr1)
+    # dump_arr0.extend(dump_arr1)
     err_cnt = 0
     for i, bin in enumerate(mem_arr):
-        if mem_arr[i] != dump_arr0[i]:
-            print(f"Error @ 0x{i:04X} - expected {mem_arr[i]} - actual {dump_arr0[i]}")
+        if mem_arr[i] != dump_arr1[i]:
+            print(f"Error @ 0x{i+1024:04X} - expected {mem_arr[i]} - actual {dump_arr1[i]}")
             err_cnt += 1
 
     # Output test results

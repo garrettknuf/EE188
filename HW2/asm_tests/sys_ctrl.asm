@@ -11,6 +11,10 @@
 ; Revision History:
 ;   27 Apr 25   Garrett Knuf    Initial revision.
 
+.vectable
+    PowerResetPC:           0x00000008  ; PC for power reset (0)
+    PowerResetSP:           0xFFFFFFFF  ; SP for power reset (1)
+
 .text
 
 InitDataSegAddr:

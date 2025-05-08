@@ -119,7 +119,7 @@ entity CU is
         SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
         AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
 
-        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0);
+        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";
         
 
         -- ALU Control Signals

@@ -11,6 +11,10 @@
 ; Revision History:
 ;   28 Apr 25   Garrett Knuf    Initial revision.
 
+.vectable
+    PowerResetPC:           0x00000008  ; PC for power reset (0)
+    PowerResetSP:           0xFFFFFFFF  ; SP for power reset (1)
+
 .text
 
 InitDataSegAddr:
@@ -106,6 +110,11 @@ Test_Rn_to_At_Disp_Reg:
     ; MOV.W   R0,@(4,R11)
     ; MOV     #-123, R1
     ; MOV.L   R1,@(2,R11)
+;     ;
+;     B.-11
+; B.8
+; W.65
+; L.-123
 
 Test_At_Disp_Rm_To_Rn:
     ; TODO
