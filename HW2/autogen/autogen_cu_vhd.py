@@ -98,7 +98,6 @@ for state, state_control_signals in state_decoding.items():
                 value = "1"
 
         if value != "ignored":
-            # print(value)
             vhdl_str += f"\t\t\t{signal} <= {value};\n"
     vhdl_str += f"\t\tels"
 vhdl_str = vhdl_str[:-3] + "end if;\n" 

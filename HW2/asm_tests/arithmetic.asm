@@ -60,14 +60,37 @@ ADDVTest:
 
 DTTest:
 
-EXTSTest:
 
-
-EXTUTest:
+EXTTest:   
+    MOV.L   @R10, R0    ; read in testing value
+    ADD     #4, R10
+    EXTS.B  R0, R1      ; sign extend byte
+    EXTS.W  R0, R2      ; sign extend word
+    EXTU.B  R0, R3      ; zero extend byte
+    EXTU.B  R0, R4      ; zero extend word
+    MOV.L   R0, @R11    ; WRITE = 
+    ADD     #4, R11     
+    MOV.L   R1, @R11    ; WRITE = 
+    ADD     #4, R11     
+    MOV.L   R2, @R11    ; WRITE = 
+    ADD     #4, R11     
+    MOV.L   R3, @R11    ; WRITE = 
+    ADD     #4, R11     
 
 NEGTest:
-
-NEGCTest:
+    SETT                ; set T=1
+    MOV     #-23, R0
+    NEG     R0, R1      ; 0-(-23) = 23      | test NEG
+    NEGC    R0, R2      ; 0-(-23)-1 = 22    | test NEGC
+    BT      TestFail
+    MOV     #72, R0
+    NEG     R0, R3      ; 0-72 = -72
+    MOV.L   R0, @R11    ; WRITE = 23
+    ADD     #4, R11     
+    MOV.L   R1, @R11    ; WRITE = 22
+    ADD     #4, R11     
+    MOV.L   R1, @R11    ; WRITE = -72
+    ADD     #4, R11  
 
 SUBTest:
 
@@ -144,10 +167,22 @@ CMPPZTest:
     BF      TestFail
 
 CMPSTRTest:
-    ; TODO
+    MOV.L   @R10+, R0
+    MOV.L   @R10+, R1
+    CMP/STR R0, R1
+    BF      TestFail
+    MOV     #0, R1
+    BT      TestFail
+
+TestSuccess:
+    MOV     #1, R0
+    MOV.L   R0, @R11
+    BRA     TestEnd
 
 TestFail:
-    MOV #-1, R0
+    MOV     #0, R0
+    MOV.L   R0, @R11
+    ;BRA     TestEnd
 
 TestEnd:
     END_SIM true

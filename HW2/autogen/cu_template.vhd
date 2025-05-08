@@ -175,6 +175,9 @@ architecture behavioral of CU is
 
     signal Tbit : std_logic;
 
+    signal TempReg : std_logic_vector(15 downto 0);
+    signal UpdateTempReg : std_logic;
+
 begin
 
     Tbit <= SR(0);
@@ -191,6 +194,9 @@ begin
                 IR <= DB(31 downto 16) when UpdateIR = '1' and AB(1 downto 0) = "00" else
                       DB(15 downto 0) when UpdateIR = '1' and AB(1 downto 0) = "10" else
                       IR;
+
+                --
+                TempReg <= IR when UpdateTempReg = '1' else TempReg;
 
                 -- Set state of FSM
                 CurrentState <= NextState;
