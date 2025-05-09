@@ -51,7 +51,7 @@ package DAUConstants is
     constant DAU_Offset8x1  : integer := 5; -- 8-bit offset x 1
     constant DAU_Offset8x2  : integer := 6; -- 8-bit offset x 2
     constant DAU_Offset8x4  : integer := 7; -- 8-bit offset x 4
-    constant DAU_OffsetWord : integer := 8; -- word offset (2)
+    constant DAU_OffsetLong : integer := 8; -- word offset (2)
 
 end package;
 
@@ -160,7 +160,7 @@ begin
     AddrOff(DAU_Offset8x1) <= (31 downto 8 => '0') & Offset8;
     AddrOff(DAU_Offset8x2) <= (31 downto 9 => '0') & Offset8 & '0';
     AddrOff(DAU_Offset8x4) <= (31 downto 10 => '0') & Offset8 & "00";
-    AddrOff(DAU_OffsetWord) <= (31 downto 2 => '0') & "10";
+    AddrOff(DAU_OffsetLong) <= (31 downto 3 => '0') & "100";
 
     -- Update registers of DAU
     DAU_registers : process (CLK)

@@ -5441,10 +5441,14 @@ begin
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = BootReadSP then
+			ALUOpASel <= ALUOpASel_DB;
+			FCmd <= FCmd_A;
+			ALUCmd <= ALUCmd_FBLOCK;
+			UpdateTbit <= '0';
 			PAU_UpdatePC <= '0';
 			PAU_UpdatePR <= '0';
 			DAU_SrcSel <= DAU_AddrZero;
-			DAU_OffsetSel <= DAU_OffsetWord;
+			DAU_OffsetSel <= DAU_OffsetLong;
 			DAU_PrePostSel <= MemUnit_POST;
 			RegInSelCmd <= RegInSelCmd_R15;
 			RegStore <= '1';
