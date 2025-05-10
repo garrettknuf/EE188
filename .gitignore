@@ -11,8 +11,8 @@
 # *.sh
 
 # Ignore build and memory files files
-dump[0-9].txt
-build_mem[0-9]*.txt
+ ../asm_tests/mem_dump/*
+../asm_tests/build/*
 
 # Ignore temporary files
 ~*

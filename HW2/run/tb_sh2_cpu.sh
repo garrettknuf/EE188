@@ -13,11 +13,11 @@ MEMCOMPARE="../../MemCompare/mem_compare.py"
 ASM_FILES=(
     "../asm_tests/fibonacci.asm"
     "../asm_tests/arithmetic.asm"
-    # "../asm_tests/logic.asm"
-    # "../asm_tests/shift.asm"
-    # "../asm_tests/branch.asm"
-    # "../asm_tests/data_xfer.asm"
-    # "../asm_tests/sys_ctrl.asm"
+    "../asm_tests/logic.asm"
+    "../asm_tests/shift.asm"
+    "../asm_tests/branch.asm"
+    "../asm_tests/data_xfer.asm"
+    "../asm_tests/sys_ctrl.asm"
 )
 
 # Check for --gore to use executable path for George
@@ -111,7 +111,7 @@ for asm_file in "${ASM_FILES[@]}"; do
 
     # Assemble code if enabled
     if [ "$ASSEMBLE" == true ]; then
-        echo "Assembling '$base_name.asm'."
+        echo "Assembling '$base_name.asm'..."
 
         # Create output file name
         output_file="../asm_tests/build/build.txt"
