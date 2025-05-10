@@ -49,18 +49,64 @@ InitDataSegAddr:
     SHLL    R0
     SHLL    R0
     SHLL    R0
-    MOV     R0, R10 ; 1024
+    MOV     R0, R10 ; R10 is pointer to data to write to
+    ADD     #24, R10
+    MOV     R0, R11 ; R11 is pointer to data to read from
 
 BootTest:
     MOV.L   R15, @R10   ; write 0xFFFFFFFF (SP)
     ADD     #4, R10
 
-; TbitTests:
-;     SETT                ; T=1
-;     BF      TestFail    ; fail if T=0
-;     CLRT                ; T= 0
-;     BT      TestFail    ; fail if T=1
-;     ;BRA    LoadCtrlRegTests
+TbitTests:
+    SETT                ; T=1
+    BF      TestFail    ; fail if T=0
+    CLRT                ; T= 0
+    BT      TestFail    ; fail if T=1
+    ;BRA    LoadCtrlRegTests
+
+TestGBR:
+    MOV     #62,R7
+    LDC     R7,GBR      ; R7 = 62
+    STC     GBR,R8      ; R8 = 62
+    MOV.L   R8,@R10     ; WRITE 62
+    ADD     #4,R10
+    LDC.L   @R11+,GBR   ; Read 1024
+    ADD     #4, R10     ; Counteract pre-dec
+    STC.L   GBR,@-R10   ; WRITE 1024
+    ADD     #4, R10
+
+TestSR:
+    MOV     #23,R7
+    LDC     R7,SR       ; R7 = 23
+    STC     SR,R8       ; R8 = 23
+    MOV.L   R8,@R10     ; WRITE 23
+    ADD     #4,R10
+    LDC.L   @R11+,SR    ; Read 80
+    ADD     #4, R10     ; Counteract pre-dec
+    STC.L   SR,@-R10    ; WRITE 80
+    ADD     #4, R10
+
+TestVBR:
+    MOV     #42,R7
+    LDC     R7,VBR      ; R7 = 42
+    STC     VBR,R8      ; R8 = 42
+    MOV.L   R8,@R10     ; WRITE 42
+    ADD     #4,R10
+    LDC.L   @R11+,VBR   ; Read 2048
+    ADD     #4, R10     ; Counteract pre-dec
+    STC.L   VBR,@-R10   ; WRITE 2048
+    ADD     #4, R10
+
+TestPR:
+    MOV     #98,R7
+    LDS     R7,PR      ; R7 = 98
+    STS     PR,R8      ; R8 = 98
+    MOV.L   R8,@R10    ; WRITE 98
+    ADD     #4,R10
+    LDS.L   @R11+,PR   ; Read 432
+    ADD     #4, R10    ; Counteract pre-dec
+    STS.L   PR,@-R10   ; WRITE 432
+    ADD     #4, R10
 
 ; LoadCtrlRegTests:
 ;     LDC     Rm, SR
@@ -116,10 +162,11 @@ TestFail:
     ;BRA    TestEnd
 
 TestEnd:
-    END_SIM true
+    SLEEP
 
 .data
 
-; SRVal:  .long   b; TODO
-; GBRVal: .long   1024
-; VBRVal: .long   1028
+GBRVal: .long   1024
+SRVal:  .long   80
+VBRVal: .long   2048
+PRVal:  .long   432

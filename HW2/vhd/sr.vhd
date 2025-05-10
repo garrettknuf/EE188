@@ -29,6 +29,11 @@ package StatusRegConstants is
     constant StatusReg_Qbit     : integer := 8; -- Q bit
     constant StatusReg_Mbit     : integer := 9; -- M bit
 
+    constant SRSEL_CNT  : integer := 3;
+    constant SRSel_Tbit : integer range SRSEL_CNT-1 downto 0 := 0;
+    constant SRSel_DB   : integer range SRSEL_CNT-1 downto 0 := 1;
+    constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;
+
 end package;
 
 --
@@ -54,7 +59,10 @@ entity StatusReg is
 
     port (
         Tbit        : in    std_logic;
-        UpdateTbit  : in    std_logic;
+        UpdateSR    : in    std_logic;
+        DB          : in    std_logic_vector(31 downto 0);
+        Reg         : in    std_logic_vector(31 downto 0);
+        SRSel       : in    integer range SRSEL_CNT-1 downto 0;
         CLK         : in    std_logic;
         SR          : out   std_logic_vector(REG_SIZE - 1 downto 0)
     );
@@ -68,10 +76,15 @@ begin
     process (CLK)
     begin
 
-        if rising_edge(CLK)  and UpdateTbit = '1' then
+        if rising_edge(CLK)  and UpdateSR = '1' then
 
             -- Change T bit if it should be updated
-            SR(StatusReg_Tbit) <= Tbit;
+            SR <= (31 downto 1 => '0') & Tbit  when SRSel = SRSel_Tbit else
+                   DB    when SRSel = SRSel_DB   else
+                   Reg   when SRSel = SRSel_Reg  else
+                   (others => 'X');
+
+
 
         end if;
 

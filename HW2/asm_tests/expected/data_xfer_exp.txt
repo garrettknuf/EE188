@@ -1,6 +1,6 @@
 StartAddr: 0x0400
-B.-5    ; should be byte
-B.68    ; should be byte
+B.-5
+B.68
 W.2000
 L.-6000
 B.-36
@@ -31,7 +31,6 @@ B.-7
 L.-36
 L.-4500
 L.1357902018
-
 L.1
 L.0
 L.0

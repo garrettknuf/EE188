@@ -44,6 +44,7 @@ use work.TbitConstants.all;
 use work.PAUConstants.all;
 use work.DAUConstants.all;
 use work.RegArrayConstants.all;
+use work.StatusRegConstants.all;
 use work.CUConstants.all;
 
 entity  SH2_CPU  is
@@ -114,7 +115,7 @@ architecture structural of SH2_CPU is
             OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             UpdatePC    : in    std_logic;
-            UpdatePR    : in    std_logic;
+            PRSel       : in    integer range PRSEL_CNT-1 downto 0;
             IncDecBit   : in    integer range 2 downto 0;
             PrePostSel  : in    std_logic;
             DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -134,11 +135,12 @@ architecture structural of SH2_CPU is
             Rn          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             R0          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             PC          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+            DB          : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
             IncDecSel   : in    std_logic;
             IncDecBit   : in    integer range 2 downto 0;
             PrePostSel  : in    std_logic;
-            LoadGBR     : in    std_logic;
-            LoadVBR     : in    std_logic;
+            GBRSel      : in    integer range GBRSEL_CNT-1 downto 0;
+            VBRSel      : in    integer range GBRSEL_CNT-1 downto 0;
             CLK         : in    std_logic;
             RST         : in    std_logic;
             AddrIDOut   : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -151,7 +153,10 @@ architecture structural of SH2_CPU is
     component StatusReg is
         port (
             Tbit        : in    std_logic;
-            UpdateTbit  : in    std_logic;
+            UpdateSR    : in    std_logic;
+            DB          : in    std_logic_vector(31 downto 0);
+            Reg         : in    std_logic_vector(31 downto 0);
+            SRSel       : in    integer range 2 downto 0;
             CLK         : in    std_logic;
             SR          : out   std_logic_vector(REG_SIZE - 1 downto 0)
         );
@@ -179,13 +184,14 @@ architecture structural of SH2_CPU is
             TbitOp      : out     std_logic_vector(3 downto 0);
 
             -- StatusReg Control Signals
-            UpdateTbit  : out   std_logic;
+            UpdateSR    : out   std_logic;
+            SRSel       : out   integer range SRSEL_CNT-1 downto 0;
 
             -- PAU Control Signals
             PAU_SrcSel      : out   integer range PAU_SRC_CNT - 1 downto 0;
             PAU_OffsetSel   : out   integer range PAU_OFFSET_CNT - 1 downto 0;
             PAU_UpdatePC    : out   std_logic;
-            PAU_UpdatePR    : out   std_logic;
+            PAU_PRSel       : out   integer range PRSEL_CNT-1 downto 0;
             PAU_IncDecBit   : out    integer range 2 downto 0;
             PAU_PrePostSel  : out    std_logic;
 
@@ -195,7 +201,8 @@ architecture structural of SH2_CPU is
             DAU_IncDecSel   : out   std_logic;
             DAU_IncDecBit   : out   integer range 2 downto 0;
             DAU_PrePostSel  : out   std_logic;
-            DAU_LoadGBR     : out   std_logic;
+            DAU_GBRSel      : out   integer range GBRSEL_CNT-1 downto 0;
+            DAU_VBRSel      : out   integer range VBRSEL_CNT-1 downto 0;
 
             -- RegArray Control Signals
             RegInSelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
@@ -207,7 +214,7 @@ architecture structural of SH2_CPU is
             RegA1SelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
             RegA2SelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
             RegOpSel   : out   integer  range REGOp_SrcCnt - 1 downto 0;
-            RegAxDataInSel : out integer range 1 downto 0;
+            RegAxDataInSel  : out   integer  range REGAXDATAIN_CNT-1 downto 0;
         
             -- IO Control signals
             DBOutSel : out integer range 5 downto 0;
@@ -259,7 +266,7 @@ architecture structural of SH2_CPU is
     signal PAU_Offset12    : std_logic_vector(11 downto 0);
     signal PAU_OffsetReg   : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal PAU_UpdatePC    : std_logic;
-    signal PAU_UpdatePR    : std_logic;
+    signal PAU_PRSel       : integer range PRSEL_CNT-1 downto 0;
     signal PAU_IncDecBit   : integer range 2 downto 0;
     signal PAU_PrePostSel  : std_logic;
     signal PAU_ProgAddr    : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -277,15 +284,15 @@ architecture structural of SH2_CPU is
     signal DAU_IncDecSel      : std_logic;
     signal DAU_IncDecBit      : integer range 2 downto 0;
     signal DAU_PrePostSel     : std_logic;
-    signal DAU_LoadGBR        : std_logic;
-    signal DAU_LoadVBR        : std_logic;
+    signal DAU_GBRSel        : integer range GBRSEL_CNT-1 downto 0;
+    signal DAU_VBRSel        : integer range VBRSEL_CNT-1 downto 0;
     signal DAU_AddrIDOut      : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_DataAddr       : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_GBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_VBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
 
     -- StatusReg Signals
-    signal SR_UpdateTbit     : std_logic;
+    signal SR_UpdateSR     : std_logic;
     signal SR             : std_logic_vector(REG_SIZE - 1 downto 0);
 
     signal ALUOpA : std_logic_vector(LONG_SIZE-1 downto 0);
@@ -307,7 +314,10 @@ architecture structural of SH2_CPU is
     signal RegA1SelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
     signal RegA2SelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
 
-    signal RegAxDataInSel  : integer  range 1 downto 0;
+    signal RegAxDataInSel  : integer  range REGAXDATAIN_CNT-1 downto 0;
+
+
+    signal SRSel : integer range SRSEL_CNT-1 downto 0;
 
     signal WE : std_logic_vector(3 downto 0);
     signal RE : std_logic_vector(3 downto 0);
@@ -377,7 +387,12 @@ begin
     -- RegArray inputs (non-control signals)
     RegIn <= ALU_Result;
     RegAxIn <= DAU_AddrIDOut when RegAxDataInSel = RegAxDataIn_AddrIDOut else 
-               DAU_DataAddr when RegAxDataInSel = RegAxDataIn_DataAddr;
+               DAU_DataAddr when RegAxDataInSel = RegAxDataIn_DataAddr else
+               SR when RegAxDataInSel = RegAxDataIn_SR else
+               DAU_GBR when RegAxDataInSel = RegAxDataIn_GBR else
+               DAU_VBR when RegAxDataInSel = RegAxDataIn_VBR else
+               PAU_PR  when RegAxDataInSel = RegAxDataIn_PR else
+               (others => 'X');
 
     RegInSel <= to_integer(unsigned(IR(11 downto 8))) when RegInSelCmd = RegInSelCmd_Rn else
                 15 when RegInSelCmd = RegInSelCmd_R15 else 0;
@@ -401,7 +416,7 @@ begin
 
     DB <= DBOut when WR = '0' else (others => 'Z');
 
-    process(MemAccessBits)
+    process(all)
     begin
         if WR = '0' then
             WE <= MemAccessBits;
@@ -487,6 +502,18 @@ begin
                 when others =>
                     DBOut <= (others => 'X');
             end case;
+        elsif (DBOutSel = DBOutSel_GBR) then
+            DBOut <= DAU_GBR;
+            MemAccessBits <= "0000";
+        elsif (DBOutSel = DBOutSel_VBR) then
+            DBOut <= DAU_VBR;
+            MemAccessBits <= "0000";
+        elsif (DBOutSel = DBOutSel_SR) then
+            DBOut <= SR;
+            MemAccessBits <= "0000";
+        elsif (DBOutSel = DBOutSel_PR) then
+            DBOut <= PAU_PR;
+            MemAccessBits <= "0000";
         else
             DBOut <= (others => 'Z');
         end if;
@@ -542,7 +569,7 @@ begin
             PrePostSel => PAU_PrePostSel,
             DB         => DB,
             UpdatePC   => PAU_UpdatePC,
-            UpdatePR   => PAU_UpdatePR,
+            PRSel      => PAU_PRSel,
             CLK        => clock,
             ProgAddr   => PAU_ProgAddr,
             PC         => PAU_PC,
@@ -559,11 +586,12 @@ begin
             Rn         => DAU_Rn,
             R0         => DAU_R0,
             PC         => DAU_PC,
+            DB         => DB,
             IncDecSel  => DAU_IncDecSel,
             IncDecBit  => DAU_IncDecBit,
             PrePostSel => DAU_PrePostSel,
-            LoadGBR    => DAU_LoadGBR,
-            LoadVBR    => DAU_LoadVBR,
+            GBRSel     => DAU_GBRSel,
+            VBRSel     => DAU_VBRSel,
             CLK        => clock,
             RST        => Reset,
             AddrIDOut  => DAU_AddrIDOut,
@@ -576,7 +604,10 @@ begin
     SH2_SR : StatusReg
         port map (
             Tbit        => ALU_Tbit,
-            UpdateTbit  => SR_UpdateTbit,
+            UpdateSR  => SR_UpdateSR,
+            DB          => DB,
+            Reg         => RegA,
+            SRSel       => SRSel,
             CLK         => clock,
             SR          => SR
         );
@@ -605,13 +636,14 @@ begin
             TbitOp      => ALU_TbitOp,
 
             -- StatusReg Control Signals
-            UpdateTbit  => SR_UpdateTbit,
+            UpdateSR    => SR_UpdateSR,
+            SRSel       => SRSel,
 
             -- PAU Control Signals
             PAU_SrcSel      => PAU_SrcSel,
             PAU_OffsetSel   => PAU_OffsetSel,
             PAU_UpdatePC    => PAU_UpdatePC,
-            PAU_UpdatePR    => PAU_UpdatePR,
+            PAU_PRSel       => PAU_PRSel,
             PAU_IncDecBit   => PAU_IncDecBit,
             PAU_PrePostSel  => PAU_PrePostSel,
 
@@ -621,7 +653,8 @@ begin
             DAU_IncDecSel   => DAU_IncDecSel,
             DAU_IncDecBit   => DAU_IncDecBit,
             DAU_PrePostSel  => DAU_PrePostSel,
-            DAU_LoadGBR     => DAU_LoadGBR,
+            DAU_GBRSel      => DAU_GBRSel,
+            DAU_VBRSel      => DAU_VBRSel,
 
             -- RegArray Control Signals
             RegInSelCmd  => RegInSelCmd,

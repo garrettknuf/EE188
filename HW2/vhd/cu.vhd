@@ -83,8 +83,13 @@ package CUConstants is
     constant TempRegSel_Offset12 : integer range 4 downto 0 := 1;
     constant TempRegSel_RegB : integer range 4 downto 0 := 2;
 
-    constant RegAxDataIn_AddrIDOut : integer range 1 downto 0 := 0;
-    constant RegAxDataIn_DataAddr : integer range 1 downto 0 := 1;
+    constant REGAXDATAIN_CNT : integer := 6;
+    constant RegAxDataIn_AddrIDOut  : integer range REGAXDATAIN_CNT-1 downto 0 := 0;
+    constant RegAxDataIn_DataAddr   : integer range REGAXDATAIN_CNT-1 downto 0 := 1;
+    constant RegAxDataIn_SR         : integer range REGAXDATAIN_CNT-1 downto 0 := 2;
+    constant RegAxDataIn_GBR        : integer range REGAXDATAIN_CNT-1 downto 0 := 3;
+    constant RegAxDataIn_VBR        : integer range REGAXDATAIN_CNT-1 downto 0 := 4;
+    constant RegAxDataIn_PR         : integer range REGAXDATAIN_CNT-1 downto 0 := 5;
 
     constant unused : integer := 0;
 
@@ -132,13 +137,14 @@ entity CU is
         TbitOp      : out     std_logic_vector(3 downto 0);
 
         -- StatusReg Control Signals
-        UpdateTbit  : out   std_logic;
+        UpdateSR    : out   std_logic;
+        SRSel       : out   integer range SRSEL_CNT-1 downto 0;
 
         -- PAU Control Signals
         PAU_SrcSel      : out   integer range PAU_SRC_CNT - 1 downto 0;
         PAU_OffsetSel   : out   integer range PAU_OFFSET_CNT - 1 downto 0;
         PAU_UpdatePC    : out   std_logic;
-        PAU_UpdatePR    : out   std_logic;
+        PAU_PRSel       : out   integer range PRSEL_CNT-1 downto 0;
         PAU_IncDecBit   : out   integer range 2 downto 0;
         PAU_PrePostSel  : out   std_logic;
 
@@ -148,7 +154,8 @@ entity CU is
         DAU_IncDecSel   : out   std_logic;
         DAU_IncDecBit   : out   integer range 2 downto 0;
         DAU_PrePostSel  : out   std_logic;
-        DAU_LoadGBR     : out   std_logic;
+        DAU_GBRSel      : out   integer range GBRSEL_CNT-1 downto 0;
+        DAU_VBRSel      : out   integer range VBRSEL_CNT-1 downto 0;
 
         -- RegArray Control Signals
         RegInSelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
@@ -160,7 +167,7 @@ entity CU is
         RegA1SelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegA2SelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegOpSel        : out   integer  range REGOp_SrcCnt - 1 downto 0;
-        RegAxDataInSel  : out   integer  range 1 downto 0;
+        RegAxDataInSel  : out   integer  range REGAXDATAIN_CNT-1 downto 0;
     
         -- IO Control signals
         DBOutSel : out integer range 5 downto 0;
@@ -252,11 +259,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -264,7 +271,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -285,6 +293,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_At_Disp_PC_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -293,11 +302,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrPC;
@@ -305,7 +314,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -326,6 +336,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_At_Disp_PC_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -334,11 +345,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrPC;
@@ -346,7 +357,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -367,6 +379,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOV_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -375,11 +388,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -387,7 +400,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -408,6 +422,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -416,11 +431,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -428,7 +443,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -449,6 +465,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -457,11 +474,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -469,7 +486,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -490,6 +508,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -498,11 +517,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -510,7 +529,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -531,6 +551,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_At_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -539,11 +560,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -551,7 +572,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -572,6 +594,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_At_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -580,11 +603,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -592,7 +615,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -613,6 +637,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_At_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -621,11 +646,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -633,7 +658,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -654,6 +680,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -662,11 +689,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -674,7 +701,8 @@ begin
 			DAU_IncDecSel <= MemUnit_DEC;
 			DAU_IncDecBit <= 0;
 			DAU_PrePostSel <= MemUnit_PRE;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -695,6 +723,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -703,11 +732,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -715,7 +744,8 @@ begin
 			DAU_IncDecSel <= MemUnit_DEC;
 			DAU_IncDecBit <= 1;
 			DAU_PrePostSel <= MemUnit_PRE;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -736,6 +766,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -744,11 +775,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -756,7 +787,8 @@ begin
 			DAU_IncDecSel <= MemUnit_DEC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_PRE;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -777,6 +809,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -785,11 +818,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -797,7 +830,8 @@ begin
 			DAU_IncDecSel <= MemUnit_INC;
 			DAU_IncDecBit <= 0;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -818,6 +852,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -826,11 +861,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -838,7 +873,8 @@ begin
 			DAU_IncDecSel <= MemUnit_INC;
 			DAU_IncDecBit <= 1;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -859,6 +895,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -867,11 +904,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -879,7 +916,8 @@ begin
 			DAU_IncDecSel <= MemUnit_INC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -900,6 +938,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -908,11 +947,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -920,7 +959,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -941,6 +981,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -949,11 +990,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -961,7 +1002,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -982,6 +1024,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -990,11 +1033,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1002,7 +1045,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1023,6 +1067,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_At_Disp_Rm_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1031,11 +1076,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1043,7 +1088,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1064,6 +1110,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_At_Disp_Rm_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1072,11 +1119,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1084,7 +1131,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1105,6 +1153,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_At_Disp_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1113,11 +1162,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1125,7 +1174,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1146,6 +1196,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1154,11 +1205,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1166,7 +1217,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1187,6 +1239,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1195,11 +1248,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1207,7 +1260,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1228,6 +1282,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1236,11 +1291,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1248,7 +1303,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1269,6 +1325,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1277,11 +1334,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1289,7 +1346,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1310,6 +1368,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1318,11 +1377,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1330,7 +1389,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1351,6 +1411,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1359,11 +1420,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -1371,7 +1432,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1392,6 +1454,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1400,11 +1463,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrGBR;
@@ -1412,7 +1475,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1433,6 +1497,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1441,11 +1506,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrGBR;
@@ -1453,7 +1518,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1474,6 +1540,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1482,11 +1549,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrGBR;
@@ -1494,7 +1561,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1515,6 +1583,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVB_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1523,11 +1592,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrGBR;
@@ -1535,7 +1604,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= ReginSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1556,6 +1626,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVW_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1564,11 +1635,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrGBR;
@@ -1576,7 +1647,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= ReginSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1597,6 +1669,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVL_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1605,11 +1678,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrGBR;
@@ -1617,7 +1690,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= ReginSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1638,6 +1712,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVA) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
@@ -1646,11 +1721,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrPC;
@@ -1658,7 +1733,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= ReginSelCmd_R0;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1679,6 +1755,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1687,11 +1764,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -1699,7 +1776,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1720,6 +1798,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSwapB) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1728,11 +1807,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -1740,7 +1819,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1761,6 +1841,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSwapW) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1769,11 +1850,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -1781,7 +1862,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1802,6 +1884,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpXTRCT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1810,11 +1893,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -1822,7 +1905,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1843,6 +1927,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpADD_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1851,11 +1936,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -1863,7 +1948,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1884,6 +1970,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpADD_Imm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Signed;
@@ -1892,11 +1979,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -1904,7 +1991,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1925,6 +2013,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpADDC) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1933,11 +2022,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -1945,7 +2034,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -1966,6 +2056,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpADDV) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1974,11 +2065,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Overflow;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -1986,7 +2077,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2007,6 +2099,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_EQ_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Signed;
@@ -2015,11 +2108,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2027,7 +2120,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_R0;
@@ -2048,6 +2142,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_EQ_RmRn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2056,11 +2151,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2068,7 +2163,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2089,6 +2185,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_HS) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2097,11 +2194,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2109,7 +2206,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2130,6 +2228,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_GE) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2138,11 +2237,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_GEQ;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2150,7 +2249,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2171,6 +2271,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_HI) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2179,11 +2280,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_HI;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2191,7 +2292,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2212,6 +2314,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_GT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2220,11 +2323,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_GT;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2232,7 +2335,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2253,6 +2357,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_PL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2261,11 +2366,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_PL;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2273,7 +2378,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2294,6 +2400,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_PZ) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2302,11 +2409,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_PZ;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2314,7 +2421,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2335,6 +2443,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCMP_STR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2343,11 +2452,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_STR;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2355,7 +2464,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2376,6 +2486,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpDT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2384,11 +2495,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2396,7 +2507,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2417,6 +2529,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpEXTS_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2425,11 +2538,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2437,7 +2550,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2458,6 +2572,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpEXTS_W) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2466,11 +2581,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2478,7 +2593,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2499,6 +2615,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpEXTU_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2507,11 +2624,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2519,7 +2636,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2540,6 +2658,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpEXTU_W) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2548,11 +2667,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2560,7 +2679,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2581,6 +2701,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpNEG) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2589,11 +2710,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2601,7 +2722,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2622,6 +2744,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpNEGC) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2630,11 +2753,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Borrow;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2642,7 +2765,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2663,6 +2787,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSUB) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2671,11 +2796,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2683,7 +2808,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2704,6 +2830,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSUBC) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2712,11 +2839,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Borrow;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2724,7 +2851,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2745,6 +2873,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSUBV) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2753,11 +2882,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
 			TbitOp <= Tbit_Overflow;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2765,7 +2894,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2786,6 +2916,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpAND_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2794,11 +2925,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2806,7 +2937,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2827,6 +2959,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpAND_Imm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2835,11 +2968,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2847,7 +2980,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_R0;
@@ -2868,6 +3002,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpAND_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2876,11 +3011,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2888,7 +3023,8 @@ begin
 			DAU_IncDecSel <= '0';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '0';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_R0;
@@ -2909,6 +3045,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpNOT) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2917,11 +3054,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2929,7 +3066,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2950,6 +3088,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpOR_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2958,11 +3097,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -2970,7 +3109,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -2991,6 +3131,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpOR_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2999,11 +3140,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3011,7 +3152,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_R0;
@@ -3032,6 +3174,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpOR_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3040,11 +3183,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3052,7 +3195,8 @@ begin
 			DAU_IncDecSel <= '0';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '0';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_R0;
@@ -3073,6 +3217,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpTAS_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3081,11 +3226,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3093,7 +3238,8 @@ begin
 			DAU_IncDecSel <= '0';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '0';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3114,6 +3260,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpTST_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3122,11 +3269,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3134,7 +3281,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3155,6 +3303,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpTST_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3163,11 +3312,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3175,7 +3324,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_R0;
@@ -3196,6 +3346,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpTST_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3204,11 +3355,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3216,7 +3367,8 @@ begin
 			DAU_IncDecSel <= '0';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '0';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_R0;
@@ -3237,6 +3389,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpXOR_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3245,11 +3398,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3257,7 +3410,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3278,6 +3432,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpXOR_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3286,11 +3441,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3298,7 +3453,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_R0;
@@ -3319,6 +3475,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpXOR_Imm_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3327,11 +3484,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3339,7 +3496,8 @@ begin
 			DAU_IncDecSel <= '0';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '0';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_R0;
@@ -3360,6 +3518,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpROTL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3368,11 +3527,11 @@ begin
 			SCmd <= SCmd_ROL;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3380,7 +3539,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3401,6 +3561,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpROTR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3409,11 +3570,11 @@ begin
 			SCmd <= SCmd_ROR;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3421,7 +3582,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3442,6 +3604,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpROTCL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3450,11 +3613,11 @@ begin
 			SCmd <= SCmd_RLC;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3462,7 +3625,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3483,6 +3647,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpROTCR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3491,11 +3656,11 @@ begin
 			SCmd <= SCmd_RRC;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3503,7 +3668,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3524,6 +3690,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHAL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3532,11 +3699,11 @@ begin
 			SCmd <= SCmd_LSL;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3544,7 +3711,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3565,6 +3733,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHAR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3573,11 +3742,11 @@ begin
 			SCmd <= SCmd_ASR;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3585,7 +3754,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3606,6 +3776,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHLL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3614,11 +3785,11 @@ begin
 			SCmd <= SCmd_LSL;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3626,7 +3797,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3647,6 +3819,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHLR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3655,11 +3828,11 @@ begin
 			SCmd <= SCmd_LSR;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= Tbit_Carry;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3667,7 +3840,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3688,6 +3862,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHLL2) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3696,11 +3871,11 @@ begin
 			SCmd <= SCmd_LSL2;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3708,7 +3883,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3729,6 +3905,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHLR2) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3737,11 +3914,11 @@ begin
 			SCmd <= SCmd_LSR2;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3749,7 +3926,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3770,6 +3948,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHLL8) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3778,11 +3957,11 @@ begin
 			SCmd <= SCmd_LSL8;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3790,7 +3969,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3811,6 +3991,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHLR8) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3819,11 +4000,11 @@ begin
 			SCmd <= SCmd_LSR8;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3831,7 +4012,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3852,6 +4034,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHLL16) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3860,11 +4043,11 @@ begin
 			SCmd <= SCmd_LSL16;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3872,7 +4055,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3893,6 +4077,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpSHLR16) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3901,11 +4086,11 @@ begin
 			SCmd <= SCmd_LSR16;
 			ALUCmd <= ALUCmd_SHIFT;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3913,7 +4098,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
@@ -3934,6 +4120,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpBF) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -3942,11 +4129,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_Offset8 when Tbit = '0' else PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3954,7 +4141,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -3975,6 +4163,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpBFS) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -3983,11 +4172,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -3995,7 +4184,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4016,6 +4206,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_Offset8;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpBT) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4024,11 +4215,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_Offset8 when Tbit = '1' else PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4036,7 +4227,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4057,6 +4249,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpBTS) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4065,11 +4258,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4077,7 +4270,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4098,6 +4292,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_Offset8;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpBRA) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4106,11 +4301,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4118,7 +4313,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4139,6 +4335,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_Offset12;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpBRAF) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4147,11 +4344,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4159,7 +4356,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4180,6 +4378,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_RegB;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpBSR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4188,11 +4387,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '1';
+			PAU_PRSel <= PRSel_PC;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4200,7 +4399,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4221,6 +4421,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_Offset12;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpBSRF) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4229,11 +4430,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '1';
+			PAU_PRSel <= PRSel_PC;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4241,7 +4442,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4262,6 +4464,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_RegB;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpJMP) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4270,11 +4473,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4282,7 +4485,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4303,6 +4507,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_RegB;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpJSR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4311,11 +4516,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '1';
+			PAU_PRSel <= PRSel_PC;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4323,7 +4528,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4344,6 +4550,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_RegB;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpRTS) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4352,11 +4559,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4364,7 +4571,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -4385,6 +4593,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= TempRegSel_RegB;
+			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpCLRT) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4393,11 +4602,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4405,7 +4614,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
@@ -4426,6 +4636,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpLDC_Rm_To_SR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4434,11 +4645,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -4446,10 +4657,11 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
-			RegASelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= 0;
 			RegAxInSelCmd <= 0;
 			RegAxStore <= '0';
@@ -4467,6 +4679,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= SRSel_Reg;
 		elsif std_match(IR, OpLDC_Rm_To_GBR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4475,11 +4688,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -4487,10 +4700,11 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '1';
+			DAU_GBRSel <= GBRSel_Reg;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
-			RegASelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= 0;
 			RegAxInSelCmd <= 0;
 			RegAxStore <= '0';
@@ -4508,6 +4722,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpLDC_Rm_To_VBR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4516,11 +4731,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -4528,10 +4743,11 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_Reg;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
-			RegASelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= 0;
 			RegAxInSelCmd <= 0;
 			RegAxStore <= '0';
@@ -4549,19 +4765,20 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_SR) then
-			ALUOpASel <= unused;
+			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_A;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
-			ALUCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -4569,27 +4786,29 @@ begin
 			DAU_IncDecSel <= MemUnit_INC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
-			RegInSelCmd <= 0;
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
+			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
-			RegASelCmd <= 0;
-			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
-			RegA2SelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
+			RegBSelCmd <= RegBSelCmd_Rm;
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
 			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= SRSel_DB;
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_GBR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4598,11 +4817,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -4610,27 +4829,29 @@ begin
 			DAU_IncDecSel <= MemUnit_INC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '1';
-			RegInSelCmd <= 0;
+			DAU_GBRSel <= GBRSel_DB;
+			DAU_VBRSel <= VBRSel_None;
+			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
-			RegASelCmd <= 0;
-			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
-			RegA2SelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
+			RegBSelCmd <= RegBSelCmd_Rm;
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
 			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_VBR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4639,11 +4860,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -4651,27 +4872,29 @@ begin
 			DAU_IncDecSel <= MemUnit_INC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
-			RegInSelCmd <= 0;
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_DB;
+			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
-			RegASelCmd <= 0;
-			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
-			RegA2SelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
+			RegBSelCmd <= RegBSelCmd_Rm;
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
 			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpLDS_Rm_To_PR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4680,11 +4903,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
-			PAU_SrcSel <= unused;
-			PAU_OffsetSel <= unused;
-			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '1';
+			UpdateSR <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_PRSel <= PRSel_Reg;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4692,14 +4915,15 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
-			RegASelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= 0;
 			RegAxInSelCmd <= 0;
 			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
+			RegA1SelCmd <= RegASelCmd_Rn;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -4713,6 +4937,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpLDSL_At_Rm_Inc_To_PR) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4721,11 +4946,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '1';
+			PAU_PRSel <= PRSel_DB;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -4733,27 +4958,29 @@ begin
 			DAU_IncDecSel <= MemUnit_INC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
-			RegInSelCmd <= 0;
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
+			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
-			RegASelCmd <= 0;
-			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
-			RegA2SelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
+			RegBSelCmd <= RegBSelCmd_Rm;
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
 			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSLEEP) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4762,11 +4989,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4774,7 +5001,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
@@ -4795,6 +5023,7 @@ begin
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpNOP) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4803,11 +5032,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4815,7 +5044,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
@@ -4836,6 +5066,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpRTE) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4844,11 +5075,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrZero;
 			PAU_OffsetSel <= PAU_OffsetReg;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4856,7 +5087,8 @@ begin
 			DAU_IncDecSel <= '0';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '0';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
@@ -4877,6 +5109,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSETT) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4885,11 +5118,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= Tbit_Zero;
-			UpdateTbit <= '1';
+			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4897,7 +5130,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
@@ -4918,6 +5152,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSTC_SR_To_Rn) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4926,11 +5161,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4938,17 +5173,18 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
 			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
+			RegAxDataInSel <= RegAxDataIn_SR;
 			RD <= '0';
 			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
@@ -4959,6 +5195,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSTC_GBR_To_Rn) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -4967,11 +5204,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -4979,17 +5216,18 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
 			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
+			RegAxDataInSel <= RegAxDataIn_GBR;
 			RD <= '0';
 			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
@@ -5000,6 +5238,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSTC_VBR_To_Rn) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -5008,11 +5247,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -5020,17 +5259,18 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
 			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
+			RegAxDataInSel <= RegAxDataIn_VBR;
 			RD <= '0';
 			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
@@ -5041,6 +5281,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSTCL_SR_To_At_Dec_Rn) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -5049,11 +5290,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -5061,27 +5302,29 @@ begin
 			DAU_IncDecSel <= MemUnit_DEC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_PRE;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
 			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
-			RegA2SelCmd <= 0;
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '1';
 			WR <= '0';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
-			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DBOutSel <= DBOutSel_SR;
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSTCL_GBR_To_At_Dec_Rn) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -5090,11 +5333,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -5102,27 +5345,29 @@ begin
 			DAU_IncDecSel <= MemUnit_DEC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_PRE;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
 			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
-			RegA2SelCmd <= 0;
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '1';
 			WR <= '0';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
-			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DBOutSel <= DBOutSel_GBR;
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSTCL_VBR_To_At_Dec_Rn) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -5131,11 +5376,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -5143,27 +5388,29 @@ begin
 			DAU_IncDecSel <= MemUnit_DEC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_PRE;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
 			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
-			RegA2SelCmd <= 0;
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '1';
 			WR <= '0';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
-			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DBOutSel <= DBOutSel_VBR;
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSTS_PR_To_Rn) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -5172,11 +5419,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -5184,17 +5431,18 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
 			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
 			RegA1SelCmd <= 0;
 			RegA2SelCmd <= 0;
 			RegOpSel <= RegOp_None;
-			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
+			RegAxDataInSel <= RegAxDataIn_PR;
 			RD <= '0';
 			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
@@ -5205,6 +5453,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpSTSL_PR_To_At_Dec_Rn) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -5213,11 +5462,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_UpdatePC <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrRn;
@@ -5225,27 +5474,29 @@ begin
 			DAU_IncDecSel <= MemUnit_DEC;
 			DAU_IncDecBit <= 2;
 			DAU_PrePostSel <= MemUnit_PRE;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
 			RegBSelCmd <= 0;
-			RegAxInSelCmd <= 0;
-			RegAxStore <= '0';
-			RegA1SelCmd <= 0;
-			RegA2SelCmd <= 0;
+			RegAxInSelCmd <= RegAxInSelCmd_Rn;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '1';
 			WR <= '0';
-			ABOutSel <= ABOutSel_Prog;
+			ABOutSel <= ABOutSel_Data;
 			DBInMode <= 0;
-			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			DBOutSel <= DBOutSel_PR;
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpTRAPA) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -5254,11 +5505,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
 			PAU_OffsetSel <= unused;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= unused;
@@ -5266,7 +5517,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
@@ -5287,6 +5539,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		elsif std_match(IR, OpBoot) then
 			ALUOpASel <= unused;
 			ALUOpBSel <= unused;
@@ -5295,11 +5548,11 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrDB;
 			PAU_OffsetSel <= PAU_OffsetZero;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			PAU_IncDecBit <= unused;
 			PAU_PrePostSel <= MemUnit_POST;
 			DAU_SrcSel <= DAU_AddrZero;
@@ -5307,7 +5560,8 @@ begin
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= MemUnit_POST;
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= 0;
 			RegStore <= '0';
 			RegASelCmd <= 0;
@@ -5328,6 +5582,7 @@ begin
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
+			SRSel <= 0;
 		end if;
 
 		-- State Decoding Autogen
@@ -5339,17 +5594,18 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			DAU_SrcSel <= unused;
 			DAU_OffsetSel <= unused;
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= 0;
+			DAU_VBRSel <= 0;
 			RegInSelCmd <= unused;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -5379,17 +5635,18 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetZero;
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			DAU_SrcSel <= unused;
 			DAU_OffsetSel <= unused;
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= 0;
+			DAU_VBRSel <= 0;
 			RegInSelCmd <= unused;
 			RegStore <= '0';
 			RegASelCmd <= unused;
@@ -5415,7 +5672,7 @@ begin
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_TempReg;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			NextState <= Normal;
 			UpdateTempReg <= '0';
 			TempRegSel <= unused;
@@ -5425,6 +5682,7 @@ begin
 			PAU_SrcSel <= PAU_AddrPR;
 			PAU_OffsetSel <= PAU_OffsetLong;
 			PAU_UpdatePC <= '1';
+			PAU_PRSel <= PRSel_None;
 			NextState <= Normal;
 			UpdateTempReg <= '1';
 			TempRegSel <= unused;
@@ -5434,7 +5692,7 @@ begin
 			PAU_SrcSel <= PAU_AddrZero;
 			PAU_OffsetSel <= PAU_TempReg;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			NextState <= Normal;
 			UpdateTempReg <= '1';
 			TempRegSel <= unused;
@@ -5444,9 +5702,9 @@ begin
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_UpdatePC <= '0';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			DAU_SrcSel <= DAU_AddrZero;
 			DAU_OffsetSel <= DAU_OffsetLong;
 			DAU_PrePostSel <= MemUnit_POST;
@@ -5469,17 +5727,18 @@ begin
 			SCmd <= (others => '-');
 			ALUCmd <= (others => '-');
 			TbitOp <= (others => '-');
-			UpdateTbit <= '0';
+			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetZero;
 			PAU_UpdatePC <= '1';
-			PAU_UpdatePR <= '0';
+			PAU_PRSel <= PRSel_None;
 			DAU_SrcSel <= unused;
 			DAU_OffsetSel <= unused;
 			DAU_IncDecSel <= '-';
 			DAU_IncDecBit <= unused;
 			DAU_PrePostSel <= '-';
-			DAU_LoadGBR <= '0';
+			DAU_GBRSel <= 0;
+			DAU_VBRSel <= 0;
 			RegInSelCmd <= unused;
 			RegStore <= '0';
 			RegASelCmd <= unused;

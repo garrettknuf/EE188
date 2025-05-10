@@ -83,8 +83,13 @@ package CUConstants is
     constant TempRegSel_Offset12 : integer range 4 downto 0 := 1;
     constant TempRegSel_RegB : integer range 4 downto 0 := 2;
 
-    constant RegAxDataIn_AddrIDOut : integer range 1 downto 0 := 0;
-    constant RegAxDataIn_DataAddr : integer range 1 downto 0 := 1;
+    constant REGAXDATAIN_CNT : integer := 6;
+    constant RegAxDataIn_AddrIDOut  : integer range REGAXDATAIN_CNT-1 downto 0 := 0;
+    constant RegAxDataIn_DataAddr   : integer range REGAXDATAIN_CNT-1 downto 0 := 1;
+    constant RegAxDataIn_SR         : integer range REGAXDATAIN_CNT-1 downto 0 := 2;
+    constant RegAxDataIn_GBR        : integer range REGAXDATAIN_CNT-1 downto 0 := 3;
+    constant RegAxDataIn_VBR        : integer range REGAXDATAIN_CNT-1 downto 0 := 4;
+    constant RegAxDataIn_PR         : integer range REGAXDATAIN_CNT-1 downto 0 := 5;
 
     constant unused : integer := 0;
 
@@ -132,13 +137,14 @@ entity CU is
         TbitOp      : out     std_logic_vector(3 downto 0);
 
         -- StatusReg Control Signals
-        UpdateTbit  : out   std_logic;
+        UpdateSR    : out   std_logic;
+        SRSel       : out   integer range SRSEL_CNT-1 downto 0;
 
         -- PAU Control Signals
         PAU_SrcSel      : out   integer range PAU_SRC_CNT - 1 downto 0;
         PAU_OffsetSel   : out   integer range PAU_OFFSET_CNT - 1 downto 0;
         PAU_UpdatePC    : out   std_logic;
-        PAU_UpdatePR    : out   std_logic;
+        PAU_PRSel       : out   integer range PRSEL_CNT-1 downto 0;
         PAU_IncDecBit   : out   integer range 2 downto 0;
         PAU_PrePostSel  : out   std_logic;
 
@@ -148,7 +154,8 @@ entity CU is
         DAU_IncDecSel   : out   std_logic;
         DAU_IncDecBit   : out   integer range 2 downto 0;
         DAU_PrePostSel  : out   std_logic;
-        DAU_LoadGBR     : out   std_logic;
+        DAU_GBRSel      : out   integer range GBRSEL_CNT-1 downto 0;
+        DAU_VBRSel      : out   integer range VBRSEL_CNT-1 downto 0;
 
         -- RegArray Control Signals
         RegInSelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
@@ -160,7 +167,7 @@ entity CU is
         RegA1SelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegA2SelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegOpSel        : out   integer  range REGOp_SrcCnt - 1 downto 0;
-        RegAxDataInSel  : out   integer  range 1 downto 0;
+        RegAxDataInSel  : out   integer  range REGAXDATAIN_CNT-1 downto 0;
     
         -- IO Control signals
         DBOutSel : out integer range 5 downto 0;

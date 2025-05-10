@@ -47,6 +47,12 @@ package PAUConstants is
     constant PAU_OffsetReg  : integer := 5;     -- register value
     constant PAU_TempReg    : integer := 6;     -- temporary register
 
+    constant PRSEL_CNT : integer := 4;
+    constant PRSel_None : integer range PRSEL_CNT-1 downto 0 := 0;
+    constant PRSel_PC   : integer range PRSEL_CNT-1 downto 0 := 1;
+    constant PRSel_Reg  : integer range PRSEL_CNT-1 downto 0 := 2;
+    constant PRSel_DB   : integer range PRSEL_CNT-1 downto 0 := 3;
+
 end package;
 
 
@@ -90,7 +96,7 @@ entity PAU is
         OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         UpdatePC    : in    std_logic;
-        UpdatePR    : in    std_logic;
+        PRSel       : in    integer range PRSEL_CNT-1 downto 0;
         IncDecBit   : in    integer range 2 downto 0;
         PrePostSel  : in    std_logic;
         DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -168,7 +174,11 @@ begin
             PC <= ProgAddr when UpdatePC = '1' else PC;
 
             -- Update PR
-            PR <= PC when UpdatePR = '1' else PR;
+            PR <= PC        when PRSel = PRSel_PC   else 
+                  OffsetReg when PRSel = PRSel_Reg  else
+                  DB        when PRSel = PRSel_DB   else
+                  PR        when PRSel = PRSel_None else
+                  (others => 'Z');
         end if;
     end process;
 
