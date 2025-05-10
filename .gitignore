@@ -10,6 +10,10 @@
 # # Ignore bash scripts since file paths change depending on user
 # *.sh
 
+# Ignore build and memory files files
+dump[0-9].txt
+build_mem[0-9]*.txt
+
 # Ignore temporary files
 ~*
 

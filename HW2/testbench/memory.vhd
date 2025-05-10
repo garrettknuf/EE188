@@ -149,6 +149,8 @@ begin
         
         DumpMemToFile("../asm_tests/mem_dump/dump0.txt", RAMbits0);
         DumpMemToFile("../asm_tests/mem_dump/dump1.txt", RAMbits1);
+        DumpMemToFile("../asm_tests/mem_dump/dump2.txt", RAMbits2);
+        DumpMemToFile("../asm_tests/mem_dump/dump3.txt", RAMbits3);
 
     end process;
 

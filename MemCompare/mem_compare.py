@@ -33,8 +33,8 @@ if __name__ == "__main__":
         print("Usage: python mem_compare.py <test_name>")
         sys.exit(1)
 
-    asm_build_file = f"../asm_tests/build/{sys.argv[1]}_mem0.txt"
-    data_build_file = f"../asm_tests/build/{sys.argv[1]}_mem1.txt"
+    asm_build_file = f"../asm_tests/build/build_mem0.txt"
+    data_build_file = f"../asm_tests/build/build_mem1.txt"
     expected_memory_file = f"../asm_tests/expected/{sys.argv[1]}_exp.txt"
     memory_dump_file0 = f"../asm_tests/mem_dump/dump0.txt"
     memory_dump_file1 = f"../asm_tests/mem_dump/dump1.txt"

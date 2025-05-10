@@ -13,7 +13,7 @@
 
 .vectable
     PowerResetPC:           0x00000050  ; PC for power reset (0)
-    PowerResetSP:           0xFFFFFFFF  ; SP for power reset (1)
+    PowerResetSP:           0xFFFFFFFC  ; SP for power reset (1)
     ManualResetPC:          0x00000000  ; PC for manual reset (2)
     ManualResetSP:          0x00000000  ; SP for manual reset (3)
     InvalidInstruction:     0x00000000  ; General invalid instruction (4)

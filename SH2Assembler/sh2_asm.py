@@ -547,13 +547,13 @@ if __name__ == '__main__':
     output_file_basename =  os.path.splitext(os.path.basename(sys.argv[1]))[0]
     output_file_path = '../asm_tests/build/'
 
-    with open(output_file_path + output_file_basename + "_mem0.txt", 'w') as out_file:
+    with open(output_file_path + "build_mem0.txt", 'w') as out_file:
         for word in vector_words:
             out_file.write(word)
         for line in chunk0_output:
             out_file.write(line)
 
-    with open(output_file_path + output_file_basename + "_mem1.txt", 'w') as out_file:
+    with open(output_file_path  + "build_mem1.txt", 'w') as out_file:
         for line in chunk1_output:
             out_file.write(line)
 

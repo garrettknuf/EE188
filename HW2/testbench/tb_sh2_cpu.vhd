@@ -136,7 +136,7 @@ begin
             START_ADDR0     => 0,
             START_ADDR1     => 256,
             START_ADDR2     => 512,
-            START_ADDR3     => 768,
+            START_ADDR3     => 1073741568,  -- ((2^32) / 4) - 256
             MEM_FILEPATH0  => mem0_filepath,
             MEM_FILEPATH1  => mem1_filepath,
             MEM_FILEPATH2  => "memfile2.txt",
