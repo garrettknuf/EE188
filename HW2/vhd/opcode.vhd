@@ -158,7 +158,7 @@ package OpcodeConstants is
     constant OpLDS_Rm_To_PR          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00101010";
     -- TODO: LDS.L @Rm+, MACH
     -- TODO: LDS.L @Rm+, MACL
-    constant OpLDSL_At_Rm_Inc_To_PR  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00101010";
+    constant OpLDSL_At_Rm_Inc_To_PR  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00100110";
     constant OpNOP                   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000001001";
     constant OpRTE                   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000101011";
     constant OpSETT                  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000011000";

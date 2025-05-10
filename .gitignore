@@ -10,6 +10,10 @@
 # # Ignore bash scripts since file paths change depending on user
 # *.sh
 
+# Ignore build and memory files files
+ ../asm_tests/mem_dump/*
+../asm_tests/build/*
+
 # Ignore temporary files
 ~*
 

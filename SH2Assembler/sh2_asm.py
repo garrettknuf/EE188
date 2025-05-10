@@ -70,7 +70,7 @@ INSTRUCTION_SET = {
     ("LDC", ("reg", "sr")):     lambda rm, reg: 0x400E | (rm << 8),
     ("LDC", ("reg", "gbr")):    lambda rm, reg: 0x401E | (rm << 8),
     ("LDC", ("reg", "vbr")):    lambda rm, reg: 0x402E | (rm << 8),
-    ("LDC", ("reg", "pr")):     lambda rm, reg: 0x402A | (rm << 8),
+    ("LDS", ("reg", "pr")):     lambda rm, reg: 0x402A | (rm << 8),
 
     # m Format Indirect Register
     # Table A.29
@@ -82,7 +82,7 @@ INSTRUCTION_SET = {
     ("LDC.L", ("inc", "sr")):   lambda rm, sr:  0x4007 | (rm << 8),
     ("LDC.L", ("inc", "gbr")):  lambda rm, gbr: 0x4017 | (rm << 8),
     ("LDC.L", ("inc", "vbr")):  lambda rm, vbr: 0x4027 | (rm << 8),
-    ("LDC.L", ("inc", "pr")):   lambda rm, pr:  0x4026 | (rm << 8),
+    ("LDS.L", ("inc", "pr")):   lambda rm, pr:  0x4026 | (rm << 8),
 
     # m Format PC Relative Addressing with Rm
     # Table A.31
@@ -218,9 +218,6 @@ INSTRUCTION_SET = {
     # Table A.49
     ("ADD", ("imm", "reg")):    lambda imm, rn: 0x7000 | (rn << 8) | (imm & 0x00FF),
     ("MOV", ("imm", "reg")):    lambda imm, rn: 0xE000 | (rn << 8) | (imm & 0x00FF),
-
-    # debugging instructions
-    ("END_SIM", ("label",)):    lambda label: 0xFFFF,
 
 }
 
@@ -550,13 +547,13 @@ if __name__ == '__main__':
     output_file_basename =  os.path.splitext(os.path.basename(sys.argv[1]))[0]
     output_file_path = '../asm_tests/build/'
 
-    with open(output_file_path + output_file_basename + "_mem0.txt", 'w') as out_file:
+    with open(output_file_path + "build_mem0.txt", 'w') as out_file:
         for word in vector_words:
             out_file.write(word)
         for line in chunk0_output:
             out_file.write(line)
 
-    with open(output_file_path + output_file_basename + "_mem1.txt", 'w') as out_file:
+    with open(output_file_path  + "build_mem1.txt", 'w') as out_file:
         for line in chunk1_output:
             out_file.write(line)
 

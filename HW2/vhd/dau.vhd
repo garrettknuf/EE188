@@ -53,6 +53,16 @@ package DAUConstants is
     constant DAU_Offset8x4  : integer := 7; -- 8-bit offset x 4
     constant DAU_OffsetLong : integer := 8; -- word offset (2)
 
+    constant GBRSEL_CNT : integer := 3;
+    constant GBRSel_None : integer range GBRSEL_CNT-1 downto 0 := 0;
+    constant GBRSel_Reg  : integer range GBRSEL_CNT-1 downto 0 := 1;
+    constant GBRSel_DB   : integer range GBRSEL_CNT-1 downto 0 := 2;
+
+    constant VBRSEL_CNT : integer := 3;
+    constant VBRSel_None : integer range VBRSEL_CNT-1 downto 0 := 0;
+    constant VBRSel_Reg  : integer range VBRSEL_CNT-1 downto 0 := 1;
+    constant VBRSel_DB   : integer range VBRSEL_CNT-1 downto 0 := 2;
+
 end package;
 
 --
@@ -98,11 +108,12 @@ entity DAU is
         Rn          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         R0          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         PC          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+        DB          : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
         IncDecSel   : in    std_logic;
         IncDecBit   : in    integer range 2 downto 0;
         PrePostSel  : in    std_logic;
-        LoadGBR     : in    std_logic;
-        LoadVBR     : in    std_logic;
+        GBRSel      : in    integer range GBRSel_CNT-1 downto 0;
+        VBRSel      : in    integer range VBRSel_CNT-1 downto 0;
         CLK         : in    std_logic;
         RST         : in    std_logic;
         AddrIDOut   : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -168,7 +179,10 @@ begin
         if rising_edge(CLK) then
 
             -- Update GBR
-            GBR <= Rn when LoadGBR = '1' else GBR;
+            GBR <= GBR  when GBRSel = GBRSel_None else
+                   Rn   when GBRSel = GBRSel_Reg else
+                   DB   when GBRSel = GBRSel_DB else
+                   (others => 'X');
 
         end if;
     end process;
@@ -176,7 +190,15 @@ begin
     VBR_reset : process (CLK)
     begin
         if rising_edge(CLK) then
-            VBR <= (others => '0') when RST = '0' else VBR;
+            if RST = '0' then
+                VBR <= (others => '0');
+            else
+            VBR <= VBR  when VBRSel = VBRSel_None else
+                   Rn   when VBRSel = VBRSel_Reg else
+                   DB   when VBRSel = VBRSel_DB else
+                   (others => 'X');
+            end if;
+            
         end if;
     end process;
 

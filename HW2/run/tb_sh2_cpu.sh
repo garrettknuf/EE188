@@ -11,12 +11,12 @@ MEMCOMPARE="../../MemCompare/mem_compare.py"
 
 # Include Assembly test files
 ASM_FILES=(
-    # "../asm_tests/fibonacci.asm"
-    # "../asm_tests/arithmetic.asm"
-    # "../asm_tests/logic.asm"
-    # "../asm_tests/shift.asm"
-    # "../asm_tests/branch.asm"
-    # "../asm_tests/data_xfer.asm"
+    "../asm_tests/fibonacci.asm"
+    "../asm_tests/arithmetic.asm"
+    "../asm_tests/logic.asm"
+    "../asm_tests/shift.asm"
+    "../asm_tests/branch.asm"
+    "../asm_tests/data_xfer.asm"
     "../asm_tests/sys_ctrl.asm"
 )
 
@@ -81,30 +81,16 @@ VHDL_FILES=(
     "../vhd/opcode.vhd"
     "../vhd/cu.vhd"
     "../vhd/sh2_cpu.vhd"
-    "../vhd/memory.vhd"
+    "../testbench/memory.vhd"
     "../testbench/tb_sh2_cpu.vhd"
 )
 
-# Assemble code if enabled
-if [ "$ASSEMBLE" == true ]; then
-    echo "Assembling..."
-    for asm_file in "${ASM_FILES[@]}"; do
-        # Get file name
-        base_name=$(basename "$asm_file" .asm)
-
-        # Create output file name
-        output_file="../asm_tests/build/${base_name}.txt"
-
-        # Run assembler 
-        $PYTHONEXEC $ASSEMBLER "$asm_file" "$output_file"
-    done
-fi
 
 # Check for --autogen argument to autogencode
 if [ "$AUTOGEN" == true ]; then
     echo "Auto-generating control unit..."
     $PYTHONEXEC ../autogen/autogen_cu_vhd.py
-    echo "'cu_template.vhd' + 'CUSignals.xlsx' -> 'cu.vhd'"
+    # echo "'cu_template.vhd' + 'CUSignals.xlsx' -> 'cu.vhd'"
 fi
 
 # Analyze
@@ -123,9 +109,21 @@ for asm_file in "${ASM_FILES[@]}"; do
     # Get the base name of the file (e.g., 'fibonacci', 'arithmetic')
     base_name=$(basename "$asm_file" .asm)
 
+    # Assemble code if enabled
+    if [ "$ASSEMBLE" == true ]; then
+        echo "Assembling '$base_name.asm'..."
+
+        # Create output file name
+        output_file="../asm_tests/build/build.txt"
+
+        # Run assembler 
+        $PYTHONEXEC $ASSEMBLER "$asm_file" "$output_file"
+        # done
+    fi
+
     # Generate the corresponding output memory file (e.g., 'fibonacci.txt')
-    mem_file0="../asm_tests/build/${base_name}_mem0.txt"
-    mem_file1="../asm_tests/build/${base_name}_mem1.txt"
+    mem_file0="../asm_tests/build/build_mem0.txt"
+    mem_file1="../asm_tests/build/build_mem1.txt"
 
     # Check if the memory file exists before running
     if [[ -f "$mem_file0" && -f "$mem_file1" ]]; then
