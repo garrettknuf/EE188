@@ -31,8 +31,7 @@ package CUConstants is
     constant ALUOpBSel_RegB         : integer range 5 downto 0 := 0;    -- RegB of RegArray
     constant ALUOpBSel_Imm_Signed   : integer range 5 downto 0 := 1;    -- immediate signed
     constant ALUOpBSel_Imm_Unsigned : integer range 5 downto 0 := 2;    -- immediate unsigned
-    constant ALUOpBSel_Offset8      : integer range 5 downto 0 := 3;    -- 8-bit signed offsetx2
-    constant ALUOpBSel_Offset12     : integer range 5 downto 0 := 4;    -- 12-bit signed offsetx2
+    constant ALUOpBSel_Tbit         : integer range 5 downto 0 := 3;    -- t-bit
 
     -- RegInSel - select where to save input to RegIn
     constant RegInSelCmd_Rn : integer range 2 downto 0 := 0;    -- generic register
@@ -129,7 +128,7 @@ entity CU is
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range 2 downto 0 := 0;
-        ALUOpBSel   : out     integer range 4 downto 0 := 0;
+        ALUOpBSel   : out     integer range 5 downto 0 := 0;
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
         SCmd        : out     std_logic_vector(3 downto 0);            

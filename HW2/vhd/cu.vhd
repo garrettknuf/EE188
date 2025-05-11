@@ -31,8 +31,7 @@ package CUConstants is
     constant ALUOpBSel_RegB         : integer range 5 downto 0 := 0;    -- RegB of RegArray
     constant ALUOpBSel_Imm_Signed   : integer range 5 downto 0 := 1;    -- immediate signed
     constant ALUOpBSel_Imm_Unsigned : integer range 5 downto 0 := 2;    -- immediate unsigned
-    constant ALUOpBSel_Offset8      : integer range 5 downto 0 := 3;    -- 8-bit signed offsetx2
-    constant ALUOpBSel_Offset12     : integer range 5 downto 0 := 4;    -- 12-bit signed offsetx2
+    constant ALUOpBSel_Tbit         : integer range 5 downto 0 := 3;    -- t-bit
 
     -- RegInSel - select where to save input to RegIn
     constant RegInSelCmd_Rn : integer range 2 downto 0 := 0;    -- generic register
@@ -129,7 +128,7 @@ entity CU is
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range 2 downto 0 := 0;
-        ALUOpBSel   : out     integer range 4 downto 0 := 0;
+        ALUOpBSel   : out     integer range 5 downto 0 := 0;
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
         SCmd        : out     std_logic_vector(3 downto 0);            
@@ -297,10 +296,10 @@ begin
 		elsif std_match(IR, OpMOVW_At_Disp_PC_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= FCmd_Zero;
+			FCmd <= FCmd_A;
 			CinCmd <= CinCmd_Zero;
 			SCmd <= (others => '-');
-			ALUCmd <= ALUCmd_ADDER;
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
@@ -340,10 +339,10 @@ begin
 		elsif std_match(IR, OpMOVL_At_Disp_PC_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= unused;
-			FCmd <= FCmd_Zero;
+			FCmd <= FCmd_A;
 			CinCmd <= CinCmd_Zero;
 			SCmd <= (others => '-');
-			ALUCmd <= ALUCmd_ADDER;
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateSR <= '0';
 			PAU_SrcSel <= unused;
@@ -967,7 +966,7 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -1010,7 +1009,7 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -1050,7 +1049,7 @@ begin
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
 			RegASelCmd <= RegASelCmd_Rn;
-			RegBSelCmd <= RegBSelCmd_R0;
+			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
 			RegA1SelCmd <= RegA1SelCmd_Rn;
@@ -1176,7 +1175,7 @@ begin
 			DAU_PrePostSel <= MemUnit_POST;
 			DAU_GBRSel <= GBRSel_None;
 			DAU_VBRSel <= VBRSel_None;
-			RegInSelCmd <= RegInSelCmd_R0;
+			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= RegBSelCmd_Rm;
@@ -1225,7 +1224,7 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_R0;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -1268,7 +1267,7 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_R0;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -1311,7 +1310,7 @@ begin
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_R0;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -1350,7 +1349,7 @@ begin
 			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
-			RegASelCmd <= RegASelCmd_Rn;
+			RegASelCmd <= RegASelCmd_R0;
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
@@ -1393,7 +1392,7 @@ begin
 			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
-			RegASelCmd <= RegASelCmd_Rn;
+			RegASelCmd <= RegASelCmd_R0;
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
@@ -1436,7 +1435,7 @@ begin
 			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
-			RegASelCmd <= RegASelCmd_Rn;
+			RegASelCmd <= RegASelCmd_R0;
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
@@ -1483,7 +1482,7 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -1526,7 +1525,7 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -1569,7 +1568,7 @@ begin
 			RegBSelCmd <= RegBSelCmd_R0;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
-			RegA1SelCmd <= RegA1SelCmd_Rn;
+			RegA1SelCmd <= RegA1SelCmd_Rm;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
@@ -1758,7 +1757,7 @@ begin
 			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpMOVT) then
 			ALUOpASel <= ALUOpASel_RegA;
-			ALUOpBSel <= ALUOpBSel_RegB;
+			ALUOpBSel <= ALUOpBSel_Tbit;
 			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
@@ -1779,11 +1778,11 @@ begin
 			DAU_GBRSel <= GBRSel_None;
 			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
-			RegStore <= '0';
+			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
 			RegBSelCmd <= RegBSelCmd_Rm;
 			RegAxInSelCmd <= unused;
-			RegAxStore <= '1';
+			RegAxStore <= '0';
 			RegA1SelCmd <= RegA1SelCmd_Rn;
 			RegA2SelCmd <= unused;
 			RegOpSel <= RegOp_None;
