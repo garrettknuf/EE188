@@ -108,48 +108,10 @@ TestPR:
     STS.L   PR,@-R10   ; WRITE 432
     ADD     #4, R10
 
-; LoadCtrlRegTests:
-;     LDC     Rm, SR
-;     LDC     Rm, GBR
-;     LDC     Rm, VBR
-;     LDC.L   @Rm+, SR
-;     LDC.L   @Rm+, GBR
-;     LDC.L   @Rm+, VBR
-;     ;BRA    LoadSysRegTests
-
-; LoadSysRegTests:
-;     LDS     Rm, PR
-;     LDS.L   @Rm+,PR
-;     ;BRA    NOPTests
-
-; NOPTests:
-;     NOP
-;     NOP
-;     NOP
-;     NOP
-;     ;BRA    RTETests
-
-; RTETests:
-;     RTE
-;     ;BRA    StoreCtrlRegTests
-
-; StoreCtrlRegTests:
-;     STC     SR, Rn
-;     STC     GBR, Rn
-;     STC     VBR, Rn
-;     STC.L   SR, @-Rn
-;     STC.L   GBR, @-Rn
-;     STC.L   VBR, @-Rn
-;     ;BRA    StoreSysRegTests
-
-; StoreSysRegTests:
-;     STS     PR, Rn
-;     STS.L   PR, @-Rn
-;     ;BRA    TrapaTests
-
 ; TrapaTests:
 ;     TRAPA   #8
 ;     ;BRA    TestSuccess
+; TestRTE
 
 TestSuccess:
     MOV     #1, R9

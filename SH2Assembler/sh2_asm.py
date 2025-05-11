@@ -348,6 +348,8 @@ def parse_data(line):
     if not line or line.startswith(';') or line == ".data":
         return None
     
+    line = line.split(';')[0].strip()
+    
     # Extract label and directive
     label_match = re.match(r'(\w+):\s*(\.\w+)\s+(.*)', line)
     if not label_match:
