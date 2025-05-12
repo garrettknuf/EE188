@@ -227,6 +227,8 @@ pc_rel_branch_list = []
 
 def parse_operand(op):
     op = op.strip().upper()
+    op = re.sub(r"\s+", "", op)  # remove all whitespace
+    
     # Immediate value (e.g., #10, #-5)
     if re.match(r"#-?\d+", op):
         return "imm", int(op[1:], 0)
@@ -247,32 +249,32 @@ def parse_operand(op):
         return "mem", reg
 
     # Indexed displacement with register (e.g., @(4, R2))
-    match = re.match(r"@\(([-+]?\d+),\s*R(\d+)\)", op)
+    match = re.match(r"@\s*\(\s*([-+]?\d+)\s*,\s*R(\d+)\s*\)", op)
     if match:
         disp = int(match.group(1), 0)
         reg = int(match.group(2))
         return "indexed", (disp, reg)
     
     # Indexed displacement with GBR (e.g., @(4, GBR))
-    match_gbr = re.match(r"@\(([-+]?\d+),\s*GBR\)", op)
+    match_gbr = re.match(r"@\s*\(\s*([-+]?\d+)\s*,\s*GBR\s*\)", op)
     if match_gbr:
         disp = int(match_gbr.group(1), 0)  # Handle the displacement (support for base 0)
         return "indexed_gbr", disp  # GBR doesn't need a register number
     
     # Indexed displacement with R0 and GBR (e.g., @(R0, GBR))
-    match_r0_gbr = re.match(r"@\((R0),\s*GBR\)", op)
+    match_r0_gbr = re.match(r"@\s*\(\s*R0\s*,\s*GBR\s*\)", op)
     if match_r0_gbr:
         return "indexed_r0_gbr", None
     
     # Indexed displacement with PC (e.g., @(4, PC))
-    match_pc = re.match(r"@\(([-+]?\d+),\s*PC\)", op)
+    match_pc = re.match(r"@\s*\(\s*([-+]?\d+)\s*,\s*PC\s*\)", op)
     if match_pc:
         disp = int(match_pc.group(1), 0)  # Handle the displacement (support for base 0)
         return "indexed_pc", disp  # PC doesn't need a register number
 
     
     # Indexed indirect with R0: @(R0, Rn)
-    match = re.match(r"@\(\s*R0\s*,\s*R(\d+)\s*\)", op)
+    match = re.match(r"@\s*\(\s*R0\s*,\s*R(\d+)\s*\)", op)
     if match:
         rn = int(match.group(1))
         return "r0_indexed", rn
