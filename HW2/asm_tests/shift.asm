@@ -60,12 +60,12 @@ ROTCTest:
     MOV.L   @(0,GBR),R0
     ROTCR   R0
     BT      TestFail
-    MOV.L   R0,@(8,GBR)    ; write ROTCR(T=1) Num0
+    MOV.L   R0,@(10,GBR)    ; write ROTCR(T=1) Num0
     CLRT
     MOV.L   @(1,GBR),R0
     ROTCR   R0
     BF      TestFail
-    MOV.L   R0,@(9,GBR)    ; write ROTCR(T=0) Num1
+    MOV.L   R0,@(11,GBR)    ; write ROTCR(T=0) Num1
     ; BRA   SHATest
 
 SHATest:
@@ -73,22 +73,22 @@ SHATest:
     MOV.L   @(0,GBR),R0
     SHAL    R0
     BT      TestFail
-    MOV.L   R0,@(10,GBR)   ; write SHAL Num0
+    MOV.L   R0,@(12,GBR)   ; write SHAL Num0
     CLRT
     MOV.L   @(1,GBR),R0
     SHAL    R0
     BF      TestFail
-    MOV.L   R0,@(11,GBR)   ; write SHAL Num1
+    MOV.L   R0,@(13,GBR)   ; write SHAL Num1
     SETT
     MOV.L   @(0,GBR),R0
     SHAR    R0
     BT      TestFail
-    MOV.L   R0,@(12,GBR)   ; write SHAR Num0
+    MOV.L   R0,@(14,GBR)   ; write SHAR Num0
     CLRT
     MOV.L   @(1,GBR),R0
     SHAR    R0
-    BT      TestFail
-    MOV.L   R0,@(13,GBR)   ; write SHAR Num1
+    BF      TestFail
+    MOV.L   R0,@(15,GBR)   ; write SHAR Num1
     ; BRA   SHLTest
 
 SHLTest:
@@ -96,56 +96,56 @@ SHLTest:
     MOV.L   @(0,GBR),R0
     SHLL    R0
     BT      TestFail
-    MOV.L   R0,@(10,GBR)   ; write SHAL Num0
+    MOV.L   R0,@(16,GBR)   ; write SHAL Num0
     CLRT
     MOV.L   @(1,GBR),R0
     SHLL    R0
     BF      TestFail
-    MOV.L   R0,@(11,GBR)   ; write SHAL Num1
+    MOV.L   R0,@(17,GBR)   ; write SHAL Num1
     SETT
     MOV.L   @(0,GBR),R0
     SHLR    R0
     BT      TestFail
-    MOV.L   R0,@(12,GBR)   ; write SHAR Num0
+    MOV.L   R0,@(18,GBR)   ; write SHAR Num0
     SETT
     MOV.L   @(1,GBR),R0
     SHLR    R0
-    BT      TestFail
-    MOV.L   R0,@(13,GBR)   ; write SHAR Num1
+    BF      TestFail
+    MOV.L   R0,@(19,GBR)   ; write SHAR Num1
     ; BRA   SHL2Test
 
 SHL2Test:
     MOV.L   @(0,GBR),R0
     SHLL2   R0
-    MOV.L   R0,@(14,GBR)   ; write SHLL2 Num0
+    MOV.L   R0,@(20,GBR)   ; write SHLL2 Num0
     SHLR2   R0
-    MOV.L   R0,@(15,GBR)   ; write SHLR2(SHLL2 Num0)
+    MOV.L   R0,@(21,GBR)   ; write SHLR2(SHLL2 Num0)
     ; BRA   SHL8Test
 
 SHL8Test:
     MOV.L   @(0,GBR),R0
     SHLL8   R0
-    MOV.L   R0,@(16,GBR)   ; write SHLL8 Num0
+    MOV.L   R0,@(22,GBR)   ; write SHLL8 Num0
     SHLR8   R0
-    MOV.L   R0,@(17,GBR)   ; write SHLR8(SHLL8 Num0)
+    MOV.L   R0,@(23,GBR)   ; write SHLR8(SHLL8 Num0)
     ; BRA   SHL16Test
 
 SHL16Test:
     MOV.L   @(0,GBR),R0
     SHLL16  R0
-    MOV.L   R0,@(18,GBR)   ; write SHLL16 Num0
+    MOV.L   R0,@(24,GBR)   ; write SHLL16 Num0
     SHLR16  R0
-    MOV.L   R0,@(19,GBR)   ; write SHLR16(SHLL16 Num0)
+    MOV.L   R0,@(25,GBR)   ; write SHLR16(SHLL16 Num0)
     ; BRA   TestSuccess
 
 TestSuccess:
-    MOV     #1, R9
-    MOV.L   R9,@R10 ; store SUCCESS (1)
+    MOV     #1, R0
+    MOV.L   R0,@(26,GBR) ; store SUCCESS (1)
     BRA     TestEnd
 
 TestFail:
-    MOV     #0, R9
-    MOV.L   R9,@R10 ; store FAIL (0)
+    MOV     #0, R0
+    MOV.L   R0,@(26,GBR) ; store FAIL (0)
     ;BRA    TestEnd
 
 TestEnd:

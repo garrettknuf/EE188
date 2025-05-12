@@ -96,7 +96,7 @@ with open(expected_memory_file, "r") as exp_file:
     # Output test results
     test_name = Path(asm_build_file).stem
     if err_cnt == 0:
-        print(f"'{test_name[:-5]}.asm' tests passed!")
+        print(f"'{sys.argv[1]}.asm' tests passed!")
     else:
         print(f"Tests failed: {err_cnt} errors.")
 

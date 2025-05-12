@@ -138,7 +138,7 @@ entity CU is
         ALUOpBSel   : out     integer range 5 downto 0 := 0;
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
-        SCmd        : out     std_logic_vector(3 downto 0);            
+        SCmd        : out     std_logic_vector(2 downto 0);            
         ALUCmd      : out     std_logic_vector(1 downto 0);
         TbitOp      : out     std_logic_vector(3 downto 0);
 

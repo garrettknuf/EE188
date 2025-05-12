@@ -138,7 +138,7 @@ entity CU is
         ALUOpBSel   : out     integer range 5 downto 0 := 0;
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
-        SCmd        : out     std_logic_vector(3 downto 0);            
+        SCmd        : out     std_logic_vector(2 downto 0);            
         ALUCmd      : out     std_logic_vector(1 downto 0);
         TbitOp      : out     std_logic_vector(3 downto 0);
 
@@ -3873,10 +3873,10 @@ begin
 		elsif std_match(IR, OpSHLL2) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
-			SCmd <= SCmd_LSL2;
-			ALUCmd <= ALUCmd_SHIFT;
+			SCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3895,12 +3895,12 @@ begin
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
-			RegBSelCmd <= RegBSelCmd_Rm;
+			RegBSelCmd <= RegBSelCmd_Rn;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_SHLL2;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -3916,10 +3916,10 @@ begin
 		elsif std_match(IR, OpSHLR2) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
-			SCmd <= SCmd_LSR2;
-			ALUCmd <= ALUCmd_SHIFT;
+			SCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3938,12 +3938,12 @@ begin
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
-			RegBSelCmd <= RegBSelCmd_Rm;
+			RegBSelCmd <= RegBSelCmd_Rn;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_SHLR2;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -3959,10 +3959,10 @@ begin
 		elsif std_match(IR, OpSHLL8) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
-			SCmd <= SCmd_LSL8;
-			ALUCmd <= ALUCmd_SHIFT;
+			SCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3981,12 +3981,12 @@ begin
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
-			RegBSelCmd <= RegBSelCmd_Rm;
+			RegBSelCmd <= RegBSelCmd_Rn;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_SHLL8;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -4002,10 +4002,10 @@ begin
 		elsif std_match(IR, OpSHLR8) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
-			SCmd <= SCmd_LSR8;
-			ALUCmd <= ALUCmd_SHIFT;
+			SCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4024,12 +4024,12 @@ begin
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
-			RegBSelCmd <= RegBSelCmd_Rm;
+			RegBSelCmd <= RegBSelCmd_Rn;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_SHLR8;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -4045,10 +4045,10 @@ begin
 		elsif std_match(IR, OpSHLL16) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
-			SCmd <= SCmd_LSL16;
-			ALUCmd <= ALUCmd_SHIFT;
+			SCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4067,12 +4067,12 @@ begin
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
-			RegBSelCmd <= RegBSelCmd_Rm;
+			RegBSelCmd <= RegBSelCmd_Rn;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_SHLL16;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -4088,10 +4088,10 @@ begin
 		elsif std_match(IR, OpSHLR16) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= (others => '-');
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
-			SCmd <= SCmd_LSR16;
-			ALUCmd <= ALUCmd_SHIFT;
+			SCmd <= (others => '-');
+			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= (others => '-');
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4110,12 +4110,12 @@ begin
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '1';
 			RegASelCmd <= RegASelCmd_Rn;
-			RegBSelCmd <= RegBSelCmd_Rm;
+			RegBSelCmd <= RegBSelCmd_Rn;
 			RegAxInSelCmd <= unused;
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_SHLR16;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';

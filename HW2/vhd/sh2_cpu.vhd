@@ -77,7 +77,7 @@ architecture structural of SH2_CPU is
             Cin      : in      std_logic;                                 -- carry in
             FCmd     : in      std_logic_vector(3 downto 0);              -- F-Block operation
             CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
-            SCmd     : in      std_logic_vector(3 downto 0);              -- shift operation
+            SCmd     : in      std_logic_vector(2 downto 0);              -- shift operation
             ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
             TbitOp   : in      std_logic_vector(3 downto 0);              -- T-bit operation
             Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);  -- ALU result
@@ -180,7 +180,7 @@ architecture structural of SH2_CPU is
             ALUOpBSel   : out     integer range 5 downto 0;
             FCmd        : out     std_logic_vector(3 downto 0);            
             CinCmd      : out     std_logic_vector(1 downto 0);            
-            SCmd        : out     std_logic_vector(3 downto 0);            
+            SCmd        : out     std_logic_vector(2 downto 0);            
             ALUCmd      : out     std_logic_vector(1 downto 0);
             TbitOp      : out     std_logic_vector(3 downto 0);
 
@@ -237,7 +237,7 @@ architecture structural of SH2_CPU is
     signal ALU_Cin       : std_logic;
     signal ALU_FCmd      : std_logic_vector(3 downto 0);
     signal ALU_CinCmd    : std_logic_vector(1 downto 0);
-    signal ALU_SCmd      : std_logic_vector(3 downto 0);
+    signal ALU_SCmd      : std_logic_vector(2 downto 0);
     signal ALU_ALUCmd    : std_logic_vector(1 downto 0);
     signal ALU_TbitOp    : std_logic_vector(3 downto 0);
     signal ALU_Result    : std_logic_vector(LONG_SIZE - 1 downto 0);

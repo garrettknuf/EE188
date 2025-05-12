@@ -55,23 +55,16 @@ package  ALUConstants  is
 --     must distinguish between left shifts and rotates and right shifts and
 --     rotates
 
-   constant SCmd_LEFT  : std_logic_vector(3 downto 0) := "-0--";
-   constant SCmd_LSL   : std_logic_vector(3 downto 0) := "0000";
-   constant SCmd_SWAP  : std_logic_vector(3 downto 0) := "0001";
-   constant SCmd_ROL   : std_logic_vector(3 downto 0) := "0010";
-   constant SCmd_RLC   : std_logic_vector(3 downto 0) := "0011";
-   constant SCmd_RIGHT : std_logic_vector(3 downto 0) := "-1--";
-   constant SCmd_LSR   : std_logic_vector(3 downto 0) := "0100";
-   constant SCmd_ASR   : std_logic_vector(3 downto 0) := "0101";
-   constant SCmd_ROR   : std_logic_vector(3 downto 0) := "0110";
-   constant SCmd_RRC   : std_logic_vector(3 downto 0) := "0111";
-
-   constant SCmd_LSL2  : std_logic_vector(3 downto 0) := "1000";
-   constant SCmd_LSR2  : std_logic_vector(3 downto 0) := "1100";
-   constant SCmd_LSL8  : std_logic_vector(3 downto 0) := "1001";
-   constant SCmd_LSR8  : std_logic_vector(3 downto 0) := "1101";
-   constant SCmd_LSL16 : std_logic_vector(3 downto 0) := "1010";
-   constant SCmd_LSR16 : std_logic_vector(3 downto 0) := "1110";
+   constant SCmd_LEFT  : std_logic_vector(2 downto 0) := "0--";
+   constant SCmd_LSL   : std_logic_vector(2 downto 0) := "000";
+   constant SCmd_SWAP  : std_logic_vector(2 downto 0) := "001";
+   constant SCmd_ROL   : std_logic_vector(2 downto 0) := "010";
+   constant SCmd_RLC   : std_logic_vector(2 downto 0) := "011";
+   constant SCmd_RIGHT : std_logic_vector(2 downto 0) := "1--";
+   constant SCmd_LSR   : std_logic_vector(2 downto 0) := "100";
+   constant SCmd_ASR   : std_logic_vector(2 downto 0) := "101";
+   constant SCmd_ROR   : std_logic_vector(2 downto 0) := "110";
+   constant SCmd_RRC   : std_logic_vector(2 downto 0) := "111";
 
 
 --  ALU command constants
@@ -395,7 +388,7 @@ entity  Shifter  is
     port(
         SOp     : in   std_logic_vector(wordsize - 1 downto 0); -- operand
         Cin     : in   std_logic;                               -- carry in
-        SCmd    : in   std_logic_vector(3 downto 0);            -- shift operation
+        SCmd    : in   std_logic_vector(2 downto 0);            -- shift operation
         SResult : out  std_logic_vector(wordsize - 1 downto 0); -- sum (result)
         Cout    : out  std_logic                                -- carry out
     );
@@ -499,7 +492,7 @@ entity  GenericALU  is
         Cin      : in      std_logic;                                 -- carry in
         FCmd     : in      std_logic_vector(3 downto 0);              -- F-Block operation
         CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
-        SCmd     : in      std_logic_vector(3 downto 0);              -- shift operation
+        SCmd     : in      std_logic_vector(2 downto 0);              -- shift operation
         ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
         Result   : buffer  std_logic_vector(wordsize - 1 downto 0);   -- ALU result
         Cout     : out     std_logic;                                 -- carry out
@@ -549,7 +542,7 @@ architecture  structural  of  GenericALU  is
         port(
             SOp     : in   std_logic_vector(wordsize - 1 downto 0);
             Cin     : in   std_logic;
-            SCmd    : in   std_logic_vector(3 downto 0);
+            SCmd    : in   std_logic_vector(2 downto 0);
             SResult : out  std_logic_vector(wordsize - 1 downto 0);
             Cout    : out  std_logic
         );

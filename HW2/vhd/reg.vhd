@@ -60,7 +60,13 @@ package RegArrayConstants is
     constant RegOp_EXTSW   : integer := 5;
     constant RegOp_EXTUB   : integer := 6;
     constant RegOp_EXTUW   : integer := 7;
-    constant REGOP_SrcCnt  : integer := 8;
+    constant RegOp_SHLL2   : integer := 8;
+    constant RegOp_SHLL8   : integer := 9;
+    constant RegOp_SHLL16  : integer := 10;
+    constant RegOp_SHLR2   : integer := 11;
+    constant RegOp_SHLR8   : integer := 12;
+    constant RegOp_SHLR16  : integer := 13;
+    constant REGOP_SrcCnt  : integer := 14;
 
 end package;
 
@@ -187,6 +193,18 @@ begin
                 RegB <= (31 downto 8 => '0') & RegBRaw(7 downto 0);
             when RegOp_EXTUW =>
                 RegB <= (31 downto 16 => '0') & RegBRaw(15 downto 0);
+            when RegOp_SHLL2 =>
+                RegB <= RegBRaw(29 downto 0) & (1 downto 0 => '0');
+            when RegOp_SHLL8 =>
+                RegB <= RegBRaw(23 downto 0) & (7 downto 0 => '0');
+            when RegOp_SHLL16 =>
+                RegB <= RegBRaw(15 downto 0) & (15 downto 0 => '0');
+            when RegOp_SHLR2 =>
+                RegB <= (1 downto 0 => '0') & RegBRaw(31 downto 2);
+            when RegOp_SHLR8 =>
+                RegB <= (7 downto 0 => '0') & RegBRaw(31 downto 8);
+            when RegOp_SHLR16 =>
+                RegB <= (15 downto 0 => '0') & RegBRaw(31 downto 16);
             when others =>
                 RegB <= (others => 'X');
 
