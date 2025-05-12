@@ -156,7 +156,7 @@ architecture behavioral of RegArray is
     end component;
 
     -- signal OpMux  : std_logic_vector(REG_SIZE - 1 downto 0);
-    signal RegARaw  : std_logic_vector(REG_SIZE - 1 downto 0);
+    signal RegBRaw  : std_logic_vector(REG_SIZE - 1 downto 0);
 
     -- Unused signals
     signal RegDIn     : std_logic_vector(2 * REG_SIZE - 1 downto 0);
@@ -172,23 +172,23 @@ begin
     begin
         case RegOpSel is
             when RegOp_None =>
-                RegA <= RegARaw;
+                RegB <= RegBRaw;
             when RegOp_SWAPB =>
-                RegA <= RegB(31 downto 16) & RegB(7 downto 0) & RegB(15 downto 8);
+                RegB <= RegBRaw(31 downto 16) & RegBRaw(7 downto 0) & RegBRaw(15 downto 8);
             when RegOp_SWAPW =>
-                RegA <= RegB(15 downto 0) & RegB(31 downto 16);
+                RegB <= RegBRaw(15 downto 0) & RegBRaw(31 downto 16);
             when RegOp_XTRCT =>
-                RegA <= RegB(15 downto 0) & RegB(31 downto 16);
+                RegB <= RegBRaw(15 downto 0) & RegA(31 downto 16);
             when RegOp_EXTSB =>
-                RegA <= (31 downto 8 => RegB(7)) & RegB(7 downto 0);
+                RegB <= (31 downto 8 => RegBRaw(7)) & RegBRaw(7 downto 0);
             when RegOp_EXTSW =>
-                RegA <= (31 downto 16 => RegB(15)) & RegB(15 downto 0);
+                RegB <= (31 downto 16 => RegBRaw(15)) & RegBRaw(15 downto 0);
             when RegOp_EXTUB =>
-                RegA <= (31 downto 8 => '0') & RegB(7 downto 0);
+                RegB <= (31 downto 8 => '0') & RegBRaw(7 downto 0);
             when RegOp_EXTUW =>
-                RegA <= (31 downto 16 => '0') & RegB(15 downto 0);
+                RegB <= (31 downto 16 => '0') & RegBRaw(15 downto 0);
             when others =>
-                RegA <= (others => 'X');
+                RegB <= (others => 'X');
 
         end case;
     end process;
@@ -216,8 +216,8 @@ begin
             RegDStore => RegDStore,
             RegDSel => RegDSel,
             clock => CLK,
-            RegA => RegARaw,
-            RegB => RegB,
+            RegA => RegA,
+            RegB => RegBRaw,
             RegA1 => RegA1,
             RegA2 => RegA2,
             RegD => RegD
