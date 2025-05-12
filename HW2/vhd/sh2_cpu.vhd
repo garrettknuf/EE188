@@ -372,6 +372,7 @@ begin
     -- ALU inputs (non-control signals)
     ALUOpA <= RegA    when ALUOpASel = ALUOpASel_RegA else
               DBIn    when ALUOpASel = ALUOpASel_DB else
+              (others => '0') when ALUOpASel = ALUOpASel_Zero else
               (others => 'X');
     ALUOpB <= RegB  when ALUOpBSel = ALUOpBSel_RegB else
               (31 downto 8 => '0') & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Unsigned else

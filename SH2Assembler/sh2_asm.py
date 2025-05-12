@@ -110,6 +110,7 @@ INSTRUCTION_SET = {
     ("NEGC", ("reg", "reg")):       lambda rm, rn: 0x600A | (rn << 8) | (rm << 4),
     ("NOT", ("reg", "reg")):        lambda rm, rn: 0x6007 | (rn << 8) | (rm << 4),
     ("OR", ("reg", "reg")):         lambda rm, rn: 0x200B | (rn << 8) | (rm << 4),
+    ("SUB", ("reg", "reg")):        lambda rm, rn: 0x3008 | (rn << 8) | (rm << 4),
     ("SUBC", ("reg", "reg")):       lambda rm, rn: 0x300A | (rn << 8) | (rm << 4),
     ("SUBV", ("reg", "reg")):       lambda rm, rn: 0x300B | (rn << 8) | (rm << 4),
     ("SWAP.B", ("reg", "reg")):     lambda rm, rn: 0x6008 | (rn << 8) | (rm << 4),
@@ -320,7 +321,7 @@ def assemble_instruction(line, addr):
         return None
 
     if key not in INSTRUCTION_SET:
-        raise ValueError(f"Unsupported instruction: {opcode} {operand_types}")
+        raise ValueError(f"Unsupported instruction: {opcode} {operand_types}\n{line}")
 
     operand_values = [value for _, value in parsed_operands]
 

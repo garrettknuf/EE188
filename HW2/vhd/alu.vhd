@@ -133,7 +133,10 @@ begin
     -- T-bit intermediate calculations
     GEQ <= not (Sign xor Overflow);
     GT <= GEQ and not Zero;
-    STR <= '1' when ALUOpA(7 downto 0) = ALUOpB(7 downto 0) else '0';
+    STR <= '1' when ALUOpA(7 downto 0) = ALUOpB(7 downto 0) or
+                    ALUOpA(15 downto 8) = ALUOpB(15 downto 8) or
+                    ALUOpA(23 downto 16) = ALUOpB(23 downto 16) or 
+                    ALUOpA(31 downto 24) = ALUOpB(31 downto 24) else '0';
     PZ <= not Sign;
     PL <= not Sign and not Zero;
 
@@ -148,7 +151,7 @@ begin
             STR         when TbitOp = Tbit_STR       else
             PL          when TbitOp = Tbit_PL        else
             PZ          when TbitOp = Tbit_PZ        else
-            'X';            
+            'X';         
 
     -- Instantiate generic memory unit
     Generic_ALU : GenericALU

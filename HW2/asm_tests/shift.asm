@@ -17,13 +17,14 @@
 
 .text
 
-InitDataSegAddr:            ; calculate starting address of data segment
+InitGBR:                  ; calculate starting address of data segment
     MOV     #64, R0
     SHLL    R0
     SHLL    R0
     SHLL    R0
     SHLL    R0
-    LDC     R0, GBR         ; GBR = 0x00000400 (1024)
+    LDC     R0, GBR        ; GBR = 0x00000400 (1024)
+    ; BRA   ROTTest
 
 ROTTest:
     MOV.L   @(0,GBR),R0
@@ -42,6 +43,7 @@ ROTTest:
     ROTR    R0
     BF      TestFail
     MOV.L   R0,@(7,GBR)    ; write ROTR Num1
+    ; BRA   ROTCTest
 
 ROTCTest:
     SETT
@@ -64,6 +66,7 @@ ROTCTest:
     ROTCR   R0
     BF      TestFail
     MOV.L   R0,@(9,GBR)    ; write ROTCR(T=0) Num1
+    ; BRA   SHATest
 
 SHATest:
     SETT
@@ -86,6 +89,7 @@ SHATest:
     SHAR    R0
     BT      TestFail
     MOV.L   R0,@(13,GBR)   ; write SHAR Num1
+    ; BRA   SHLTest
 
 SHLTest:
     SETT
@@ -108,6 +112,7 @@ SHLTest:
     SHLR    R0
     BT      TestFail
     MOV.L   R0,@(13,GBR)   ; write SHAR Num1
+    ; BRA   SHL2Test
 
 SHL2Test:
     MOV.L   @(0,GBR),R0
@@ -115,6 +120,7 @@ SHL2Test:
     MOV.L   R0,@(14,GBR)   ; write SHLL2 Num0
     SHLR2   R0
     MOV.L   R0,@(15,GBR)   ; write SHLR2(SHLL2 Num0)
+    ; BRA   SHL8Test
 
 SHL8Test:
     MOV.L   @(0,GBR),R0
@@ -122,6 +128,7 @@ SHL8Test:
     MOV.L   R0,@(16,GBR)   ; write SHLL8 Num0
     SHLR8   R0
     MOV.L   R0,@(17,GBR)   ; write SHLR8(SHLL8 Num0)
+    ; BRA   SHL16Test
 
 SHL16Test:
     MOV.L   @(0,GBR),R0
@@ -129,6 +136,7 @@ SHL16Test:
     MOV.L   R0,@(18,GBR)   ; write SHLL16 Num0
     SHLR16  R0
     MOV.L   R0,@(19,GBR)   ; write SHLR16(SHLL16 Num0)
+    ; BRA   TestSuccess
 
 TestSuccess:
     MOV     #1, R9

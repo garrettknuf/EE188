@@ -26,6 +26,7 @@ package CUConstants is
     -- ALUOpASel - select input for ALUOpA
     constant ALUOpASel_RegA  : integer range 3 downto 0 := 0;   -- RegA of RegArray
     constant ALUOpASel_DB    : integer range 3 downto 0 := 1; 
+    constant ALUOpASel_Zero  : integer range 3 downto 0 := 2; 
 
     -- ALUOpBSel - select input for ALUOpB
     constant ALUOpBSel_RegB         : integer range 5 downto 0 := 0;    -- RegB of RegArray

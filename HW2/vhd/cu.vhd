@@ -26,6 +26,7 @@ package CUConstants is
     -- ALUOpASel - select input for ALUOpA
     constant ALUOpASel_RegA  : integer range 3 downto 0 := 0;   -- RegA of RegArray
     constant ALUOpASel_DB    : integer range 3 downto 0 := 1; 
+    constant ALUOpASel_Zero  : integer range 3 downto 0 := 2; 
 
     -- ALUOpBSel - select input for ALUOpB
     constant ALUOpBSel_RegB         : integer range 5 downto 0 := 0;    -- RegB of RegArray
@@ -2559,7 +2560,7 @@ begin
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_EXTSB;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -2602,7 +2603,7 @@ begin
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_EXTSW;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -2645,7 +2646,7 @@ begin
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_EXTUB;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -2688,7 +2689,7 @@ begin
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_EXTUW;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -2702,9 +2703,9 @@ begin
 			TempRegSel <= unused;
 			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpNEG) then
-			ALUOpASel <= ALUOpASel_RegA;
+			ALUOpASel <= ALUOpASel_Zero;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= FCmd_NOTA;
+			FCmd <= FCmd_NOTB;
 			CinCmd <= CinCmd_One;
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
@@ -2745,9 +2746,9 @@ begin
 			TempRegSel <= unused;
 			SRSel <= SRSel_Tbit;
 		elsif std_match(IR, OpNEGC) then
-			ALUOpASel <= ALUOpASel_RegA;
+			ALUOpASel <= ALUOpASel_Zero;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= FCmd_NOTA;
+			FCmd <= FCmd_NOTB;
 			CinCmd <= CinCmd_CINBAR;
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_ADDER;
