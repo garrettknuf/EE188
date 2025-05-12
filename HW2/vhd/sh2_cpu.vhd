@@ -176,7 +176,7 @@ architecture structural of SH2_CPU is
 
             -- ALU Control Signals
             ALUOpASel   : out     integer range 2 downto 0;
-            ALUOpBSel   : out     integer range 4 downto 0;
+            ALUOpBSel   : out     integer range 5 downto 0;
             FCmd        : out     std_logic_vector(3 downto 0);            
             CinCmd      : out     std_logic_vector(1 downto 0);            
             SCmd        : out     std_logic_vector(3 downto 0);            
@@ -232,7 +232,7 @@ architecture structural of SH2_CPU is
 
     -- ALU Signals
     signal ALUOpASel : integer range 2 downto 0;
-    signal ALUOpBSel : integer range 4 downto 0;
+    signal ALUOpBSel : integer range 5 downto 0;
     signal ALU_Cin       : std_logic;
     signal ALU_FCmd      : std_logic_vector(3 downto 0);
     signal ALU_CinCmd    : std_logic_vector(1 downto 0);
@@ -366,16 +366,18 @@ begin
     DAU_Offset4 <= IR(3 downto 0);
     DAU_Offset8 <= IR(7 downto 0);
     DAU_Rn <= RegA1;
-    DAU_R0 <= RegA2;
+    DAU_R0 <= RegA;
     DAU_PC <= PAU_PC;
 
     -- ALU inputs (non-control signals)
     ALUOpA <= RegA    when ALUOpASel = ALUOpASel_RegA else
               DBIn    when ALUOpASel = ALUOpASel_DB else
+              (others => '0') when ALUOpASel = ALUOpASel_Zero else
               (others => 'X');
     ALUOpB <= RegB  when ALUOpBSel = ALUOpBSel_RegB else
               (31 downto 8 => '0') & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Unsigned else
               (31 downto 8 => IR(7)) & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Signed else
+              (31 downto 1 => '0') & SR(0) when ALUOpBSel = ALUOpBSel_Tbit else
               (others => 'X');
     ALU_Cin <= SR(0);
 

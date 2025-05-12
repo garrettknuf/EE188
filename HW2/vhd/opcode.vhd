@@ -48,7 +48,7 @@ package OpcodeConstants is
     constant OpMOVL_At_Disp_Rm_To_Rn  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0101------------";
     constant OpMOVB_Rm_To_At_R0_Rn    : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000--------0100";
     constant OpMOVW_Rm_To_At_R0_Rn    : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000--------0101";
-    constant OpMOVL_Rm_To_At_R0_Rn    : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000--------0100";
+    constant OpMOVL_Rm_To_At_R0_Rn    : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000--------0110";
     constant OpMOVB_At_R0_Rm_To_Rn    : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000--------1100";
     constant OpMOVW_At_R0_Rm_To_Rn    : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000--------1101";
     constant OpMOVL_At_R0_Rm_To_Rn    : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000--------1110";

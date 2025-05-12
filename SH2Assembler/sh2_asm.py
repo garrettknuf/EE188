@@ -31,7 +31,7 @@ INSTRUCTION_SET = {
     ("CMP/PL", ("reg",)) :   lambda rn: 0x4015 | (rn << 8),
     ("CMP/PZ", ("reg",)) :   lambda rn: 0x4011 | (rn << 8),
     ("DT", ("reg",)) :       lambda rn: 0x4010 | (rn << 8),
-    ("MOVT", ("reg",)) :     lambda rn: 0x4029 | (rn << 8),
+    ("MOVT", ("reg",)) :     lambda rn: 0x0029 | (rn << 8),
     ("ROTL", ("reg",)) :     lambda rn: 0x4004 | (rn << 8),
     ("ROTR", ("reg",)) :     lambda rn: 0x4005 | (rn << 8),
     ("ROTCL", ("reg",)) :    lambda rn: 0x4024 | (rn << 8),
@@ -110,6 +110,7 @@ INSTRUCTION_SET = {
     ("NEGC", ("reg", "reg")):       lambda rm, rn: 0x600A | (rn << 8) | (rm << 4),
     ("NOT", ("reg", "reg")):        lambda rm, rn: 0x6007 | (rn << 8) | (rm << 4),
     ("OR", ("reg", "reg")):         lambda rm, rn: 0x200B | (rn << 8) | (rm << 4),
+    ("SUB", ("reg", "reg")):        lambda rm, rn: 0x3008 | (rn << 8) | (rm << 4),
     ("SUBC", ("reg", "reg")):       lambda rm, rn: 0x300A | (rn << 8) | (rm << 4),
     ("SUBV", ("reg", "reg")):       lambda rm, rn: 0x300B | (rn << 8) | (rm << 4),
     ("SWAP.B", ("reg", "reg")):     lambda rm, rn: 0x6008 | (rn << 8) | (rm << 4),
@@ -154,7 +155,7 @@ INSTRUCTION_SET = {
     # md Format
     # Table A.38
     ("MOV.B", ("indexed", "reg")): lambda index, rn: 0x8400 | (index[1] << 4) | (index[0] & 0x000F),
-    ("MOV.B", ("indexed", "reg")): lambda index, rn: 0x8500 | (index[1] << 4) | (index[0] & 0x000F),
+    ("MOV.W", ("indexed", "reg")): lambda index, rn: 0x8500 | (index[1] << 4) | (index[0] & 0x000F),
 
     # nd4 Format
     ("MOV.B", ("reg", "indexed")): lambda r0, index: 0x8000 | (index[1] << 4) | (index[0] & 0x000F),
@@ -163,7 +164,7 @@ INSTRUCTION_SET = {
     # nmd Format
     # Table A.40
     ("MOV.L", ("reg", "indexed")): lambda rm, index: 0x1000 | (index[1] << 8) | (rm << 4) | (index[0] & 0x000F),
-    ("MOV.L", ("indexed", "reg")): lambda index, rn: 0x1000 | (rn << 8) | (index[1] << 4) | (index[0] & 0x000F),
+    ("MOV.L", ("indexed", "reg")): lambda index, rn: 0x5000 | (rn << 8) | (index[1] << 4) | (index[0] & 0x000F),
 
     # d Format Indirect GBR with Displacement
     # Table A.41
@@ -320,7 +321,7 @@ def assemble_instruction(line, addr):
         return None
 
     if key not in INSTRUCTION_SET:
-        raise ValueError(f"Unsupported instruction: {opcode} {operand_types}")
+        raise ValueError(f"Unsupported instruction: {opcode} {operand_types}\n{line}")
 
     operand_values = [value for _, value in parsed_operands]
 
@@ -347,6 +348,8 @@ def parse_data(line):
     line = line.strip()
     if not line or line.startswith(';') or line == ".data":
         return None
+    
+    line = line.split(';')[0].strip()
     
     # Extract label and directive
     label_match = re.match(r'(\w+):\s*(\.\w+)\s+(.*)', line)

@@ -155,7 +155,8 @@ architecture behavioral of RegArray is
         );
     end component;
 
-    signal OpMux  : std_logic_vector(REG_SIZE - 1 downto 0);
+    -- signal OpMux  : std_logic_vector(REG_SIZE - 1 downto 0);
+    signal RegARaw  : std_logic_vector(REG_SIZE - 1 downto 0);
 
     -- Unused signals
     signal RegDIn     : std_logic_vector(2 * REG_SIZE - 1 downto 0);
@@ -167,27 +168,27 @@ architecture behavioral of RegArray is
 begin
 
     -- Special register operations
-    process(RegA, RegB, RegOpSel)
+    process(all)
     begin
         case RegOpSel is
             when RegOp_None =>
-                OpMux <= RegA;
+                RegA <= RegARaw;
             when RegOp_SWAPB =>
-                OpMux <= RegA(31 downto 16) & RegA(7 downto 0) & RegA(15 downto 8);
+                RegA <= RegB(31 downto 16) & RegB(7 downto 0) & RegB(15 downto 8);
             when RegOp_SWAPW =>
-                OpMux <= RegA(15 downto 0) & RegA(31 downto 16);
+                RegA <= RegB(15 downto 0) & RegB(31 downto 16);
             when RegOp_XTRCT =>
-                OpMux <= RegA(15 downto 0) & RegB(31 downto 16);
+                RegA <= RegB(15 downto 0) & RegB(31 downto 16);
             when RegOp_EXTSB =>
-                OpMux <= (31 downto 8 => RegA(7)) & RegA(7 downto 0);
+                RegA <= (31 downto 8 => RegB(7)) & RegB(7 downto 0);
             when RegOp_EXTSW =>
-                OpMux <= (31 downto 16 => RegA(15)) & RegA(15 downto 0);
+                RegA <= (31 downto 16 => RegB(15)) & RegB(15 downto 0);
             when RegOp_EXTUB =>
-                OpMux <= (31 downto 8 => '0') & RegA(7 downto 0);
+                RegA <= (31 downto 8 => '0') & RegB(7 downto 0);
             when RegOp_EXTUW =>
-                OpMux <= (31 downto 16 => '0') & RegA(15 downto 0);
+                RegA <= (31 downto 16 => '0') & RegB(15 downto 0);
             when others =>
-                OpMux <= (others => 'X');
+                RegA <= (others => 'X');
 
         end case;
     end process;
@@ -215,7 +216,7 @@ begin
             RegDStore => RegDStore,
             RegDSel => RegDSel,
             clock => CLK,
-            RegA => RegA,
+            RegA => RegARaw,
             RegB => RegB,
             RegA1 => RegA1,
             RegA2 => RegA2,
