@@ -170,12 +170,13 @@ architecture structural of SH2_CPU is
             DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
             SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
             AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+            Result      : in  std_logic_vector(LONG_SIZE - 1 downto 0);
 
             -- CU Registers
             IR      : out    std_logic_vector(INST_SIZE - 1 downto 0);
 
             -- ALU Control Signals
-            ALUOpASel   : out     integer range 2 downto 0;
+            ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0;
             ALUOpBSel   : out     integer range 5 downto 0;
             FCmd        : out     std_logic_vector(3 downto 0);            
             CinCmd      : out     std_logic_vector(1 downto 0);            
@@ -217,7 +218,7 @@ architecture structural of SH2_CPU is
             RegAxDataInSel  : out   integer  range REGAXDATAIN_CNT-1 downto 0;
         
             -- IO Control signals
-            DBOutSel : out integer range 5 downto 0;
+            DBOutSel : out integer range DBOUTSEL_CNT-1 downto 0;
             ABOutSel : out integer range 1 downto 0;
             DBInMode : out integer range 1 downto 0;
             RD     : out   std_logic;
@@ -231,7 +232,7 @@ architecture structural of SH2_CPU is
     end component;
 
     -- ALU Signals
-    signal ALUOpASel : integer range 2 downto 0;
+    signal ALUOpASel : integer range ALUOPASEL_CNT-1 downto 0;
     signal ALUOpBSel : integer range 5 downto 0;
     signal ALU_Cin       : std_logic;
     signal ALU_FCmd      : std_logic_vector(3 downto 0);
@@ -298,7 +299,7 @@ architecture structural of SH2_CPU is
     signal ALUOpA : std_logic_vector(LONG_SIZE-1 downto 0);
     signal ALUOpB : std_logic_vector(LONG_SIZE-1 downto 0);
 
-    signal DBOutSel : integer range 5 downto 0;
+    signal DBOutSel : integer range DBOUTSEL_CNT-1 downto 0;
     signal DBOut : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
     signal ABOutSel : integer range 1 downto 0;
@@ -373,11 +374,13 @@ begin
     ALUOpA <= RegA    when ALUOpASel = ALUOpASel_RegA else
               DBIn    when ALUOpASel = ALUOpASel_DB else
               (others => '0') when ALUOpASel = ALUOpASel_Zero else
+              TempReg   when ALUOpASel = ALUOpASel_TempReg else
               (others => 'X');
     ALUOpB <= RegB  when ALUOpBSel = ALUOpBSel_RegB else
               (31 downto 8 => '0') & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Unsigned else
               (31 downto 8 => IR(7)) & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Signed else
               (31 downto 1 => '0') & SR(0) when ALUOpBSel = ALUOpBSel_Tbit else
+              (31 downto 8 => '0') & '1' & (6 downto 0 => '0') when ALUOpBSel = ALUOpBSel_TASMask else
               (others => 'X');
     ALU_Cin <= SR(0);
 
@@ -623,6 +626,7 @@ begin
             DB          => DB,
             AB          => AB,
             SR          => SR,
+            Result      => ALU_Result,
             IR          => IR,
 
             DBOutSel    => DBOutSel,

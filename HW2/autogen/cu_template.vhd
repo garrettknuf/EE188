@@ -24,15 +24,18 @@ use work.RegArrayConstants.all;
 package CUConstants is
 
     -- ALUOpASel - select input for ALUOpA
-    constant ALUOpASel_RegA  : integer range 3 downto 0 := 0;   -- RegA of RegArray
-    constant ALUOpASel_DB    : integer range 3 downto 0 := 1; 
-    constant ALUOpASel_Zero  : integer range 3 downto 0 := 2; 
+    constant ALUOPASEL_CNT : integer := 4;
+    constant ALUOpASel_RegA  : integer range ALUOPASEL_CNT-1 downto 0 := 0;   -- RegA of RegArray
+    constant ALUOpASel_DB    : integer range ALUOPASEL_CNT-1 downto 0 := 1; 
+    constant ALUOpASel_Zero  : integer range  ALUOPASEL_CNT-1 downto 0 := 2; 
+    constant ALUOpASel_TempReg  : integer range ALUOPASEL_CNT-1 downto 0 := 3; 
 
     -- ALUOpBSel - select input for ALUOpB
     constant ALUOpBSel_RegB         : integer range 5 downto 0 := 0;    -- RegB of RegArray
     constant ALUOpBSel_Imm_Signed   : integer range 5 downto 0 := 1;    -- immediate signed
     constant ALUOpBSel_Imm_Unsigned : integer range 5 downto 0 := 2;    -- immediate unsigned
     constant ALUOpBSel_Tbit         : integer range 5 downto 0 := 3;    -- t-bit
+    constant ALUOpBSel_TASMask      : integer range 5 downto 0 := 4;    -- 0x00000080
 
     -- RegInSel - select where to save input to RegIn
     constant RegInSelCmd_Rn : integer range 2 downto 0 := 0;    -- generic register
@@ -60,12 +63,13 @@ package CUConstants is
     constant RegAxInSelCmd_R0 : integer range 2 downto 0 := 2;
 
     -- DBOutSel - select output of databus
-    constant DBOutSel_Result : integer range 5 downto 0 := 0;
-    constant DBOutSel_SR     : integer range 5 downto 0 := 1;
-    constant DBOutSel_GBR    : integer range 5 downto 0 := 2;
-    constant DBOutSel_VBR    : integer range 5 downto 0 := 3;
-    constant DBOutSel_PR     : integer range 5 downto 0 := 4;
-    constant DBOutSel_PC     : integer range 5 downto 0 := 5;
+    constant DBOUTSEL_CNT    : integer := 6;
+    constant DBOutSel_Result : integer range DBOUTSEL_CNT-1 downto 0 := 0;
+    constant DBOutSel_SR     : integer range DBOUTSEL_CNT-1 downto 0 := 1;
+    constant DBOutSel_GBR    : integer range DBOUTSEL_CNT-1 downto 0 := 2;
+    constant DBOutSel_VBR    : integer range DBOUTSEL_CNT-1 downto 0 := 3;
+    constant DBOutSel_PR     : integer range DBOUTSEL_CNT-1 downto 0 := 4;
+    constant DBOutSel_PC     : integer range DBOUTSEL_CNT-1 downto 0 := 5;
 
     -- ABSel - select output of address bus
     constant ABOutSel_Prog : integer range 1 downto 0 := 0;
@@ -82,6 +86,7 @@ package CUConstants is
     constant TempRegSel_Offset8 : integer range 4 downto 0 := 0;
     constant TempRegSel_Offset12 : integer range 4 downto 0 := 1;
     constant TempRegSel_RegB : integer range 4 downto 0 := 2;
+    constant TempRegSel_Result  : integer range 4 downto 0 := 3;
 
     constant REGAXDATAIN_CNT : integer := 6;
     constant RegAxDataIn_AddrIDOut  : integer range REGAXDATAIN_CNT-1 downto 0 := 0;
@@ -123,12 +128,13 @@ entity CU is
         DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
         SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
         AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+        Result      : in  std_logic_vector(LONG_SIZE - 1 downto 0);   -- ALU result
 
         IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";
         
 
         -- ALU Control Signals
-        ALUOpASel   : out     integer range 2 downto 0 := 0;
+        ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;
         ALUOpBSel   : out     integer range 5 downto 0 := 0;
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
@@ -170,7 +176,7 @@ entity CU is
         RegAxDataInSel  : out   integer  range REGAXDATAIN_CNT-1 downto 0;
     
         -- IO Control signals
-        DBOutSel : out integer range 5 downto 0;
+        DBOutSel : out integer range DBOUTSEL_CNT-1 downto 0;
         ABOutSel : out integer range 1 downto 0;
         DBInMode : out integer range 1 downto 0;
         RD     : out   std_logic;
@@ -194,9 +200,9 @@ architecture behavioral of CU is
     constant BranchSlotDirect   : integer := 4;
     constant BootReadSP         : integer := 5;
     constant BootWaitForFetch   : integer := 6;
-
-    constant Sleep : integer := 7;
-    constant STATE_CNT      : integer := 8;
+    constant WriteBack          : integer := 7;
+    constant Sleep              : integer := 8;
+    constant STATE_CNT          : integer := 9;
 
     signal NextState : integer range STATE_CNT-1 downto 0;
     signal CurrentState : integer range STATE_CNT-1 downto 0;
@@ -217,6 +223,7 @@ begin
     TempRegMuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempRegSel = TempRegSel_Offset8 else
                     (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempRegSel = TempRegSel_Offset12 else
                     RegB when TempRegSel = TempRegSel_RegB else
+                    Result when TempRegSel = TempRegSel_Result else
                     (others => 'X');
 
     -- Control Unit Registers

@@ -106,7 +106,7 @@ package OpcodeConstants is
     constant OpNOT          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------0111";
     constant OpOR_Rm_Rn     : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------1011";
     constant OpOR_Imm       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "11001011--------";
-    constant OpOR_Imm_B     : std_logic_vector(OPCODE_SIZE-1 downto 0) := "11001011--------";
+    constant OpOR_Imm_B     : std_logic_vector(OPCODE_SIZE-1 downto 0) := "11001111--------";
     constant OpTAS_B        : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00011011";
     constant OpTST_Rm_Rn    : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------1000";
     constant OpTST_Imm      : std_logic_vector(OPCODE_SIZE-1 downto 0) := "11001000--------";

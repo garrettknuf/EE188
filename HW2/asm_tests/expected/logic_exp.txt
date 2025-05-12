@@ -1,2 +1,7 @@
 StartAddr: 0x0400
-L.1     ; success
+B.0x11          ; (init 0x39)   AND.B
+B.0xD7          ; (init 0x53)   OR.B
+B.0x95          ; (init 0x95)   TST.B
+B.0x9A          ; (init 0xC3)   XOR.B
+L.0xF0807777    ;               TAS.B
+L.1             ; success

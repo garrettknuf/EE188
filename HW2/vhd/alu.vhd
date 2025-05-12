@@ -41,6 +41,7 @@ package TbitConstants is
     constant Tbit_STR       : std_logic_vector(3 downto 0) := "1000";     -- set when A and B have same byte
     constant Tbit_PL        : std_logic_vector(3 downto 0) := "1001";     -- set when A > 0
     constant Tbit_PZ        : std_logic_vector(3 downto 0) := "1010";    -- set when A >= 0
+    constant Tbit_TAS       : std_logic_vector(3 downto 0) := "1011";
 
 end package;
 
@@ -127,6 +128,7 @@ architecture behavioral of ALU is
     signal STR  : std_logic;    -- if Rn and Rm have equivalent byte
     signal PL   : std_logic;    -- if Rn > 0
     signal PZ   : std_logic;    -- if Rn >= 0
+    signal TASZero : std_logic;
 
 begin
 
@@ -140,6 +142,8 @@ begin
     PZ <= not Sign;
     PL <= not Sign and not Zero;
 
+    TASZero <= '1' when ALUOpA(7 downto 0) = "00000000" else '0';
+
     -- Mux to determine value of T-bit
     Tbit <= Cout        when TbitOp = Tbit_Carry     else
             not Cout    when TbitOp = Tbit_Borrow    else
@@ -151,6 +155,7 @@ begin
             STR         when TbitOp = Tbit_STR       else
             PL          when TbitOp = Tbit_PL        else
             PZ          when TbitOp = Tbit_PZ        else
+            TASZero     when TbitOp = Tbit_TAS       else
             'X';         
 
     -- Instantiate generic memory unit
