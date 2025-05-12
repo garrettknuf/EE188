@@ -1829,14 +1829,14 @@ begin
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_SWAPB;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
 			DBInMode <= DBInMode_Signed;
 			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Byte;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
@@ -1872,7 +1872,7 @@ begin
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_SWAPW;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
@@ -1915,14 +1915,14 @@ begin
 			RegAxStore <= '0';
 			RegA1SelCmd <= unused;
 			RegA2SelCmd <= unused;
-			RegOpSel <= RegOp_None;
+			RegOpSel <= RegOp_XTRCT;
 			RegAxDataInSel <= RegAxDataIn_AddrIDOut;
 			RD <= '0';
 			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
 			DBInMode <= DBInMode_Signed;
 			DBOutSel <= 0;
-			DataAccessMode <= DataAccessMode_Long;
+			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
@@ -2533,7 +2533,7 @@ begin
 		elsif std_match(IR, OpEXTS_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= FCmd_A;
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
@@ -2576,7 +2576,7 @@ begin
 		elsif std_match(IR, OpEXTS_W) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= FCmd_A;
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
@@ -2619,7 +2619,7 @@ begin
 		elsif std_match(IR, OpEXTU_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= FCmd_A;
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;
@@ -2662,7 +2662,7 @@ begin
 		elsif std_match(IR, OpEXTU_W) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
-			FCmd <= FCmd_A;
+			FCmd <= FCmd_B;
 			CinCmd <= (others => '-');
 			SCmd <= (others => '-');
 			ALUCmd <= ALUCmd_FBLOCK;

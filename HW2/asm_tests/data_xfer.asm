@@ -166,12 +166,22 @@ TestMOVT:
     BF      TestFail
 
 TestSWAP:
-    ; TODO
+    MOV.L   @(4,GBR), R0
+    MOV     R0, R13
+    SWAP.B  R13, R12
+    MOV.L   R12, @R11
+    ADD     #4, R11
+    SWAP.W  R13, R12
+    MOV.L   R12, @R11
+    ADD     #4, R11
+    ;BRA    TestXTRCT
 
 TestXTRCT:
-    ; TODO
-
-
+    MOV.L   @(5,GBR), R0
+    XTRCT   R13, R0
+    MOV.L   R0, @R11
+    ADD     #4, R11
+    ; BRA   TestSuccess
 
 TestSuccess:
     MOV     #1, R9
@@ -196,3 +206,5 @@ Num4: .byte -36
 Num5: .byte 0
 Num6: .word -4500
 Num7: .long 1357902468
+Num8: .long 0x01234567
+Num9: .long 0x89ABCDEF
