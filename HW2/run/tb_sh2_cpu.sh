@@ -6,8 +6,8 @@ set -e
 GHDL="/mnt/c/eda/GHDL/bin/ghdl.exe"
 GTKWAVE="/mnt/c/eda/gtkwave/bin/gtkwave.exe"
 PYTHONEXEC="/mnt/c/Users/garre/AppData/Local/Microsoft/WindowsApps/python3.exe"
-ASSEMBLER="../../SH2Assembler/sh2_asm.py"
-MEMCOMPARE="../../MemCompare/mem_compare.py"
+ASSEMBLER="../asm_tests/build/sh2_asm.py"
+MEMCOMPARE="../asm_tests/mem_dump/mem_compare.py"
 
 # Include Assembly test files
 ASM_FILES=(
