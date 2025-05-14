@@ -45,11 +45,11 @@ for index, row, in state_df.iterrows():
 vhdl_str = ""
 std_logic_signal_list = ['DAU_IncDecSel', 'DAU_PrePostSel']
 integer_signal_list = ['PAU_SrcSel', 'PAU_OffsetSel', 'DAU_SrcSel', 'DAU_OffsetSel',
-                       'DAU_IncDecBit', 'RegInSelCmd', 'RegASelCmd', 'RegBSelCmd',
-                       'RegAxInSelCmd', 'RegA1SelCmd', 'RegA2SelCmd', 'RegOpSel',
+                       'DAU_IncDecBit', 'RegInSel', 'RegASelCmd', 'RegBSelCmd',
+                       'RegAxInDataSel', 'RegA1SelCmd', 'RegA2SelCmd', 'RegOpSel',
                        'DBOutSel', 'ABOutSel', 'DataAccessMode', 'DBInMode',
-                       'TempRegSel', 'PAU_IncDecBit', 'RegAxDataInSel', 'SRSel',
-                       'DAU_GBRSel', 'DAU_VBRSel']
+                       'TempRegSel', 'PAU_IncDecBit', 'SRSel',
+                       'DAU_GBRSel', 'DAU_VBRSel', 'RegAxInSelCmd']
 
 # Create normal instruction decoding
 for instruction, normal_control_signals in instruction_decoding.items():

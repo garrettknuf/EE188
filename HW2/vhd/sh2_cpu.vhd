@@ -47,6 +47,7 @@ use work.DAUConstants.all;
 use work.RegArrayConstants.all;
 use work.StatusRegConstants.all;
 use work.CUConstants.all;
+use work.DTUConstants.all;
 
 entity  SH2_CPU  is
 
@@ -98,22 +99,33 @@ architecture structural of SH2_CPU is
 
     component RegArray is
         port (
-            RegIn      : in   std_logic_vector(LONG_SIZE - 1 downto 0);
-            RegInSel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegStore   : in   std_logic;
-            RegASel    : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegBSel    : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegAxIn    : in   std_logic_vector(LONG_SIZE - 1 downto 0);
-            RegAxInSel : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegAxStore : in   std_logic;
-            RegA1Sel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegA2Sel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegOpSel   : in   integer  range REGOP_SrcCnt - 1 downto 0;
-            CLK        : in   std_logic;
-            RegA       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
-            RegB       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
-            RegA1      : out  std_logic_vector(LONG_SIZE - 1 downto 0);
-            RegA2      : out  std_logic_vector(LONG_SIZE - 1 downto 0)
+            -- RegIn inputs
+            Result          : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- ALU Result
+
+            -- RegAxIn inputs
+            DataAddrID      : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- DAU inc/dec address
+            DataAddr        : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- DAU address
+            SR              : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- Status register
+            GBR             : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- Global base register
+            VBR             : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- Vector base register
+            PR              : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- Procedure register
+
+            -- Control signals
+            RegInSel        : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select where to save Result
+            RegStore        : in   std_logic;                                   -- decide store result or not
+            RegASel         : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegA output
+            RegBSel         : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegB output
+            RegAxInSel      : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select where to save RegAxIn input
+            RegAxInDataSel  : in   integer range REGAXINDATASEL_CNT - 1 downto 0;  -- select input to RegAxIn
+            RegAxStore      : in   std_logic;                                   -- decide store RegAxIn or not
+            RegA1Sel        : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegA1 output
+            RegOpSel        : in   integer range REGOPSEL_CNT - 1 downto 0;     -- select special register operation
+            CLK             : in   std_logic;                                   -- system clock
+
+            -- Register Outputs
+            RegA            : out  std_logic_vector(REG_SIZE - 1 downto 0);     -- register A
+            RegB            : out  std_logic_vector(REG_SIZE - 1 downto 0);     -- register B
+            RegA1           : out  std_logic_vector(REG_SIZE - 1 downto 0)      -- register Addr1
         );
     end component;
 
@@ -217,16 +229,15 @@ architecture structural of SH2_CPU is
             DAU_VBRSel      : out   integer range VBRSEL_CNT-1 downto 0;
 
             -- RegArray Control Signals
-            RegInSelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegStore   : out   std_logic;
-            RegASelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegBSelCmd    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegAxInSelCmd : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegAxStore : out   std_logic;
-            RegA1SelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegA2SelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-            RegOpSel   : out   integer  range REGOp_SrcCnt - 1 downto 0;
-            RegAxDataInSel  : out   integer  range REGAXDATAIN_CNT-1 downto 0;
+            RegInSel    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegStore    : out   std_logic;
+            RegASel     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegBSel     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegAxInSel  : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegAxInDataSel  : out   integer  range REGAXINDATASEL_CNT-1 downto 0;
+            RegAxStore  : out   std_logic;
+            RegA1Sel    : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+            RegOpSel    : out   integer  range REGOPSEL_CNT - 1 downto 0;
         
             -- IO Control signals
             DBOutSel : out integer range DBOUTSEL_CNT-1 downto 0;
@@ -241,6 +252,34 @@ architecture structural of SH2_CPU is
             RegB : in std_logic_vector(REG_SIZE - 1 downto 0)
         );
     end component;
+
+    component DTU is
+        port (
+            DBOut           : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+            AB              : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+            RD              : in    std_logic;
+            WR              : in    std_logic;
+            DataAccessMode  : in    integer range DATAACCESSMODE_CNT-1 downto 0;
+            DBInMode        : in    integer range DBINMODE_CNT-1 downto 0;
+            CLK             : in    std_logic;
+            DBIn            : out   std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+            WE0             : out   std_logic;
+            WE1             : out   std_logic;
+            WE2             : out   std_logic;
+            WE3             : out   std_logic;
+            RE0             : out   std_logic;
+            RE1             : out   std_logic;
+            RE2             : out   std_logic;
+            RE3             : out   std_logic;
+            DB              : inout std_logic_vector(DATA_BUS_SIZE-1 downto 0)
+        );
+    end component;
+
+    -- DTU Signals
+    signal DBIn             : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+    signal DBOut            : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+    signal DBInMode         : integer range DBINMODE_CNT-1 downto 0;
+    signal DataAccessMode   : integer range DATAACCESSMODE_CNT-1 downto 0;
 
     -- ALU Signals
     signal ALUOpASel    : integer range ALUOPASEL_CNT-1 downto 0;
@@ -261,14 +300,13 @@ architecture structural of SH2_CPU is
     signal RegBSel    : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegAxIn    : std_logic_vector(LONG_SIZE - 1 downto 0);
     signal RegAxInSel : integer range REGARRAY_RegCnt - 1 downto 0;
+    signal RegAxInDataSel : integer range REGAXINDATASEL_CNT - 1 downto 0;
     signal RegAxStore : std_logic;
     signal RegA1Sel   : integer range REGARRAY_RegCnt - 1 downto 0;
-    signal RegA2Sel   : integer range REGARRAY_RegCnt - 1 downto 0;
-    signal RegOpSel   : integer range REGOP_SrcCnt - 1 downto 0;
+    signal RegOpSel   : integer range REGOPSEL_CNT - 1 downto 0;
     signal RegA       : std_logic_vector(LONG_SIZE - 1 downto 0);
     signal RegB       : std_logic_vector(LONG_SIZE - 1 downto 0);
     signal RegA1      : std_logic_vector(LONG_SIZE - 1 downto 0);
-    signal RegA2      : std_logic_vector(LONG_SIZE - 1 downto 0);
 
     -- PAU Signals
     signal PAU_SrcSel      : integer range PAU_SRC_CNT - 1 downto 0;
@@ -281,8 +319,8 @@ architecture structural of SH2_CPU is
     signal PAU_IncDecBit   : integer range 2 downto 0;
     signal PAU_PrePostSel  : std_logic;
     signal PAU_ProgAddr    : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-    signal PAU_PC          : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-    signal PAU_PR          : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+    signal PC              : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+    signal PR              : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
 
     -- DAU Signals
     signal DAU_SrcSel      : integer range DAU_SRC_CNT - 1 downto 0;
@@ -299,8 +337,8 @@ architecture structural of SH2_CPU is
     signal DAU_VBRSel        : integer range VBRSEL_CNT-1 downto 0;
     signal DAU_AddrIDOut      : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_DataAddr       : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-    signal DAU_GBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-    signal DAU_VBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+    signal GBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+    signal VBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
 
     -- StatusReg Signals
     signal SR_UpdateSR     : std_logic;
@@ -308,216 +346,34 @@ architecture structural of SH2_CPU is
 
 
     signal DBOutSel : integer range DBOUTSEL_CNT-1 downto 0;
-    signal DBOut : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
     signal ABOutSel : integer range 1 downto 0;
 
     signal IR : std_logic_vector(INST_SIZE-1 downto 0);
 
-    signal DataAccessMode : integer range 2 downto 0;
-
-    signal RegInSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
-    signal RegASelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
-    signal RegBSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
-    signal RegAxInSelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
-    signal RegA1SelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
-    signal RegA2SelCmd : integer  range REGARRAY_RegCnt - 1 downto 0;
-
-    signal RegAxDataInSel  : integer  range REGAXDATAIN_CNT-1 downto 0;
-
-
     signal SRSel : integer range SRSEL_CNT-1 downto 0;
-
-    signal WE : std_logic_vector(3 downto 0);
-    signal RE : std_logic_vector(3 downto 0);
 
     signal WR : std_logic;
     signal RD : std_logic;
 
-    signal MemAccessBits : std_logic_vector(3 downto 0);
-
-    signal DBInMode : integer range 1 downto 0;
-
-    signal DBIn : std_logic_vector(31 downto 0);
-
-    signal DBSignExtBit : std_logic;
 
     signal TempReg : std_logic_vector(31 downto 0);
     signal TempRegSel : integer range 4 downto 0;
 
 begin
 
-    process (clock)
-    begin
-        if falling_edge(clock) then
-            WE3 <= WE(3);
-            WE2 <= WE(2);
-            WE1 <= WE(1);
-            WE0 <= WE(0);
-
-            RE3 <= RD;
-            RE2 <= RD;
-            RE1 <= RD;
-            RE0 <= RD;
-        else
-            WE3 <= '1';
-            WE2 <= '1';
-            WE1 <= '1';
-            WE0 <= '1';
-            RE3 <= '1';
-            RE2 <= '1';
-            RE1 <= '1';
-            RE0 <= '1';
-        end if;
-    end process;
-
-    -- DAU inputs (non-control signals)
-    DAU_Offset4 <= IR(3 downto 0);
-    DAU_Offset8 <= IR(7 downto 0);
-    DAU_Rn <= RegA1;
-    DAU_R0 <= RegA;
-    DAU_PC <= PAU_PC;
-
-    -- PAU inputs (non-control signals)
-    PAU_Offset8 <= IR(7 downto 0);
-    PAU_Offset12 <= IR(11 downto 0);
-    PAU_OffsetReg <= RegA1;
-
-    -- RegArray inputs (non-control signals)
-    RegIn <= ALU_Result;
-    RegAxIn <= DAU_AddrIDOut when RegAxDataInSel = RegAxDataIn_AddrIDOut else 
-               DAU_DataAddr when RegAxDataInSel = RegAxDataIn_DataAddr else
-               SR when RegAxDataInSel = RegAxDataIn_SR else
-               DAU_GBR when RegAxDataInSel = RegAxDataIn_GBR else
-               DAU_VBR when RegAxDataInSel = RegAxDataIn_VBR else
-               PAU_PR  when RegAxDataInSel = RegAxDataIn_PR else
-               (others => 'X');
-
-    RegInSel <= to_integer(unsigned(IR(11 downto 8))) when RegInSelCmd = RegInSelCmd_Rn else
-                15 when RegInSelCmd = RegInSelCmd_R15 else 0;
-    RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
-    RegBSel <= to_integer(unsigned(IR(7 downto 4))) when RegBSelCmd = RegBSelCmd_Rm else
-               to_integer(unsigned(IR(11 downto 8))) when RegBSelCmd = RegBSelCmd_Rn else 0;
-
-    RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegA1SelCmd = RegA1SelCmd_Rn else
-                to_integer(unsigned(IR(7 downto 4))) when RegA1SelCmd = RegA1SelCmd_Rm else
-                0;
-    RegAxInSel <= to_integer(unsigned(IR(11 downto 8))) when RegAxInSelCmd = RegAxInSelCmd_Rn else
-                  to_integer(unsigned(IR(7 downto 4))) when RegAxInSelCmd = RegAxInSelCmd_Rm else
-                  0;
-
+    -- Select address to be either address output by PAU or DAU
     AB <= PAU_ProgAddr when ABOutSel = ABOutSel_Prog else
-        DAU_DataAddr when ABOutSel = ABOutSel_Data else
-        (others => 'X');
+          DAU_DataAddr when ABOutSel = ABOutSel_Data else
+          (others => 'X');
 
-    PAU_Offset8 <= IR(7 downto 0);
-    PAU_Offset12 <= IR(11 downto 0);
-
-    DB <= DBOut when WR = '0' else (others => 'Z');
-
-    process(all)
-    begin
-        if WR = '0' then
-            WE <= MemAccessBits;
-            RE <= "1111";
-        elsif RD = '0' then
-            RE <= MemAccessBits;
-            WE <= "1111";
-        end if;
-    end process;
-
-    process(all)
-    begin
-        if (DBOutSel = DBOutSel_Result) then
-            case DataAccessMode is
-                when DataAccessMode_Byte =>
-
-                    -- Select position of byte to output on data bus
-                    if (AB(1 downto 0) = "11") then
-                        DBOut(7 downto 0) <= ALU_Result(7 downto 0);    -- byte 3
-                        DBIn(7 downto 0) <= DB(7 downto 0);
-                        DBSignExtBit <= DB(7);
-                        MemAccessBits <= "1110";
-                    elsif (AB(1 downto 0) = "10") then 
-                        DBOut(15 downto 8) <= ALU_Result(7 downto 0);   -- byte 2
-                        DBIn(7 downto 0) <= DB(15 downto 8);
-                        DBSignExtBit <= DB(15);
-                        MemAccessBits <= "1101";
-                    elsif (AB(1 downto 0) = "01") then
-                        DBOut(23 downto 16) <= ALU_Result(7 downto 0);  -- byte 1
-                        DBIn(7 downto 0) <= DB(23 downto 16);
-                        DBSignExtBit <= DB(23);
-                        MemAccessBits <= "1011";
-                    elsif (AB(1 downto 0) = "00") then 
-                        DBOut(31 downto 24) <= ALU_Result(7 downto 0);  -- byte 0
-                        DBIn(7 downto 0) <= DB(31 downto 24);
-                        DBSignExtBit <= DB(31);
-                        MemAccessBits <= "0111";
-                    else
-                        DBOut(7 downto 0) <= (others => 'X');   -- invalid addr
-                        DBIn(7 downto 0) <= (others => 'X');
-                        MemAccessBits <= "1111";
-                    end if;
-
-                    DBIn(31 downto 8) <= (31 downto 8 => '0') when DBInMode = DBInMode_Unsigned else
-                                        (31 downto 8 => DBSignExtBit) when DBInMode = DBInMode_Signed else
-                                        (31 downto 8 => 'X');
-
-                when DataAccessMode_Word =>
-
-                    -- Select position of word output on data bus
-                    if AB(1 downto 0) = "10" then
-                        -- Address on low word (higher address)
-                        DBOut(15 downto 0) <= ALU_Result(15 downto 0);
-                        DBIn(15 downto 0) <= DB(15 downto 0);
-                        DBSignExtBit <= DB(15);
-                        MemAccessBits <= "1100";
-                    elsif AB(1 downto 0) = "00" then
-                        -- Address on high word (lower address)
-                        DBOut(31 downto 16) <= ALU_Result(15 downto 0);
-                        DBIn(15 downto 0) <= DB(31 downto 16);
-                        DBSignExtBit <= DB(31);
-                        MemAccessBits <= "0011";
-                    else
-                        -- Invalid address access for long
-                        DBOut <= (others => 'X');
-                        MemAccessBits <= "1111";
-                    end if;
-
-                    DBIn(31 downto 16) <= (31 downto 16 => '0') when DBInMode = DBInMode_Unsigned else
-                                        (31 downto 16 => DBSignExtBit) when DBInMode = DBInMode_Signed else
-                                        (31 downto 16 => 'X');
-
-                when DataAccessMode_Long =>
-                    -- Check that address accessed is a valid multiple of 4
-                    if (AB(1 downto 0) = "00") then
-                        DBOut <= ALU_Result;
-                        DBIn <= DB(31 downto 0);
-                        MemAccessBits <= "0000";
-                    else
-                        DBOut <= (others => 'X');
-                        MemAccessBits <= "1111";
-                    end if;
-                when others =>
-                    DBOut <= (others => 'X');
-            end case;
-        elsif (DBOutSel = DBOutSel_GBR) then
-            DBOut <= DAU_GBR;
-            MemAccessBits <= "0000";
-        elsif (DBOutSel = DBOutSel_VBR) then
-            DBOut <= DAU_VBR;
-            MemAccessBits <= "0000";
-        elsif (DBOutSel = DBOutSel_SR) then
-            DBOut <= SR;
-            MemAccessBits <= "0000";
-        elsif (DBOutSel = DBOutSel_PR) then
-            DBOut <= PAU_PR;
-            MemAccessBits <= "0000";
-        else
-            DBOut <= (others => 'Z');
-        end if;
-
-    end process;
+    -- Select data to output to data bus
+    DBOut <= ALU_Result when DBOutSel = DBOutSel_Result else
+             GBR        when DBOutSel = DBOutSel_GBR    else
+             VBR        when DBOutSel = DBOutSel_VBR    else
+             SR         when DBOutSel = DBOutSel_SR     else
+             PR         when DBOutSel = DBOutSel_PR     else
+             (others => 'X');
 
     -- Create 32-bit ALU for standard logic and arithmetic operations
     SH2_ALU : ALU
@@ -543,22 +399,26 @@ begin
     -- Create 32-bit register array with general purpose registers R0-R15
     SH2_RegArray : RegArray
         port map (
-            RegIn       => RegIn,
-            RegInSel    => RegInSel,
-            RegStore    => RegStore,
-            RegASel     => RegASel,
-            RegBSel     => RegBSel,
-            RegAxIn     => RegAxIn,
-            RegAxInSel  => RegAxInSel,
-            RegAxStore  => RegAxStore,
-            RegA1Sel    => RegA1Sel,
-            RegA2Sel    => RegA2Sel,
-            RegOpSel    => RegOpSel,
-            CLK         => clock,
-            RegA        => RegA,
-            RegB        => RegB,
-            RegA1       => RegA1,
-            RegA2       => RegA2
+            Result          => ALU_Result,
+            DataAddrID      => DAU_AddrIDOut,
+            DataAddr        => DAU_DataAddr,
+            SR              => SR,
+            GBR             => GBR,
+            VBR             => VBR,
+            PR              => PR,
+            RegInSel        => RegInSel,
+            RegStore        => RegStore,
+            RegASel         => RegASel,
+            RegBSel         => RegBSel,
+            RegAxInSel      => RegAxInSel,
+            RegAxInDataSel  => RegAxInDataSel,
+            RegAxStore      => RegAxStore,
+            RegA1Sel        => RegA1Sel,
+            RegOpSel        => RegOpSel,
+            CLK             => clock,
+            RegA            => RegA,
+            RegB            => RegB,
+            RegA1           => RegA1
         );
 
     -- Program Memory Access Unit (PAU)
@@ -566,9 +426,9 @@ begin
         port map (
             SrcSel     => PAU_SrcSel,
             OffsetSel  => PAU_OffsetSel,
-            Offset8    => PAU_Offset8,
-            Offset12   => PAU_Offset12,
-            OffsetReg  => PAU_OffsetReg,
+            Offset8    => IR(7 downto 0),
+            Offset12   => IR(11 downto 0),
+            OffsetReg  => RegA1,
             TempReg    => TempReg,
             IncDecBit  => PAU_IncDecBit,
             PrePostSel => PAU_PrePostSel,
@@ -577,8 +437,8 @@ begin
             PRSel      => PAU_PRSel,
             CLK        => clock,
             ProgAddr   => PAU_ProgAddr,
-            PC         => PAU_PC,
-            PR         => PAU_PR
+            PC         => PC,
+            PR         => PR
         );
 
     -- Data Memory Access Unit (DAU)
@@ -586,11 +446,11 @@ begin
         port map (
             SrcSel     => DAU_SrcSel,
             OffsetSel  => DAU_OffsetSel,
-            Offset4    => DAU_Offset4,
-            Offset8    => DAU_Offset8,
-            Rn         => DAU_Rn,
-            R0         => DAU_R0,
-            PC         => DAU_PC,
+            Offset4    => IR(3 downto 0),
+            Offset8    => IR(7 downto 0),
+            Rn         => RegA1,
+            R0         => RegA,
+            PC         => PC,
             DB         => DB,
             IncDecSel  => DAU_IncDecSel,
             IncDecBit  => DAU_IncDecBit,
@@ -601,15 +461,15 @@ begin
             RST        => Reset,
             AddrIDOut  => DAU_AddrIDOut,
             DataAddr   => DAU_DataAddr,
-            GBR        => DAU_GBR,
-            VBR        => DAU_VBR
+            GBR        => GBR,
+            VBR        => VBR
         );
 
     -- Status Register (SR)
     SH2_SR : StatusReg
         port map (
             Tbit        => ALU_Tbit,
-            UpdateSR  => SR_UpdateSR,
+            UpdateSR    => SR_UpdateSR,
             DB          => DB,
             Reg         => RegA,
             SRSel       => SRSel,
@@ -663,16 +523,16 @@ begin
             DAU_VBRSel      => DAU_VBRSel,
 
             -- RegArray Control Signals
-            RegInSelCmd  => RegInSelCmd,
-            RegStore     => RegStore,
-            RegASelCmd   => RegASelCmd,
-            RegBSelCmd   => RegBSelCmd,
-            RegAxInSelCmd => RegAxInSelCmd,
-            RegAxStore   => RegAxStore,
-            RegA1SelCmd  => RegA1SelCmd,
-            RegA2SelCmd  => RegA2SelCmd,
-            RegOpSel     => RegOpSel,
-            RegAxDataInSel => RegAxDataInSel,
+            RegInSel        => RegInSel,
+            RegStore        => RegStore,
+            RegASel         => RegASel,
+            RegBSel         => RegBSel,
+            RegAxInSel      => RegAxInSel,
+            RegAxInDataSel  => RegAxInDataSel,
+            RegAxStore      => RegAxStore,
+            RegA1Sel        => RegA1Sel,
+            RegOpSel        => RegOpSel,
+            
 
             -- IO Control signals
             RD => RD,
@@ -683,6 +543,27 @@ begin
             TempReg => TempReg,
             TempRegSel => TempRegSel,
             RegB => RegB
+        );
+    
+    SH2_DTU : DTU
+        port map (
+            DBOut           => DBOut,
+            AB              => AB,
+            RD              => RD,
+            WR              => WR,
+            DataAccessMode  => DataAccessMode,
+            DBInMode        => DBInMode,
+            CLK             => clock,
+            DBIn            => DBIn,
+            WE0             => WE0,
+            WE1             => WE1,
+            WE2             => WE2,
+            WE3             => WE3,
+            RE0             => RE0,
+            RE1             => RE1,
+            RE2             => RE2,
+            RE3             => RE3,
+            DB              => DB
         );
 
 end structural;

@@ -24,9 +24,10 @@ use work.RegArrayConstants.all;
 package CUConstants is
 
     -- RegInSel - select where to save input to RegIn
-    constant RegInSelCmd_Rn : integer range 2 downto 0 := 0;    -- generic register
-    constant RegInSelCmd_R0 : integer range 2 downto 0 := 1;    -- register R0
-    constant RegInSelCmd_R15 : integer range 2 downto 0 := 2;    -- register R15
+    constant REGINSELCMD_CNT   : integer := 3;
+    constant RegInSelCmd_Rn    : integer range REGINSELCMD_CNT-1 downto 0 := 0;    -- generic register
+    constant RegInSelCmd_R0    : integer range REGINSELCMD_CNT-1 downto 0 := 1;    -- register R0
+    constant RegInSelCmd_R15   : integer range REGINSELCMD_CNT-1 downto 0 := 2;    -- register R15
 
     -- RegASelCmd - select what RegA outputs
     constant RegASelCmd_Rn : integer range 2 downto 0 := 0;     -- generic register
@@ -61,26 +62,10 @@ package CUConstants is
     constant ABOutSel_Prog : integer range 1 downto 0 := 0;
     constant ABOutSel_Data : integer range 1 downto 0 := 1;
 
-    -- DataAccessMode - size of data access (read or write)
-    constant DataAccessMode_BYTE : integer range 2 downto 0 := 0;
-    constant DataAccessMode_WORD : integer range 2 downto 0 := 1;
-    constant DataAccessMode_LONG : integer range 2 downto 0 := 2;
-
-    constant DBInMode_Signed : integer range 1 downto 0 := 0;
-    constant DBInMode_Unsigned : integer range 1 downto 0 := 1;
-
     constant TempRegSel_Offset8 : integer range 4 downto 0 := 0;
     constant TempRegSel_Offset12 : integer range 4 downto 0 := 1;
     constant TempRegSel_RegB : integer range 4 downto 0 := 2;
     constant TempRegSel_Result  : integer range 4 downto 0 := 3;
-
-    constant REGAXDATAIN_CNT : integer := 6;
-    constant RegAxDataIn_AddrIDOut  : integer range REGAXDATAIN_CNT-1 downto 0 := 0;
-    constant RegAxDataIn_DataAddr   : integer range REGAXDATAIN_CNT-1 downto 0 := 1;
-    constant RegAxDataIn_SR         : integer range REGAXDATAIN_CNT-1 downto 0 := 2;
-    constant RegAxDataIn_GBR        : integer range REGAXDATAIN_CNT-1 downto 0 := 3;
-    constant RegAxDataIn_VBR        : integer range REGAXDATAIN_CNT-1 downto 0 := 4;
-    constant RegAxDataIn_PR         : integer range REGAXDATAIN_CNT-1 downto 0 := 5;
 
     constant unused : integer := 0;
 
@@ -95,6 +80,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.GenericConstants.all;
+use work.DTUConstants.all;
 use work.CUConstants.all;
 use work.ALUConstants.all;
 use work.GenericALUConstants.all;
@@ -150,16 +136,15 @@ entity CU is
         DAU_VBRSel      : out   integer range VBRSEL_CNT-1 downto 0;
 
         -- RegArray Control Signals
-        RegInSelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegInSel        : out   integer  range REGARRAY_RegCnt - 1 downto 0;
         RegStore        : out   std_logic;
-        RegASelCmd      : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegBSelCmd      : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegAxInSelCmd   : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegASel         : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegBSel         : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegAxInSel      : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegAxInDataSel  : out   integer range REGAXINDATASEL_CNT - 1 downto 0;
         RegAxStore      : out   std_logic;
-        RegA1SelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegA2SelCmd     : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegOpSel        : out   integer  range REGOp_SrcCnt - 1 downto 0;
-        RegAxDataInSel  : out   integer  range REGAXDATAIN_CNT-1 downto 0;
+        RegA1Sel        : out   integer  range REGARRAY_RegCnt - 1 downto 0;
+        RegOpSel        : out   integer  range REGOPSEL_CNT - 1 downto 0;
     
         -- IO Control signals
         DBOutSel : out integer range DBOUTSEL_CNT-1 downto 0;
@@ -201,6 +186,12 @@ architecture behavioral of CU is
 
     signal TempRegMuxOut : std_logic_vector(31 downto 0);
 
+    signal RegInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;
+    signal RegASelCmd : integer range REGARRAY_RegCnt-1 downto 0;
+    signal RegBSelCmd : integer range REGARRAY_RegCnt-1 downto 0;
+    signal RegAxInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;
+    signal RegA1SelCmd : integer range REGARRAY_RegCnt-1 downto 0;
+
 begin
 
     Tbit <= SR(0);
@@ -211,6 +202,20 @@ begin
                     RegB when TempRegSel = TempRegSel_RegB else
                     Result when TempRegSel = TempRegSel_Result else
                     (others => 'X');
+
+    RegInSel <= to_integer(unsigned(IR(11 downto 8)))   when RegInSelCmd = RegInSelCmd_Rn else
+                R15                                     when RegInSelCmd = RegInSelCmd_R15 else
+                R0                                      when RegInSelCmd = RegInSelCmd_R0;
+    RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
+    RegBSel <= to_integer(unsigned(IR(7 downto 4))) when RegBSelCmd = RegBSelCmd_Rm else
+               to_integer(unsigned(IR(11 downto 8))) when RegBSelCmd = RegBSelCmd_Rn else 0;
+
+    RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegA1SelCmd = RegA1SelCmd_Rn else
+                to_integer(unsigned(IR(7 downto 4))) when RegA1SelCmd = RegA1SelCmd_Rm else
+                0;
+    RegAxInSel <= to_integer(unsigned(IR(11 downto 8))) when RegAxInSelCmd = RegAxInSelCmd_Rn else
+                  to_integer(unsigned(IR(7 downto 4))) when RegAxInSelCmd = RegAxInSelCmd_Rm else
+                  0;
 
     -- Control Unit Registers
     process (CLK)

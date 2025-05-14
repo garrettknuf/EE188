@@ -51,22 +51,31 @@ package RegArrayConstants is
     constant R14    : integer := 14;
     constant R15    : integer := 15;
 
-    -- Special register opeations mux select lines
-    constant RegOp_None    : integer := 0;
-    constant RegOp_SWAPB   : integer := 1;
-    constant RegOp_SWAPW   : integer := 2;
-    constant RegOp_XTRCT   : integer := 3;
-    constant RegOp_EXTSB   : integer := 4;
-    constant RegOp_EXTSW   : integer := 5;
-    constant RegOp_EXTUB   : integer := 6;
-    constant RegOp_EXTUW   : integer := 7;
-    constant RegOp_SHLL2   : integer := 8;
-    constant RegOp_SHLL8   : integer := 9;
-    constant RegOp_SHLL16  : integer := 10;
-    constant RegOp_SHLR2   : integer := 11;
-    constant RegOp_SHLR8   : integer := 12;
-    constant RegOp_SHLR16  : integer := 13;
-    constant REGOP_SrcCnt  : integer := 14;
+    -- RegOp - select special register operations
+    constant REGOPSEL_CNT     : integer := 14;
+    constant RegOpSel_None    : integer := 0;
+    constant RegOpSel_SWAPB   : integer := 1;
+    constant RegOpSel_SWAPW   : integer := 2;
+    constant RegOpSel_XTRCT   : integer := 3;
+    constant RegOpSel_EXTSB   : integer := 4;
+    constant RegOpSel_EXTSW   : integer := 5;
+    constant RegOpSel_EXTUB   : integer := 6;
+    constant RegOpSel_EXTUW   : integer := 7;
+    constant RegOpSel_SHLL2   : integer := 8;
+    constant RegOpSel_SHLL8   : integer := 9;
+    constant RegOpSel_SHLL16  : integer := 10;
+    constant RegOpSel_SHLR2   : integer := 11;
+    constant RegOpSel_SHLR8   : integer := 12;
+    constant RegOpSel_SHLR16  : integer := 13;
+
+    -- RegAxInDataSel - select input to RegAxIn
+    constant REGAXINDATASEL_CNT        : integer := 6;
+    constant RegAxInDataSel_AddrIDOut  : integer range REGAXINDATASEL_CNT-1 downto 0 := 0;
+    constant RegAxInDataSel_DataAddr   : integer range REGAXINDATASEL_CNT-1 downto 0 := 1;
+    constant RegAxInDataSel_SR         : integer range REGAXINDATASEL_CNT-1 downto 0 := 2;
+    constant RegAxInDataSel_GBR        : integer range REGAXINDATASEL_CNT-1 downto 0 := 3;
+    constant RegAxInDataSel_VBR        : integer range REGAXINDATASEL_CNT-1 downto 0 := 4;
+    constant RegAxInDataSel_PR         : integer range REGAXINDATASEL_CNT-1 downto 0 := 5;
 
 end package;
 
@@ -108,22 +117,33 @@ use work.RegArrayConstants.all;
 entity RegArray is
 
     port (
-        RegIn      : in   std_logic_vector(LONG_SIZE - 1 downto 0);
-        RegInSel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegStore   : in   std_logic;
-        RegASel    : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegBSel    : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegAxIn    : in   std_logic_vector(LONG_SIZE - 1 downto 0);
-        RegAxInSel : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegAxStore : in   std_logic;
-        RegA1Sel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegA2Sel   : in   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegOpSel   : in   integer  range REGOP_SrcCnt - 1 downto 0;
-        CLK        : in   std_logic;
-        RegA       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
-        RegB       : out  std_logic_vector(LONG_SIZE - 1 downto 0);
-        RegA1      : out  std_logic_vector(LONG_SIZE - 1 downto 0);
-        RegA2      : out  std_logic_vector(LONG_SIZE - 1 downto 0)
+        -- RegIn inputs
+        Result      : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- ALU Result
+
+        -- RegAxIn inputs
+        DataAddrID  : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- DAU inc/dec address
+        DataAddr    : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- DAU address
+        SR          : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- Status register
+        GBR         : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- Global base register
+        VBR         : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- Vector base register
+        PR          : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- Procedure register
+
+        -- Control signals
+        RegInSel        : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select where to save Result
+        RegStore        : in   std_logic;                                   -- decide store result or not
+        RegASel         : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegA output
+        RegBSel         : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegB output
+        RegAxInSel      : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select where to save RegAxIn input
+        RegAxInDataSel  : in   integer range REGAXINDATASEL_CNT - 1 downto 0;  -- select input to RegAxIn
+        RegAxStore      : in   std_logic;                                   -- decide store RegAxIn or not
+        RegA1Sel        : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegA1 output
+        RegOpSel        : in   integer range REGOPSEL_CNT - 1 downto 0;        -- select special register operation
+        CLK             : in   std_logic;                                   -- system clock
+
+        -- Register Outputs
+        RegA            : out  std_logic_vector(REG_SIZE - 1 downto 0);     -- register A
+        RegB            : out  std_logic_vector(REG_SIZE - 1 downto 0);     -- register B
+        RegA1           : out  std_logic_vector(REG_SIZE - 1 downto 0)      -- register Addr1
     );
 
 end RegArray;
@@ -161,10 +181,16 @@ architecture behavioral of RegArray is
         );
     end component;
 
-    -- signal OpMux  : std_logic_vector(REG_SIZE - 1 downto 0);
+
+    signal RegIn    : std_logic_vector(REG_SIZE - 1 downto 0);
+    signal RegAxIn  : std_logic_vector(REG_SIZE - 1 downto 0);
+
+    -- RegB output prior to possible special register operation
     signal RegBRaw  : std_logic_vector(REG_SIZE - 1 downto 0);
 
     -- Unused signals
+    signal RegA2      : std_logic_vector(REG_SIZE - 1 downto 0);
+    signal RegA2Sel   : integer  range REGARRAY_RegCnt - 1 downto 0; 
     signal RegDIn     : std_logic_vector(2 * REG_SIZE - 1 downto 0);
     signal RegDInSel  : integer  range REGARRAY_RegCnt/2 - 1 downto 0;
     signal RegDStore  : std_logic;
@@ -173,37 +199,47 @@ architecture behavioral of RegArray is
 
 begin
 
+    RegIn <= Result;
+
+    RegAxIn <= DataAddrID   when RegAxInDataSel = RegAxInDataSel_AddrIDOut else 
+               DataAddr     when RegAxInDataSel = RegAxInDataSel_DataAddr else
+               SR           when RegAxInDataSel = RegAxInDataSel_SR else
+               GBR          when RegAxInDataSel = RegAxInDataSel_GBR else
+               VBR          when RegAxInDataSel = RegAxInDataSel_VBR else
+               PR           when RegAxInDataSel = RegAxInDataSel_PR else
+               (others => 'X');
+
     -- Special register operations
     process(all)
     begin
         case RegOpSel is
-            when RegOp_None =>
+            when RegOpSel_None =>
                 RegB <= RegBRaw;
-            when RegOp_SWAPB =>
+            when RegOpSel_SWAPB =>
                 RegB <= RegBRaw(31 downto 16) & RegBRaw(7 downto 0) & RegBRaw(15 downto 8);
-            when RegOp_SWAPW =>
+            when RegOpSel_SWAPW =>
                 RegB <= RegBRaw(15 downto 0) & RegBRaw(31 downto 16);
-            when RegOp_XTRCT =>
+            when RegOpSel_XTRCT =>
                 RegB <= RegBRaw(15 downto 0) & RegA(31 downto 16);
-            when RegOp_EXTSB =>
+            when RegOpSel_EXTSB =>
                 RegB <= (31 downto 8 => RegBRaw(7)) & RegBRaw(7 downto 0);
-            when RegOp_EXTSW =>
+            when RegOpSel_EXTSW =>
                 RegB <= (31 downto 16 => RegBRaw(15)) & RegBRaw(15 downto 0);
-            when RegOp_EXTUB =>
+            when RegOpSel_EXTUB =>
                 RegB <= (31 downto 8 => '0') & RegBRaw(7 downto 0);
-            when RegOp_EXTUW =>
+            when RegOpSel_EXTUW =>
                 RegB <= (31 downto 16 => '0') & RegBRaw(15 downto 0);
-            when RegOp_SHLL2 =>
+            when RegOpSel_SHLL2 =>
                 RegB <= RegBRaw(29 downto 0) & (1 downto 0 => '0');
-            when RegOp_SHLL8 =>
+            when RegOpSel_SHLL8 =>
                 RegB <= RegBRaw(23 downto 0) & (7 downto 0 => '0');
-            when RegOp_SHLL16 =>
+            when RegOpSel_SHLL16 =>
                 RegB <= RegBRaw(15 downto 0) & (15 downto 0 => '0');
-            when RegOp_SHLR2 =>
+            when RegOpSel_SHLR2 =>
                 RegB <= (1 downto 0 => '0') & RegBRaw(31 downto 2);
-            when RegOp_SHLR8 =>
+            when RegOpSel_SHLR8 =>
                 RegB <= (7 downto 0 => '0') & RegBRaw(31 downto 8);
-            when RegOp_SHLR16 =>
+            when RegOpSel_SHLR16 =>
                 RegB <= (15 downto 0 => '0') & RegBRaw(31 downto 16);
             when others =>
                 RegB <= (others => 'X');

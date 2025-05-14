@@ -79,6 +79,7 @@ VHDL_FILES=(
     "../vhd/reg.vhd"
     "../vhd/sr.vhd"
     "../vhd/opcode.vhd"
+    "../vhd/dtu.vhd"
     "../vhd/cu.vhd"
     "../vhd/sh2_cpu.vhd"
     "../testbench/memory.vhd"
