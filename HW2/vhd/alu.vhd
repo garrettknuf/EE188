@@ -22,14 +22,30 @@
 ----------------------------------------------------------------------------
 
 --
--- Package containing constants for modifying the T-bit.
+-- Package containing constants for controlling the ALU.
 --
 
 library ieee;
 use ieee.std_logic_1164.all;
 
-package TbitConstants is
+package ALUConstants is
 
+    -- ALUOpSelA - Operand A select
+    constant ALUOPASEL_CNT      : integer := 4;
+    constant ALUOpASel_RegA     : integer range ALUOPASEL_CNT-1 downto 0 := 0;
+    constant ALUOpASel_DB       : integer range ALUOPASEL_CNT-1 downto 0 := 1; 
+    constant ALUOpASel_Zero     : integer range ALUOPASEL_CNT-1 downto 0 := 2; 
+    constant ALUOpASel_TempReg  : integer range ALUOPASEL_CNT-1 downto 0 := 3; 
+
+    -- ALUOpSelB - Operand B select
+    constant ALUOPBSEL_CNT          : integer := 5;
+    constant ALUOpBSel_RegB         : integer range ALUOPBSEL_CNT-1 downto 0 := 0;    -- RegB of RegArray
+    constant ALUOpBSel_Imm_Signed   : integer range ALUOPBSEL_CNT-1 downto 0 := 1;    -- immediate signed
+    constant ALUOpBSel_Imm_Unsigned : integer range ALUOPBSEL_CNT-1 downto 0 := 2;    -- immediate unsigned
+    constant ALUOpBSel_Tbit         : integer range ALUOPBSEL_CNT-1 downto 0 := 3;    -- t-bit
+    constant ALUOpBSel_TASMask      : integer range ALUOPBSEL_CNT-1 downto 0 := 4;    -- 0x00000080
+
+    -- Tbit - tbit output select
     constant Tbit_Carry     : std_logic_vector(3 downto 0) := "0000";     -- set to carry flag
     constant Tbit_Borrow    : std_logic_vector(3 downto 0) := "0001";     -- set to borrow flag (not carry)
     constant Tbit_Overflow  : std_logic_vector(3 downto 0) := "0010";     -- set to overflow flag
@@ -40,8 +56,8 @@ package TbitConstants is
     constant Tbit_HI        : std_logic_vector(3 downto 0) := "0111";     -- set when A > B (unsigned)
     constant Tbit_STR       : std_logic_vector(3 downto 0) := "1000";     -- set when A and B have same byte
     constant Tbit_PL        : std_logic_vector(3 downto 0) := "1001";     -- set when A > 0
-    constant Tbit_PZ        : std_logic_vector(3 downto 0) := "1010";    -- set when A >= 0
-    constant Tbit_TAS       : std_logic_vector(3 downto 0) := "1011";
+    constant Tbit_PZ        : std_logic_vector(3 downto 0) := "1010";     -- set when A >= 0
+    constant Tbit_TAS       : std_logic_vector(3 downto 0) := "1011";     -- set when A = 0
 
 end package;
 
@@ -71,21 +87,32 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.GenericConstants.all;
 use work.ALUConstants.all;
-use work.TbitConstants.all;
+use work.GenericALUConstants.all;
 
 entity ALU is
 
     port (
-        ALUOpA   : in      std_logic_vector(LONG_SIZE - 1 downto 0);  -- first operand
-        ALUOpB   : in      std_logic_vector(LONG_SIZE - 1 downto 0);  -- second operand
-        Cin      : in      std_logic;                                 -- carry in
-        FCmd     : in      std_logic_vector(3 downto 0);              -- F-Block operation
-        CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
-        SCmd     : in      std_logic_vector(2 downto 0);              -- shift operation
-        ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
-        TbitOp   : in      std_logic_vector(3 downto 0);              -- T-bit operation
-        Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);  -- ALU result
-        Tbit     : out     std_logic                                  -- T-bit result
+
+        -- Operand inputs
+        RegA     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- RegArray RegA
+        RegB     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- RegArray RegB
+        TempReg  : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- CU TempReg
+        Imm      : in       std_logic_vector(IMM_SIZE  - 1 downto 0);   -- CU IR7..0
+        DBIn     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- DataBusIn
+        SR0      : in       std_logic;                                  -- StatusReg Bit0
+
+        -- Control signals
+        ALUOpASel   : in    integer range ALUOPASEL_CNT-1 downto 0;     -- operand A select
+        ALUOpBSel   : in    integer range ALUOPBSEL_CNT-1 downto 0;     -- operand B select
+        FCmd        : in    std_logic_vector(3 downto 0);               -- F-Block operation
+        CinCmd      : in    std_logic_vector(1 downto 0);               -- carry in operation
+        SCmd        : in    std_logic_vector(2 downto 0);               -- shift operation
+        ALUCmd      : in    std_logic_vector(1 downto 0);               -- ALU result select
+        TbitOp      : in    std_logic_vector(3 downto 0);               -- T-bit operation
+
+        -- Outputs
+        Result   : out      std_logic_vector(LONG_SIZE - 1 downto 0);   -- ALU Result
+        TBit     : out      std_logic                                   -- Calculated T bit
     );
 
 end ALU;
@@ -115,6 +142,10 @@ architecture behavioral of ALU is
         );
     end component;
 
+    -- Operands
+    signal OpA      : std_logic_vector(LONG_SIZE-1 downto 0);
+    signal OpB      : std_logic_vector(LONG_SIZE-1 downto 0);
+
     -- Flags
     signal Cout     : std_logic;
     signal HalfCout : std_logic;
@@ -132,17 +163,32 @@ architecture behavioral of ALU is
 
 begin
 
+    -- Operand A mux
+    OpA <= RegA              when ALUOpASel = ALUOpASel_RegA else
+           DBIn              when ALUOpASel = ALUOpASel_DB else
+           TempReg           when ALUOpASel = ALUOpASel_TempReg else
+           (others => '0')   when ALUOpASel = ALUOpASel_Zero else
+           (others => 'X');
+
+    -- Operand B mux
+    OpB <= RegB                                             when ALUOpBSel = ALUOpBSel_RegB else
+           (31 downto 8 => '0') & Imm                       when ALUOpBSel = ALUOpBSel_Imm_Unsigned else
+           (31 downto 8 => Imm(7)) & Imm                     when ALUOpBSel = ALUOpBSel_Imm_Signed else
+           (31 downto 1 => '0') & SR0                       when ALUOpBSel = ALUOpBSel_Tbit else
+           (31 downto 8 => '0') & '1' & (6 downto 0 => '0') when ALUOpBSel = ALUOpBSel_TASMask else
+           (others => 'X');
+
     -- T-bit intermediate calculations
     GEQ <= not (Sign xor Overflow);
     GT <= GEQ and not Zero;
-    STR <= '1' when ALUOpA(7 downto 0) = ALUOpB(7 downto 0) or
-                    ALUOpA(15 downto 8) = ALUOpB(15 downto 8) or
-                    ALUOpA(23 downto 16) = ALUOpB(23 downto 16) or 
-                    ALUOpA(31 downto 24) = ALUOpB(31 downto 24) else '0';
+    STR <= '1' when OpA(7 downto 0) = OpB(7 downto 0) or
+                    OpA(15 downto 8) = OpB(15 downto 8) or
+                    OpA(23 downto 16) = OpB(23 downto 16) or 
+                    OpA(31 downto 24) = OpB(31 downto 24) else '0';
     PZ <= not Sign;
     PL <= not Sign and not Zero;
 
-    TASZero <= '1' when ALUOpA(7 downto 0) = "00000000" else '0';
+    TASZero <= '1' when OpA(7 downto 0) = "00000000" else '0';
 
     -- Mux to determine value of T-bit
     Tbit <= Cout        when TbitOp = Tbit_Carry     else
@@ -164,19 +210,19 @@ begin
             wordsize => LONG_SIZE
         )
         port map (
-            ALUOpA => ALUOpA,
-            ALUOpB => ALUOpB,
-            Cin => Cin,
-            FCmd => FCmd,
-            CinCmd => CinCmd,
-            SCmd => SCmd,
-            ALUCmd => ALUCmd,
-            Result => Result,
-            Cout => Cout,
-            HalfCout => HalfCout,
-            Overflow => Overflow,
-            Zero => Zero,
-            Sign => Sign
+            ALUOpA      => OpA,
+            ALUOpB      => OpB,
+            Cin         => SR0,
+            FCmd        => FCmd,
+            CinCmd      => CinCmd,
+            SCmd        => SCmd,
+            ALUCmd      => ALUCmd,
+            Result      => Result,
+            Cout        => Cout,
+            HalfCout    => HalfCout,
+            Overflow    => Overflow,
+            Zero        => Zero,
+            Sign        => Sign
         );
 
 end behavioral;

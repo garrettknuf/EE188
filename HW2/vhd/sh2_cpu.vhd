@@ -39,8 +39,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.GenericConstants.all;
+use work.GenericALUConstants.all;
 use work.ALUConstants.all;
-use work.TbitConstants.all;
+use work.GenericALUConstants.all;
 use work.PAUConstants.all;
 use work.DAUConstants.all;
 use work.RegArrayConstants.all;
@@ -71,18 +72,28 @@ end  SH2_CPU;
 architecture structural of SH2_CPU is
 
     component ALU is
-        port (
-            ALUOpA   : in      std_logic_vector(LONG_SIZE - 1 downto 0);  -- first operand
-            ALUOpB   : in      std_logic_vector(LONG_SIZE - 1 downto 0);  -- second operand
-            Cin      : in      std_logic;                                 -- carry in
-            FCmd     : in      std_logic_vector(3 downto 0);              -- F-Block operation
-            CinCmd   : in      std_logic_vector(1 downto 0);              -- carry in operation
-            SCmd     : in      std_logic_vector(2 downto 0);              -- shift operation
-            ALUCmd   : in      std_logic_vector(1 downto 0);              -- ALU result select
-            TbitOp   : in      std_logic_vector(3 downto 0);              -- T-bit operation
-            Result   : buffer  std_logic_vector(LONG_SIZE - 1 downto 0);  -- ALU result
-            Tbit     : out     std_logic                                  -- T-bit result
-        );
+    port (
+        -- Operand inputs
+        RegA     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- RegArray RegA
+        RegB     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- RegArray RegB
+        TempReg  : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- CU TempReg
+        Imm      : in       std_logic_vector(IMM_SIZE - 1 downto 0);   -- CU IR7..0
+        DBIn     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- DataBusIn
+        SR0      : in       std_logic;                                  -- StatusReg Bit0
+
+        -- Control signals
+        ALUOpASel   : in    integer range ALUOPASEL_CNT-1 downto 0;     -- operand A select
+        ALUOpBSel   : in    integer range ALUOPBSEL_CNT-1 downto 0;     -- operand B select
+        FCmd        : in    std_logic_vector(3 downto 0);               -- F-Block operation
+        CinCmd      : in    std_logic_vector(1 downto 0);               -- carry in operation
+        SCmd        : in    std_logic_vector(2 downto 0);               -- shift operation
+        ALUCmd      : in    std_logic_vector(1 downto 0);               -- ALU result select
+        TbitOp      : in    std_logic_vector(3 downto 0);               -- T-bit operation
+
+        -- Outputs
+        Result   : out      std_logic_vector(LONG_SIZE - 1 downto 0);   -- ALU Result
+        TBit     : out      std_logic                                  -- Calculated T bit
+    );
     end component;
 
     component RegArray is
@@ -177,7 +188,7 @@ architecture structural of SH2_CPU is
 
             -- ALU Control Signals
             ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0;
-            ALUOpBSel   : out     integer range 5 downto 0;
+            ALUOpBSel   : out     integer range ALUOPBSEL_CNT-1 downto 0;
             FCmd        : out     std_logic_vector(3 downto 0);            
             CinCmd      : out     std_logic_vector(1 downto 0);            
             SCmd        : out     std_logic_vector(2 downto 0);            
@@ -232,16 +243,15 @@ architecture structural of SH2_CPU is
     end component;
 
     -- ALU Signals
-    signal ALUOpASel : integer range ALUOPASEL_CNT-1 downto 0;
-    signal ALUOpBSel : integer range 5 downto 0;
-    signal ALU_Cin       : std_logic;
-    signal ALU_FCmd      : std_logic_vector(3 downto 0);
-    signal ALU_CinCmd    : std_logic_vector(1 downto 0);
-    signal ALU_SCmd      : std_logic_vector(2 downto 0);
-    signal ALU_ALUCmd    : std_logic_vector(1 downto 0);
-    signal ALU_TbitOp    : std_logic_vector(3 downto 0);
-    signal ALU_Result    : std_logic_vector(LONG_SIZE - 1 downto 0);
-    signal ALU_Tbit      : std_logic;
+    signal ALUOpASel    : integer range ALUOPASEL_CNT-1 downto 0;
+    signal ALUOpBSel    : integer range ALUOPBSEL_CNT-1 downto 0;
+    signal ALU_FCmd     : std_logic_vector(3 downto 0);
+    signal ALU_CinCmd   : std_logic_vector(1 downto 0);
+    signal ALU_SCmd     : std_logic_vector(2 downto 0);
+    signal ALU_ALUCmd   : std_logic_vector(1 downto 0);
+    signal ALU_TbitOp   : std_logic_vector(3 downto 0);
+    signal ALU_Result   : std_logic_vector(LONG_SIZE - 1 downto 0);
+    signal ALU_Tbit     : std_logic;
 
     -- RegArray Signals
     signal RegIn      : std_logic_vector(LONG_SIZE - 1 downto 0);
@@ -296,8 +306,6 @@ architecture structural of SH2_CPU is
     signal SR_UpdateSR     : std_logic;
     signal SR             : std_logic_vector(REG_SIZE - 1 downto 0);
 
-    signal ALUOpA : std_logic_vector(LONG_SIZE-1 downto 0);
-    signal ALUOpB : std_logic_vector(LONG_SIZE-1 downto 0);
 
     signal DBOutSel : integer range DBOUTSEL_CNT-1 downto 0;
     signal DBOut : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
@@ -369,20 +377,6 @@ begin
     DAU_Rn <= RegA1;
     DAU_R0 <= RegA;
     DAU_PC <= PAU_PC;
-
-    -- ALU inputs (non-control signals)
-    ALUOpA <= RegA    when ALUOpASel = ALUOpASel_RegA else
-              DBIn    when ALUOpASel = ALUOpASel_DB else
-              (others => '0') when ALUOpASel = ALUOpASel_Zero else
-              TempReg   when ALUOpASel = ALUOpASel_TempReg else
-              (others => 'X');
-    ALUOpB <= RegB  when ALUOpBSel = ALUOpBSel_RegB else
-              (31 downto 8 => '0') & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Unsigned else
-              (31 downto 8 => IR(7)) & IR(7 downto 0) when ALUOpBSel = ALUOpBSel_Imm_Signed else
-              (31 downto 1 => '0') & SR(0) when ALUOpBSel = ALUOpBSel_Tbit else
-              (31 downto 8 => '0') & '1' & (6 downto 0 => '0') when ALUOpBSel = ALUOpBSel_TASMask else
-              (others => 'X');
-    ALU_Cin <= SR(0);
 
     -- PAU inputs (non-control signals)
     PAU_Offset8 <= IR(7 downto 0);
@@ -528,16 +522,22 @@ begin
     -- Create 32-bit ALU for standard logic and arithmetic operations
     SH2_ALU : ALU
         port map (
-            ALUOpA  => ALUOpA,
-            ALUOpB  => ALUOpB,
-            Cin     => ALU_Cin,
-            FCmd    => ALU_FCmd,
-            CinCmd  => ALU_CinCmd,
-            SCmd    => ALU_SCmd,
-            ALUCmd  => ALU_ALUCmd,
-            TbitOp  => ALU_TbitOp,
-            Result  => ALU_Result,
-            Tbit    => ALU_Tbit
+            RegA        => RegA,
+            RegB        => RegB,
+            TempReg     => TempReg,
+            Imm         => IR(7 downto 0),
+            DBIn        => DBIn,
+            SR0         => SR(0),
+
+            ALUOpASel   => ALUOpASel,
+            ALUOpBSel   => ALUOpBSel,
+            FCmd        => ALU_FCmd,
+            CinCmd      => ALU_CinCmd,
+            SCmd        => ALU_SCmd,
+            ALUCmd      => ALU_ALUCmd,
+            TbitOp      => ALU_TbitOp,
+            Result      => ALU_Result,
+            Tbit        => ALU_Tbit
         );
 
     -- Create 32-bit register array with general purpose registers R0-R15

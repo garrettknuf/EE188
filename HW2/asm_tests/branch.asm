@@ -68,6 +68,8 @@ BFSTest:
     NOP
 
 BTTest:
+    MOV.L   R0, @R10    ; WRITE 1
+    ADD     #4, R10
     SETT
     BF      TestFail
     BT      BTSTest     ; take this branch (fail otherwise)
@@ -77,13 +79,17 @@ BTTest:
 BTSTest:
     SETT
     BF/S    TestFail
-    MOV     #0, R1
+    MOV     #63, R1
     BT/S    BRATest     ; take this branch (fail otherwise)
-    MOV     #1, R1
+    MOV     #2, R0
+    ;MOV.L   R1, @R10    ; WRITE 63 (test memory access in delay slot)
     BRA     TestFail
     NOP
 
 BRATest:
+    ;ADD     #4, R10
+    MOV.L   R0, @R10    ; WRITE 2
+    ADD     #4, R10
     BRA     BRAFTest    ; take this branch
     MOV     #1, R2      ; execute this instruction
     MOV     #0, R2      ; but not this one
@@ -102,7 +108,7 @@ BSR_RTSTest:
     MOV    #10, R11
     BSR    TestFunction
     MOV    #1, R4          ; should execute
-    MOV.L  R11, @R10       ; should write 9
+    MOV.L  R11, @R10       ; WRITE 9
     ADD    #4, R10
     BRA    BSRF_RTSTest
     NOP
@@ -123,12 +129,13 @@ BSRF_RTSTest:
     MOV     #-12, R12       ; offset to TestFunction
     BSRF    R12             ; call test function
     MOV     #20, R11        ; should execute
-    MOV.L  R11, @R10        ; should write 19
+    MOV.L  R11, @R10        ; WRITE 19 on first call, 36 on second call
     ADD    #4, R10
     ; BRA    JMPTest
 
 JMPTest:
     MOVA    @(3, PC), R0
+    MOV    #-20, R1
     JMP     @R0
     NOP
     NOP
@@ -137,7 +144,7 @@ JMPTest:
 
 JSRTest:
     MOVA    @(0,PC),R0
-    ADD     #-30, R0
+    ADD     #-32, R0
     MOV     R0, R13
     JSR     @R13        ; jump to TestFunction
     MOV     #37, R11

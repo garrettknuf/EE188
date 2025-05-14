@@ -6,7 +6,7 @@
 --  It does not include a multiplier, MAC, divider, or barrel shifter.
 --
 --  Packages included are:
---     ALUConstants - constants for all entities making up the ALU
+--     GenericALUConstants - constants for all entities making up the ALU
 --
 --  Entities included are:
 --     FBlockBit - one bit of an F-Block
@@ -39,7 +39,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-package  ALUConstants  is
+package  GenericALUConstants  is
 
 --  Adder carry in select constants
 --     may be freely changed
@@ -48,7 +48,6 @@ package  ALUConstants  is
    constant CinCmd_ONE    : std_logic_vector(1 downto 0) := "01";
    constant CinCmd_CIN    : std_logic_vector(1 downto 0) := "10";
    constant CinCmd_CINBAR : std_logic_vector(1 downto 0) := "11";
-
 
 --  Shifter command constants
 --     may be freely changed except a single bit pattern (currently high bit)
@@ -65,7 +64,6 @@ package  ALUConstants  is
    constant SCmd_ASR   : std_logic_vector(2 downto 0) := "101";
    constant SCmd_ROR   : std_logic_vector(2 downto 0) := "110";
    constant SCmd_RRC   : std_logic_vector(2 downto 0) := "111";
-
 
 --  ALU command constants
 --     may be freely changed
@@ -84,8 +82,6 @@ package  ALUConstants  is
    constant FCmd_A      : std_logic_vector(3 downto 0) := "1100";
    constant FCmd_OR     : std_logic_vector(3 downto 0) := "1110";
    constant FCmd_ONE    : std_logic_vector(3 downto 0) := "1111";
-
-   
 
 end package;
 
@@ -292,7 +288,7 @@ end  structural;
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.ALUConstants.all;
+use work.GenericALUConstants.all;
 
 entity  Adder  is
 
@@ -377,7 +373,7 @@ end  structural;
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.std_match;
-use work.ALUConstants.all;
+use work.GenericALUConstants.all;
 
 entity  Shifter  is
 
@@ -478,7 +474,7 @@ end  dataflow;
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.ALUConstants.all;
+use work.GenericALUConstants.all;
 
 entity  GenericALU  is
 

@@ -23,20 +23,6 @@ use work.RegArrayConstants.all;
 
 package CUConstants is
 
-    -- ALUOpASel - select input for ALUOpA
-    constant ALUOPASEL_CNT : integer := 4;
-    constant ALUOpASel_RegA  : integer range ALUOPASEL_CNT-1 downto 0 := 0;   -- RegA of RegArray
-    constant ALUOpASel_DB    : integer range ALUOPASEL_CNT-1 downto 0 := 1; 
-    constant ALUOpASel_Zero  : integer range  ALUOPASEL_CNT-1 downto 0 := 2; 
-    constant ALUOpASel_TempReg  : integer range ALUOPASEL_CNT-1 downto 0 := 3; 
-
-    -- ALUOpBSel - select input for ALUOpB
-    constant ALUOpBSel_RegB         : integer range 5 downto 0 := 0;    -- RegB of RegArray
-    constant ALUOpBSel_Imm_Signed   : integer range 5 downto 0 := 1;    -- immediate signed
-    constant ALUOpBSel_Imm_Unsigned : integer range 5 downto 0 := 2;    -- immediate unsigned
-    constant ALUOpBSel_Tbit         : integer range 5 downto 0 := 3;    -- t-bit
-    constant ALUOpBSel_TASMask      : integer range 5 downto 0 := 4;    -- 0x00000080
-
     -- RegInSel - select where to save input to RegIn
     constant RegInSelCmd_Rn : integer range 2 downto 0 := 0;    -- generic register
     constant RegInSelCmd_R0 : integer range 2 downto 0 := 1;    -- register R0
@@ -111,7 +97,7 @@ use ieee.numeric_std.all;
 use work.GenericConstants.all;
 use work.CUConstants.all;
 use work.ALUConstants.all;
-use work.TbitConstants.all;
+use work.GenericALUConstants.all;
 use work.MemUnitConstants.all;
 use work.DAUConstants.all;
 use work.PAUConstants.all;
@@ -135,7 +121,7 @@ entity CU is
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;
-        ALUOpBSel   : out     integer range 5 downto 0 := 0;
+        ALUOpBSel   : out     integer range ALUOPBSEL_CNT-1 downto 0 := 0;
         FCmd        : out     std_logic_vector(3 downto 0);            
         CinCmd      : out     std_logic_vector(1 downto 0);            
         SCmd        : out     std_logic_vector(2 downto 0);            
