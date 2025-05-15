@@ -77,7 +77,6 @@ VHDL_FILES=(
     "../vhd/dau.vhd"
     "../vhd/pau.vhd"
     "../vhd/reg.vhd"
-    "../vhd/sr.vhd"
     "../vhd/opcode.vhd"
     "../vhd/dtu.vhd"
     "../vhd/cu.vhd"

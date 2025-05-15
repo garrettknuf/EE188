@@ -67,6 +67,21 @@ package CUConstants is
     constant TempRegSel_RegB : integer range 4 downto 0 := 2;
     constant TempRegSel_Result  : integer range 4 downto 0 := 3;
 
+
+    constant StatusReg_Tbit     : integer := 0; -- T bit
+    constant StatusReg_Sbit     : integer := 1; -- S bit
+    constant StatusReg_I0bit    : integer := 4; -- Interrupt mask I0
+    constant StatusReg_I1bit    : integer := 5; -- Interrupt mask I1
+    constant StatusReg_I2bit    : integer := 6; -- Interrupt mask I2
+    constant StatusReg_I3bit    : integer := 7; -- Interrupt mask I3
+    constant StatusReg_Qbit     : integer := 8; -- Q bit
+    constant StatusReg_Mbit     : integer := 9; -- M bit
+
+    constant SRSEL_CNT  : integer := 3;
+    constant SRSel_Tbit : integer range SRSEL_CNT-1 downto 0 := 0;
+    constant SRSel_DB   : integer range SRSEL_CNT-1 downto 0 := 1;
+    constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;
+
     constant unused : integer := 0;
 
 end package;
@@ -88,7 +103,6 @@ use work.MemUnitConstants.all;
 use work.DAUConstants.all;
 use work.PAUConstants.all;
 use work.RegArrayConstants.all;
-use work.StatusRegConstants.all;
 use work.OpcodeConstants.all;
 
 entity CU is
@@ -98,10 +112,9 @@ entity CU is
         CLK     : in    std_logic;
         RST     : in    std_logic;
         DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
-        SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
         AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
         Result      : in  std_logic_vector(LONG_SIZE - 1 downto 0);   -- ALU result
-
+        Tbit    : in    std_logic;
         IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";
         
 
@@ -113,10 +126,6 @@ entity CU is
         SCmd        : out     std_logic_vector(2 downto 0);            
         ALUCmd      : out     std_logic_vector(1 downto 0);
         TbitOp      : out     std_logic_vector(3 downto 0);
-
-        -- StatusReg Control Signals
-        UpdateSR    : out   std_logic;
-        SRSel       : out   integer range SRSEL_CNT-1 downto 0;
 
         -- PAU Control Signals
         PAU_SrcSel      : out   integer range PAU_SRC_CNT - 1 downto 0;
@@ -157,6 +166,8 @@ entity CU is
         TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         TempRegSel : out integer range 4 downto 0;
 
+        SR      : out std_logic_vector(REG_SIZE - 1 downto 0);
+
         RegB : in std_logic_vector(REG_SIZE - 1 downto 0)
     );
 
@@ -179,8 +190,7 @@ architecture behavioral of CU is
     signal CurrentState : integer range STATE_CNT-1 downto 0;
 
     signal UpdateIR : std_logic;
-
-    signal Tbit : std_logic;
+    signal UpdateSR : std_logic;
 
     signal UpdateTempReg : std_logic;
 
@@ -191,10 +201,10 @@ architecture behavioral of CU is
     signal RegBSelCmd : integer range REGARRAY_RegCnt-1 downto 0;
     signal RegAxInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;
     signal RegA1SelCmd : integer range REGARRAY_RegCnt-1 downto 0;
-
+    
+    signal SRSel : integer range SRSEL_CNT-1 downto 0;
+    
 begin
-
-    Tbit <= SR(0);
 
     --
     TempRegMuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempRegSel = TempRegSel_Offset8 else
@@ -230,6 +240,12 @@ begin
                       DB(15 downto 0) when UpdateIR = '1' and AB(1 downto 0) = "10" else
                       IR;
 
+                if UpdateSR = '1' then
+                    SR <= (31 downto 1 => '0') & Tbit  when SRSel = SRSel_Tbit else
+                          DB    when SRSel = SRSel_DB   else
+                          RegB   when SRSel = SRSel_Reg  else
+                          (others => 'X');
+                end if;
 
                 --
                 TempReg <= TempRegMuxOut when UpdateTempReg = '1' else TempReg;

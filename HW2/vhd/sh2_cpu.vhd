@@ -45,7 +45,6 @@ use work.GenericALUConstants.all;
 use work.PAUConstants.all;
 use work.DAUConstants.all;
 use work.RegArrayConstants.all;
-use work.StatusRegConstants.all;
 use work.CUConstants.all;
 use work.DTUConstants.all;
 
@@ -173,27 +172,15 @@ architecture structural of SH2_CPU is
         );
     end component;
 
-    component StatusReg is
-        port (
-            Tbit        : in    std_logic;
-            UpdateSR    : in    std_logic;
-            DB          : in    std_logic_vector(31 downto 0);
-            Reg         : in    std_logic_vector(31 downto 0);
-            SRSel       : in    integer range 2 downto 0;
-            CLK         : in    std_logic;
-            SR          : out   std_logic_vector(REG_SIZE - 1 downto 0)
-        );
-    end component;
-
     component CU is
         port (
             -- CU Input Signals
             CLK     : in    std_logic;
             RST     : in    std_logic;
             DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
-            SR      : in    std_logic_vector(REG_SIZE - 1 downto 0);
             AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
             Result      : in  std_logic_vector(LONG_SIZE - 1 downto 0);
+            Tbit    : in    std_logic;
 
             -- CU Registers
             IR      : out    std_logic_vector(INST_SIZE - 1 downto 0);
@@ -206,10 +193,6 @@ architecture structural of SH2_CPU is
             SCmd        : out     std_logic_vector(2 downto 0);            
             ALUCmd      : out     std_logic_vector(1 downto 0);
             TbitOp      : out     std_logic_vector(3 downto 0);
-
-            -- StatusReg Control Signals
-            UpdateSR    : out   std_logic;
-            SRSel       : out   integer range SRSEL_CNT-1 downto 0;
 
             -- PAU Control Signals
             PAU_SrcSel      : out   integer range PAU_SRC_CNT - 1 downto 0;
@@ -249,6 +232,8 @@ architecture structural of SH2_CPU is
 
             TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             TempRegSel : out integer range 4 downto 0;
+
+            SR      : out std_logic_vector(REG_SIZE - 1 downto 0);
             RegB : in std_logic_vector(REG_SIZE - 1 downto 0)
         );
     end component;
@@ -340,18 +325,14 @@ architecture structural of SH2_CPU is
     signal GBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal VBR            : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
 
-    -- StatusReg Signals
-    signal SR_UpdateSR     : std_logic;
-    signal SR             : std_logic_vector(REG_SIZE - 1 downto 0);
-
-
     signal DBOutSel : integer range DBOUTSEL_CNT-1 downto 0;
 
     signal ABOutSel : integer range 1 downto 0;
 
     signal IR : std_logic_vector(INST_SIZE-1 downto 0);
 
-    signal SRSel : integer range SRSEL_CNT-1 downto 0;
+    signal SR : std_logic_vector(REG_SIZE-1 downto 0);
+
 
     signal WR : std_logic;
     signal RD : std_logic;
@@ -465,18 +446,6 @@ begin
             VBR        => VBR
         );
 
-    -- Status Register (SR)
-    SH2_SR : StatusReg
-        port map (
-            Tbit        => ALU_Tbit,
-            UpdateSR    => SR_UpdateSR,
-            DB          => DB,
-            Reg         => RegA,
-            SRSel       => SRSel,
-            CLK         => clock,
-            SR          => SR
-        );
-
     -- Control Unit (CU)
     SH2_CU : CU
         port map (
@@ -488,6 +457,7 @@ begin
             SR          => SR,
             Result      => ALU_Result,
             IR          => IR,
+            Tbit        => ALU_Tbit,
 
             DBOutSel    => DBOutSel,
             ABOutSel    => ABOutSel,
@@ -501,9 +471,6 @@ begin
             ALUCmd      => ALU_ALUCmd,
             TbitOp      => ALU_TbitOp,
 
-            -- StatusReg Control Signals
-            UpdateSR    => SR_UpdateSR,
-            SRSel       => SRSel,
 
             -- PAU Control Signals
             PAU_SrcSel      => PAU_SrcSel,
