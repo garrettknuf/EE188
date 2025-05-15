@@ -240,9 +240,11 @@ begin
 
     RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegA1SelCmd = RegA1SelCmd_Rn else
                 to_integer(unsigned(IR(7 downto 4))) when RegA1SelCmd = RegA1SelCmd_Rm else
+                15 when RegA1SelCmd = RegA1SelCmd_R15 else
                 0;
     RegAxInSel <= to_integer(unsigned(IR(11 downto 8))) when RegAxInSelCmd = RegAxInSelCmd_Rn else
                   to_integer(unsigned(IR(7 downto 4))) when RegAxInSelCmd = RegAxInSelCmd_Rm else
+                  15 when RegA1SelCmd = RegA1SelCmd_R15 else
                   0;
 
     -- Control Unit Registers

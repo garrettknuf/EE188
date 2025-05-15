@@ -9,6 +9,7 @@
 --
 --  Revision History:
 --     28 Apr 25  Glen George       Initial revision.
+--     15 May 25  George Ore        Added 32 bit support with unsigned vals.
 --
 ----------------------------------------------------------------------------
 
@@ -93,6 +94,13 @@ architecture  behavioral  of  MEMORY32x32  is
     signal  RAMbits1  :  RAMtype  := (others => (others => 'X'));
     signal  RAMbits2  :  RAMtype  := (others => (others => 'X'));
     signal  RAMbits3  :  RAMtype  := (others => (others => 'X'));
+
+    -- generate unsigned values for calculating bounds
+    constant  START_ADDR0_U  :  unsigned(31 downto 0) := to_unsigned(START_ADDR0, 32);
+    constant  START_ADDR1_U  :  unsigned(31 downto 0) := to_unsigned(START_ADDR1, 32);
+    constant  START_ADDR2_U  :  unsigned(31 downto 0) := to_unsigned(START_ADDR2, 32);
+    constant  START_ADDR3_U  :  unsigned(31 downto 0) := to_unsigned(START_ADDR3, 32);
+    constant  MEMSIZE_U     :  unsigned(31 downto 0) := to_unsigned(MEMSIZE, 32);
 
     -- general read and write signals
     signal  RE  :  std_logic;
@@ -230,18 +238,18 @@ begin
         -- first check if reading
         if  (RE = '0')  then
             -- reading, put the data out (check the address)
-            if  (to_integer(unsigned(MemAB)) >= START_ADDR0) and
-                 (to_integer(unsigned(MemAB)) - START_ADDR0 < 4 * MEMSIZE)  then
-                MemDB <= RAMbits0((to_integer(unsigned(MemAB))/4 - START_ADDR0));
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR1) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR1 < 4 * MEMSIZE)  then
-                MemDB <= RAMbits1((to_integer(unsigned(MemAB))/4 - START_ADDR1));
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR2) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR2 < 4 * MEMSIZE)  then
-                MemDB <= RAMbits2((to_integer(unsigned(MemAB))/4 - START_ADDR2));
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR3) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR3 < 4 * MEMSIZE)  then
-                MemDB <= RAMbits3((to_integer(unsigned(MemAB))/4 - START_ADDR3));
+            if  (unsigned(MemAB) >= (START_ADDR0_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR0_U*4) < 4 * MEMSIZE)  then
+                MemDB <= RAMbits0(to_integer(unsigned(MemAB)/4 - START_ADDR0_U));
+            elsif  (unsigned(MemAB) >= (START_ADDR1_U*4)) and
+                    (unsigned(MemAB) - (START_ADDR1_U*4) < 4 * MEMSIZE)  then
+                MemDB <= RAMbits1(to_integer(unsigned(MemAB)/4 - START_ADDR1_U));
+            elsif  (unsigned(MemAB) >= (START_ADDR2_U*4)) and
+                    (unsigned(MemAB) - (START_ADDR2_U*4) < 4 * MEMSIZE)  then
+                MemDB <= RAMbits2(to_integer(unsigned(MemAB)/4 - START_ADDR2_U));
+            elsif  (unsigned(MemAB) >= (START_ADDR3_U*4)) and
+                    (unsigned(MemAB) - (START_ADDR3_U*4) < 4 * MEMSIZE)  then
+                MemDB <= RAMbits3(to_integer(unsigned(MemAB)/4 - START_ADDR3_U));
             else
                 -- outside of any allowable address range - set output to X
                 MemDB <= (others => 'X');
@@ -271,18 +279,18 @@ begin
         if  (WE'event and (WE = '0'))  then
             -- rising edge of write - write the data (check which address range)
             -- first get current value of the byte
-            if  (to_integer(unsigned(MemAB)) >= START_ADDR0) and
-                 (to_integer(unsigned(MemAB)) - START_ADDR0 < 4 * MEMSIZE)  then
-                MemData := RAMbits0((to_integer(unsigned(MemAB))/4 - START_ADDR0));
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR1) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR1 < 4 * MEMSIZE)  then
-                MemData := RAMbits1((to_integer(unsigned(MemAB))/4 - START_ADDR1));
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR2) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR2 < 4 * MEMSIZE)  then
-                MemData := RAMbits2((to_integer(unsigned(MemAB))/4 - START_ADDR2));
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR3) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR3 < 4 * MEMSIZE)  then
-                MemData := RAMbits3((to_integer(unsigned(MemAB))/4 - START_ADDR3));
+            if  (unsigned(MemAB) >= (START_ADDR0_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR0_U*4) < 4 * MEMSIZE)  then
+                MemData := RAMbits0(to_integer(unsigned(MemAB)/4 - START_ADDR0_U));
+            elsif  (unsigned(MemAB) >= (START_ADDR1_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR1_U*4) < 4 * MEMSIZE)  then
+                MemData := RAMbits1(to_integer(unsigned(MemAB)/4 - START_ADDR1_U));
+            elsif  (unsigned(MemAB) >= (START_ADDR2_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR2_U*4) < 4 * MEMSIZE)  then
+                MemData := RAMbits2(to_integer(unsigned(MemAB)/4 - START_ADDR2_U));
+            elsif  (unsigned(MemAB) >= (START_ADDR3_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR3_U*4) < 4 * MEMSIZE)  then
+                MemData := RAMbits3(to_integer(unsigned(MemAB)/4 - START_ADDR3_U));
             else
                 MemData := (others => 'X');
             end if;
@@ -303,19 +311,18 @@ begin
             end if;
 
             -- finally write the updated value to memory
-            if  (to_integer(unsigned(MemAB)) >= START_ADDR0) and
-                 (to_integer(unsigned(MemAB)) - START_ADDR0 < 4 * MEMSIZE)  then
-                RAMbits0((to_integer(unsigned(MemAB))/4 - START_ADDR0)) <= MemData;
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR1) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR1 < 4 * MEMSIZE)  then
-                RAMbits1((to_integer(unsigned(MemAB))/4 - START_ADDR1)) <= MemData;
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR2) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR2 < 4 * MEMSIZE)  then
-                RAMbits2((to_integer(unsigned(MemAB))/4 - START_ADDR2)) <= MemData;
-            elsif  (to_integer(unsigned(MemAB)) >= START_ADDR3) and
-                    (to_integer(unsigned(MemAB)) - (4*START_ADDR3) < 4 * MEMSIZE)  then
-                -- TODO: Redo above conditions
-                RAMbits3((to_integer(unsigned(MemAB))/4 - START_ADDR3)) <= MemData;
+            if  (unsigned(MemAB) >= (START_ADDR0_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR0_U*4) < 4 * MEMSIZE)  then
+                RAMbits0(to_integer(unsigned(MemAB)/4 - START_ADDR0_U)) <= MemData;
+            elsif  (unsigned(MemAB) >= (START_ADDR1_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR1_U*4) < 4 * MEMSIZE)  then
+                RAMbits1(to_integer(unsigned(MemAB)/4 - START_ADDR1_U)) <= MemData;
+            elsif  (unsigned(MemAB) >= (START_ADDR2_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR2_U*4) < 4 * MEMSIZE)  then
+                RAMbits2(to_integer(unsigned(MemAB)/4 - START_ADDR2_U)) <= MemData;
+            elsif  (unsigned(MemAB) >= (START_ADDR3_U*4)) and
+                 (unsigned(MemAB) - (START_ADDR3_U*4) < 4 * MEMSIZE)  then
+                RAMbits3(to_integer(unsigned(MemAB)/4 - START_ADDR3_U)) <= MemData;
             else
                 -- outside of any allowable address range - generate an error
                 assert (false)
