@@ -13,7 +13,7 @@
 
 .vectable
     PowerResetPC:           0x00000050  ; PC for power reset (0)
-    PowerResetSP:           0xFFFFFFFC  ; SP for power reset (1)
+    PowerResetSP:           0x00000000  ; SP for power reset (1)
     ManualResetPC:          0x00000000  ; PC for manual reset (2)
     ManualResetSP:          0x00000000  ; SP for manual reset (3)
     InvalidInstruction:     0x00000000  ; General invalid instruction (4)
@@ -29,7 +29,7 @@
     Reserved:               0x00000000  ; reserved (14)
     Reserved:               0x00000000  ; reserved (15)
     ; 16-31 typically reserved (but ignoring here)
-    TrapInstUser0:          0x00000000  ; trap instruction (uservector) (13) (typically 32)
+    TrapInstUser0:          0x000000BA  ; trap instruction (uservector) (13) (typically 32)
     TrapInstUser1:          0x00000000  ; trap instruction (uservector) (14) (typically 33)
     TrapInstUser2:          0x00000000  ; trap instruction (uservector) (15) (typically 34)
     TrapInstUser3:          0x00000000  ; trap instruction (uservector) (16) (typically 35)
@@ -96,6 +96,8 @@ TestVBR:
     ADD     #4, R10     ; Counteract pre-dec
     STC.L   VBR,@-R10   ; WRITE 2048
     ADD     #4, R10
+    MOV     #0,R2       ; Set VBR back to 0
+    LDC     R2,VBR
 
 TestPR:
     MOV     #98,R7
@@ -107,11 +109,59 @@ TestPR:
     ADD     #4, R10    ; Counteract pre-dec
     STS.L   PR,@-R10   ; WRITE 432
     ADD     #4, R10
+; AFTER TESTING PR BEGIN TESTING TRAPA
+    BRA    TrapaTests
 
-; TrapaTests:
-;     TRAPA   #8
+; LoadCtrlRegTests:
+;     LDC     Rm, SR
+;     LDC     Rm, GBR
+;     LDC     Rm, VBR
+;     LDC.L   @Rm+, SR
+;     LDC.L   @Rm+, GBR
+;     LDC.L   @Rm+, VBR
+;     ;BRA    LoadSysRegTests
+
+; LoadSysRegTests:
+;     LDS     Rm, PR
+;     LDS.L   @Rm+,PR
+;     ;BRA    NOPTests
+
+; NOPTests:
+    NOP     ; NOP Tests
+    NOP
+    NOP
+    NOP
+;     ;BRA    RTETests
+
+; RTETests:
+    SETT    ; RTE Tests
+    RTE
+    NOP
+; IF CODE GETS PAST RTE SLOT THEN IT HAS FAILED
+    BRA    TestFail
+;     ;BRA    StoreCtrlRegTests
+
+; StoreCtrlRegTests:
+;     STC     SR, Rn
+;     STC     GBR, Rn
+;     STC     VBR, Rn
+;     STC.L   SR, @-Rn
+;     STC.L   GBR, @-Rn
+;     STC.L   VBR, @-Rn
+;     ;BRA    StoreSysRegTests
+
+; StoreSysRegTests:
+;     STS     PR, Rn
+;     STS.L   PR, @-Rn
+;     ;BRA    TrapaTests
+
+TrapaTests:
+    NOP     ; Trapa Test
+    NOP
+    TRAPA   #16
+    NOP
+    NOP
 ;     ;BRA    TestSuccess
-; TestRTE
 
 TestSuccess:
     MOV     #1, R9

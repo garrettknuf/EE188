@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# Summary of flags
+#
+#   Flag    |   Purpose
+# --gore    | Changes executable paths
+# --compileOSVVM <-- yep
+# --asm     | Assembles code from ASM_FILES
+# --autogen | Autogen CU from signals sheet
+# --check   | Enables memory checking
+# --all     | Combines --asm --autogen --check
+# --hide    | Disables GTK after processing
+
+
 # Stop script if any command fails
 set -e
 
@@ -11,20 +23,77 @@ MEMCOMPARE="../asm_tests/mem_dump/mem_compare.py"
 
 # Include Assembly test files
 ASM_FILES=(
-    "../asm_tests/fibonacci.asm"
-    "../asm_tests/arithmetic.asm"
-    "../asm_tests/logic.asm"
-    "../asm_tests/shift.asm"
-    "../asm_tests/branch.asm"
-    "../asm_tests/data_xfer.asm"
+    # "../asm_tests/fibonacci.asm"
+    # "../asm_tests/arithmetic.asm"
+    # "../asm_tests/logic.asm"
+    # "../asm_tests/shift.asm"
+    # "../asm_tests/branch.asm"
+    # "../asm_tests/data_xfer.asm"
     "../asm_tests/sys_ctrl.asm"
 )
 
-# Check for --gore to use executable path for George
+# Check for --gore to use executable paths for George's epic archlinux(btw) system
 for arg in "$@"; do
     if [ "$arg" == "--gore" ]; then
         GHDL="/usr/bin/ghdl"
         GTKWAVE="/usr/bin/gtkwave"
+        PYTHONEXEC="/home/gore/Projects/EE188/HW2/run/EE188_env/bin/python"
+        echo "Hello you are Gore!"
+        break
+    fi
+done
+
+OSVVM_PATH="/home/gore/Downloads/libs/OsvvmLibraries/osvvm/"
+# I know this is annoying but please just hide it with the side arrow
+OSVVM_FILES=(
+    "IfElsePkg.vhd"
+    "OsvvmTypesPkg.vhd"
+    "OsvvmScriptSettingsPkg.vhd"
+    "OsvvmScriptSettingsPkg_default.vhd"
+    "OsvvmSettingsPkg.vhd"
+    "OsvvmSettingsPkg_default.vhd"
+    "TextUtilPkg.vhd"
+    "ResolutionPkg.vhd"
+    "NamePkg.vhd"
+    "OsvvmGlobalPkg.vhd"
+    "CoverageVendorApiPkg_default.vhd"
+    "TranscriptPkg.vhd"
+    "deprecated/FileLinePathPkg_c.vhd"
+    "deprecated/LanguageSupport2019Pkg_c.vhd"
+    "AlertLogPkg.vhd"
+    "TbUtilPkg.vhd"
+    "NameStorePkg.vhd"
+    "MessageListPkg.vhd"
+    "SortListPkg_int.vhd"
+    "RandomBasePkg.vhd"
+    "RandomPkg.vhd"
+    "RandomProcedurePkg.vhd"
+    "CoveragePkg.vhd"
+    "DelayCoveragePkg.vhd"
+    "deprecated/ClockResetPkg_2024_05.vhd"
+    "ResizePkg.vhd"
+    "ScoreboardGenericPkg.vhd"
+    "ScoreboardPkg_IntV.vhd"
+    "ScoreboardPkg_slv.vhd"
+    "ScoreboardPkg_int.vhd"
+    "ScoreboardPkg_signed.vhd"
+    "ScoreboardPkg_unsigned.vhd"
+    "MemorySupportPkg.vhd"
+    "MemoryGenericPkg.vhd"
+    "MemoryPkg.vhd"
+    "ReportPkg.vhd"
+    "deprecated/RandomPkg2019_c.vhd"
+    "OsvvmContext.vhd"
+)
+
+# Check for --compileOSVVM argument to compile OSVVM (Add your own path if you want to use)
+for arg in "$@"; do
+    if [ "$arg" == "--compileOSVVM" ]; then
+        echo "Compile OSVVM..."
+        for file in "${OSVVM_FILES[@]}"; do
+            echo "Analyzing $file..."
+            $GHDL -a --std=08 --work=osvvm $OSVVM_PATH"$file"
+        done
         break
     fi
 done
@@ -143,11 +212,23 @@ for asm_file in "${ASM_FILES[@]}"; do
     fi
 done
 
+# George's GTK scaling settings
+SIGNAL_SIZE="fontname_signals Monospace 20"
+WAVE_SIZE="fontname_waves Monospace 8"
+
 # Waveform viewer
 if [ "$VIEW_WAVEFORM" == true ]; then
     if [ -f "../run/$TB_NAME-$base_name.gtkw" ]; then
-        $GTKWAVE "../run/$TB_NAME-$base_name.gtkw"
+        if [ "$arg" == "--gore" ]; then
+            $GTKWAVE "../run/$TB_NAME-$base_name.gtkw" --rcvar "$SIGNAL_SIZE" --rcvar "$WAVE_SIZE"
+        else
+            $GTKWAVE "../run/$TB_NAME-$base_name.gtkw"
+        fi
     else
-        $GTKWAVE "../run/$TB_NAME-$base_name.vcd"
+        if [ "$arg" == "--gore" ]; then
+            $GTKWAVE "../run/$TB_NAME-$base_name.vcd" --rcvar "$SIGNAL_SIZE" --rcvar "$WAVE_SIZE"
+        else
+            $GTKWAVE "../run/$TB_NAME-$base_name.vcd"
+        fi
     fi
 fi
