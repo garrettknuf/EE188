@@ -2,13 +2,20 @@
 --
 --  Hitachi SH-2 RISC Processor
 --
---  This is an implementation of the Hitachi SH-2 RISC Processor.
+--  This file contains the complete top-level structural implementation of the
+--  Hitachi SH-2 RISC Processor. It includes instantations of all major components:
+--  ALU, RegArray, CU, PAU, DAU, and DTU. THE SH2_CPU entity defines the interface
+--  of the processor and connects its internal subsystems in a structural
+--  architecture. it is used for integration and testing of the full processor
+--  design.
 --
 --  Entities included are:
 --    SH2_CPU - top level structural of CPU
 --
 --  Revision History:
---     16 April 2025    Garrett Knuf    Initial revision.
+--     16 Apr 2025      Garrett Knuf    Initial revision.
+--     22 Apr 2025      Garrett Knuf    Integrated all components together.
+--     13 May 2025      Garrett Knuf    Connect DTU.
 --
 ----------------------------------------------------------------------------
 
@@ -34,6 +41,9 @@
 --    WE1    - second byte write signal, active low
 --    WE2    - third byte write signal, active low
 --    WE3    - fourth byte write signal, active low
+--
+--  Inputs/Outputs:
+--    DB     - memory data bus (32 bits)
 --
 library ieee;
 use ieee.std_logic_1164.all;

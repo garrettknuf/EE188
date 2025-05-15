@@ -11,13 +11,14 @@
 --  specific for the SH2.
 --
 --  Packages included are:
---     TbitConstants - constants for the Tbit control
+--     ALUConstants - constants for ALU control
 --
 --  Entities included are:
 --     ALU - arithmetic logic unit
 --
 --  Revision History:
 --     17 Apr 2025  Garrett Knuf    Initial Revision.
+--     13 May 2025  Garrett Knuf    Move external muxes for operands internal.
 --
 ----------------------------------------------------------------------------
 
