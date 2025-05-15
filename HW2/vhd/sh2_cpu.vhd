@@ -149,6 +149,7 @@ architecture structural of SH2_CPU is
             UpdatePC    : in    std_logic;
             PRSel       : in    integer range PRSEL_CNT-1 downto 0;
             IncDecBit   : in    integer range 2 downto 0;
+            IncDecSel  : in    std_logic;
             PrePostSel  : in    std_logic;
             DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             CLK         : in    std_logic;
@@ -210,6 +211,7 @@ architecture structural of SH2_CPU is
             PAU_UpdatePC    : out   std_logic;
             PAU_PRSel       : out   integer range PRSEL_CNT-1 downto 0;
             PAU_IncDecBit   : out    integer range 2 downto 0;
+            PAU_IncDecSel   : out    std_logic;
             PAU_PrePostSel  : out    std_logic;
 
             -- DAU Control Signals
@@ -312,6 +314,7 @@ architecture structural of SH2_CPU is
     signal PAU_UpdatePC    : std_logic;
     signal PAU_PRSel       : integer range PRSEL_CNT-1 downto 0;
     signal PAU_IncDecBit   : integer range 2 downto 0;
+    signal PAU_IncDecSel  : std_logic;
     signal PAU_PrePostSel  : std_logic;
     signal PAU_ProgAddr    : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal PC              : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -364,6 +367,7 @@ begin
              VBR        when DBOutSel = DBOutSel_VBR    else
              SR         when DBOutSel = DBOutSel_SR     else
              PR         when DBOutSel = DBOutSel_PR     else
+             PC         when DBOutSel = DBOutSel_PC     else
              (others => 'X');
 
     -- Create 32-bit ALU for standard logic and arithmetic operations
@@ -422,6 +426,7 @@ begin
             OffsetReg  => RegA1,
             TempReg    => TempReg,
             IncDecBit  => PAU_IncDecBit,
+            IncDecSel => PAU_IncDecSel,
             PrePostSel => PAU_PrePostSel,
             DB         => DB,
             UpdatePC   => PAU_UpdatePC,
@@ -488,6 +493,7 @@ begin
             PAU_UpdatePC    => PAU_UpdatePC,
             PAU_PRSel       => PAU_PRSel,
             PAU_IncDecBit   => PAU_IncDecBit,
+            PAU_IncDecSel  => PAU_IncDecSel,
             PAU_PrePostSel  => PAU_PrePostSel,
 
             -- DAU Control Signals

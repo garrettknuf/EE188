@@ -98,6 +98,7 @@ entity PAU is
         UpdatePC    : in    std_logic;
         PRSel       : in    integer range PRSEL_CNT-1 downto 0;
         IncDecBit   : in    integer range 2 downto 0;
+        IncDecSel   : in    std_logic;
         PrePostSel  : in    std_logic;
         DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         CLK         : in    std_logic;
@@ -138,7 +139,7 @@ architecture behavioral of PAU is
     signal AddrOff  : std_logic_array(PAU_OFFSET_CNT - 1 downto 0)(ADDR_BUS_SIZE - 1 downto 0);
 
     -- Incrementer/decrementer controls
-    signal IncDecSel    : std_logic;                --
+    -- signal IncDecSel    : std_logic;                --
     -- signal IncDecBit    : integer range 0 downto 0; -- not used
     -- signal PrePostSel   : std_logic;                -- mux select for pre/post
     signal AddrSrcOut   : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0); -- not used
@@ -162,7 +163,7 @@ begin
     AddrOff(PAU_TempReg) <= TempReg;                                            -- temporary register
 
     -- Incrementer/decrement controls
-    IncDecSel <= MemUnit_DEC;   -- not used (preventing undefined value)
+    -- IncDecSel <= MemUnit_DEC;   -- not used (preventing undefined value)
     -- IncDecBit <= 0;             -- not used (preventing undefined value)
     -- PrePostSel <= MemUnit_POST; -- use post value to ignore inc/dec
 

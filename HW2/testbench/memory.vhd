@@ -313,7 +313,8 @@ begin
                     (to_integer(unsigned(MemAB)) - START_ADDR2 < 4 * MEMSIZE)  then
                 RAMbits2((to_integer(unsigned(MemAB))/4 - START_ADDR2)) <= MemData;
             elsif  (to_integer(unsigned(MemAB)) >= START_ADDR3) and
-                    (to_integer(unsigned(MemAB)) - START_ADDR3 < 4 * MEMSIZE)  then
+                    (to_integer(unsigned(MemAB)) - (4*START_ADDR3) < 4 * MEMSIZE)  then
+                -- TODO: Redo above conditions
                 RAMbits3((to_integer(unsigned(MemAB))/4 - START_ADDR3)) <= MemData;
             else
                 -- outside of any allowable address range - generate an error
