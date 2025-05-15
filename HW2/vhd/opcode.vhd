@@ -2,9 +2,12 @@
 --
 --  SH-2 Opcodes
 --
---  This is an implementation of 
+--  This package defines constants representing the binary encodings of SH-2
+--  instructions. These opcode patterns are intended for use in instruction
+--  decoding logic. The tables referenced are in the SH-2 programming manual.
 --
---  Entities included are:
+--  Packages included are:
+--   OpcodeConstants - instruction formats to decode SH-2 instructions.
 --    
 --  Revision History:
 --     18 April 2025    Garrett Knuf    Initial revision.
@@ -78,21 +81,11 @@ package OpcodeConstants is
     constant OpCMP_PL       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00010101";
     constant OpCMP_PZ       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00010001";
     constant OpCMP_STR      : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0010--------1100";
-    -- TODO: DIV1
-    -- TODO: DIV0S
-    -- TODO: DIV0U
-    -- TODO: DMULS.L
-    -- TODO: DMULU.L
     constant OpDT           : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00010000";
     constant OpEXTS_B       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------1110";
     constant OpEXTS_W       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------1111";
     constant OpEXTU_B       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------1100";
     constant OpEXTU_W       : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------1101";
-    -- TODO: MAC.L
-    -- TODO: MAC.W
-    -- TODO: MUL.L
-    -- TODO: MULS.W
-    -- TODO: MULU.W
     constant OpNEG          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------1011";
     constant OpNEGC         : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0110--------1010";
     constant OpSUB          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0011--------1000";
@@ -146,18 +139,13 @@ package OpcodeConstants is
 
     -- System Control Instructions (Table 5.8)
     constant OpCLRT                  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000001000";
-    -- TODO: CLRMAC
     constant OpLDC_Rm_To_SR          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00001110";
     constant OpLDC_Rm_To_GBR         : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00011110";
     constant OpLDC_Rm_To_VBR         : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00101110";
     constant OpLDCL_At_Rm_Inc_To_SR  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00000111";
     constant OpLDCL_At_Rm_Inc_To_GBR : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00010111";
     constant OpLDCL_At_Rm_Inc_To_VBR : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00100111";
-    -- TODO: LDS Rm, MACH
-    -- TODO: LDS Rm, MACL
     constant OpLDS_Rm_To_PR          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00101010";
-    -- TODO: LDS.L @Rm+, MACH
-    -- TODO: LDS.L @Rm+, MACL
     constant OpLDSL_At_Rm_Inc_To_PR  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00100110";
     constant OpNOP                   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000001001";
     constant OpRTE                   : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000101011";
@@ -169,15 +157,11 @@ package OpcodeConstants is
     constant OpSTCL_SR_To_At_Dec_Rn  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00000011";
     constant OpSTCL_GBR_To_At_Dec_Rn : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00010011";
     constant OpSTCL_VBR_To_At_Dec_Rn : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00100011";
-    -- TODO: STS MACH, Rn
-    -- TODO: STS MACL, Rn
-    -- TODO: STS MACH, Rn
     constant OpSTS_PR_To_Rn          : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000----00101010";
-    -- TODO: STSL MACH, @-Rn
-    -- TODO: STSL MACL, @-Rn
     constant OpSTSL_PR_To_At_Dec_Rn  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0100----00100010";
     constant OpTRAPA                 : std_logic_vector(OPCODE_SIZE-1 downto 0) := "11000011--------";
     
+    -- Opcode when system resets to initiate boot
     constant OpBoot                  : std_logic_vector(OPCODE_SIZE-1 downto 0) := "0000000000000000";
 
 end package;
