@@ -18,8 +18,8 @@ set -e
 GHDL="/mnt/c/eda/GHDL/bin/ghdl.exe"
 GTKWAVE="/mnt/c/eda/gtkwave/bin/gtkwave.exe"
 PYTHONEXEC="/mnt/c/Users/garre/AppData/Local/Microsoft/WindowsApps/python3.exe"
-ASSEMBLER="../../SH2Assembler/sh2_asm.py"
-MEMCOMPARE="../../MemCompare/mem_compare.py"
+ASSEMBLER="../asm_tests/build/sh2_asm.py"
+MEMCOMPARE="../asm_tests/mem_dump/mem_compare.py"
 
 # Include Assembly test files
 ASM_FILES=(
@@ -37,7 +37,6 @@ for arg in "$@"; do
     if [ "$arg" == "--gore" ]; then
         GHDL="/usr/bin/ghdl"
         GTKWAVE="/usr/bin/gtkwave"
-        # PYTHONEXEC="/usr/bin/python3"
         PYTHONEXEC="/home/gore/Projects/EE188/HW2/run/EE188_env/bin/python"
         echo "Hello you are Gore!"
         break
@@ -147,8 +146,8 @@ VHDL_FILES=(
     "../vhd/dau.vhd"
     "../vhd/pau.vhd"
     "../vhd/reg.vhd"
-    "../vhd/sr.vhd"
     "../vhd/opcode.vhd"
+    "../vhd/dtu.vhd"
     "../vhd/cu.vhd"
     "../vhd/sh2_cpu.vhd"
     "../testbench/memory.vhd"
