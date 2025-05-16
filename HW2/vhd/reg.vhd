@@ -2,14 +2,18 @@
 --
 --  General Purpose Register Set
 --
---  This is an implementation of 16 32-bit general purpose registers for the
+--  This is an implement of a 16 32-bit general purpose register array for the
 --  SH-2 CPU. They are numbered R0-R15. R15 is also used as the stack pointer
 --  for exception handling. All registers may be used for addressing and may
 --  be combined with R0 when generating address. For any given instruction there
 --  may be zero, one, or two, register operands. The result of the instruction
 --  will generally be returned to one of the register operations. Which registers
 --  to use is encoded in the control signals. Note that registers used as
---  addresses may be read and written independently of the ALU accesses.
+--  addresses may be read and written independently of the ALU accesses. The
+--  register array support writing special sources (SR, PR, GBR, VBR) in addition
+--  to the ALU result or DAU address output. Special operand operations (sign/zero
+--  extension, swaps, shifts, etc.) are also support on the RegB output. This
+--  wraps the generic GenericRegArray entity.
 --
 --  Packages included are:
 --     RegArrayConstants - constants for the general purpose registers
@@ -19,6 +23,8 @@
 --
 --  Revision History:
 --     17 Apr 2025  Garrett Knuf    Initial Revision.
+--      3 May 2025  George Ore      Add special reg operations.
+--      7 May 2025  Garrett Knuf    Move external muxes for RegAxInSel internal.
 --
 ----------------------------------------------------------------------------
 
@@ -33,7 +39,6 @@ use work.GenericConstants.all;
 package RegArrayConstants is
 
     constant REGARRAY_RegCnt : integer := 16; -- R0-R15
-
     constant R0     : integer := 0;
     constant R1     : integer := 1;
     constant R2     : integer := 2;
@@ -82,30 +87,33 @@ end package;
 --
 -- RegArray
 --
--- This is an implementation of 32-bit register array with 16 registers. All
--- registers may be used for addressing and may be combined with R0 when generating
--- addresses. The registers used as address may be read and written independently
--- of the ALU accesses. It uses the GenericRegArray entity and removes the double
--- data size features to consolidate register array interface for SH2 specifically.
+-- This 32-bit wide register array with 16 general purpose registers implements
+-- the generic GenericRegArray for the SH-2 CPU to store data. Data can be output
+-- from RegA, RegB, RegA1. Data can be written through RegIn and RegAxIn.
 --
 --  Inputs:
---    RegIn      - input bus to the registers
+--    Result     - ALU result
+--    DataAddrID - increment/decremented address of DAU
+--    DataAddr   - data address of DAU
+--    SR         - status register
+--    GBR        - global base register
+--    VBR        - vector base register
+--    PR         - procedure register
 --    RegInSel   - which register to write (log regcnt bits)
 --    RegStore   - actually write to a register
 --    RegASel    - register to read onto bus A (log regcnt bits)
 --    RegBSel    - register to read onto bus B (log regcnt bits)
---    RegAxIn    - input bus for address register updates
 --    RegAxInSel - which address register to write (log regcnt bits - 1)
+--    RegAxInDataSel - which data to write into 
 --    RegAxStore - actually write to an address register
 --    RegA1Sel   - register to read onto address bus 1 (log regcnt bits)
---    RegA2Sel   - register to read onto address bus 2 (log regcnt bits)
+--    ReOpSel    - which special operation to perform if any on RegB
 --    CLK        - the system clock
 --
 --  Outputs:
 --    RegA       - register value for bus A
 --    RegB       - register value for bus B
 --    RegA1      - register value for address bus 1
---    RegA2      - register value for address bus 2
 --
 
 library ieee;
@@ -130,15 +138,15 @@ entity RegArray is
 
         -- Control signals
         RegInSel        : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select where to save Result
-        RegStore        : in   std_logic;                                   -- decide store result or not
+        RegStore        : in   std_logic;                                       -- decide store result or not
         RegASel         : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegA output
         RegBSel         : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegB output
         RegAxInSel      : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select where to save RegAxIn input
-        RegAxInDataSel  : in   integer range REGAXINDATASEL_CNT - 1 downto 0;  -- select input to RegAxIn
-        RegAxStore      : in   std_logic;                                   -- decide store RegAxIn or not
+        RegAxInDataSel  : in   integer range REGAXINDATASEL_CNT - 1 downto 0;   -- select input to RegAxIn
+        RegAxStore      : in   std_logic;                                       -- decide store RegAxIn or not
         RegA1Sel        : in   integer range REGARRAY_RegCnt - 1 downto 0;      -- select RegA1 output
-        RegOpSel        : in   integer range REGOPSEL_CNT - 1 downto 0;        -- select special register operation
-        CLK             : in   std_logic;                                   -- system clock
+        RegOpSel        : in   integer range REGOPSEL_CNT - 1 downto 0;         -- select special register operation
+        CLK             : in   std_logic;                                       -- system clock
 
         -- Register Outputs
         RegA            : out  std_logic_vector(REG_SIZE - 1 downto 0);     -- register A
@@ -151,6 +159,7 @@ end RegArray;
 
 architecture behavioral of RegArray is
 
+    -- Define generic register array that is wrapped
     component GenericRegArray is
         generic (
             regcnt   : integer := REGARRAY_RegCnt;
@@ -181,7 +190,7 @@ architecture behavioral of RegArray is
         );
     end component;
 
-
+    -- Inputs to change register values
     signal RegIn    : std_logic_vector(REG_SIZE - 1 downto 0);
     signal RegAxIn  : std_logic_vector(REG_SIZE - 1 downto 0);
 
@@ -199,8 +208,10 @@ architecture behavioral of RegArray is
 
 begin
 
+    -- First possible value to update is ALU result
     RegIn <= Result;
 
+    -- Second possible set of values to set into a register
     RegAxIn <= DataAddrID   when RegAxInDataSel = RegAxInDataSel_AddrIDOut else 
                DataAddr     when RegAxInDataSel = RegAxInDataSel_DataAddr else
                SR           when RegAxInDataSel = RegAxInDataSel_SR else
@@ -214,36 +225,49 @@ begin
     begin
         case RegOpSel is
             when RegOpSel_None =>
+                -- No op
                 RegB <= RegBRaw;
             when RegOpSel_SWAPB =>
+                -- Swap low two bytes
                 RegB <= RegBRaw(31 downto 16) & RegBRaw(7 downto 0) & RegBRaw(15 downto 8);
             when RegOpSel_SWAPW =>
+                -- Swap high and low word
                 RegB <= RegBRaw(15 downto 0) & RegBRaw(31 downto 16);
             when RegOpSel_XTRCT =>
+                -- Use low word of RegB and high word of RegA
                 RegB <= RegBRaw(15 downto 0) & RegA(31 downto 16);
             when RegOpSel_EXTSB =>
+                -- sign extend byte
                 RegB <= (31 downto 8 => RegBRaw(7)) & RegBRaw(7 downto 0);
             when RegOpSel_EXTSW =>
+                -- sign extend word
                 RegB <= (31 downto 16 => RegBRaw(15)) & RegBRaw(15 downto 0);
             when RegOpSel_EXTUB =>
+                -- zero extend byte
                 RegB <= (31 downto 8 => '0') & RegBRaw(7 downto 0);
             when RegOpSel_EXTUW =>
+                -- zero extend word
                 RegB <= (31 downto 16 => '0') & RegBRaw(15 downto 0);
             when RegOpSel_SHLL2 =>
+                -- logical shift left by 2
                 RegB <= RegBRaw(29 downto 0) & (1 downto 0 => '0');
             when RegOpSel_SHLL8 =>
+                -- logical shift left by 8
                 RegB <= RegBRaw(23 downto 0) & (7 downto 0 => '0');
             when RegOpSel_SHLL16 =>
+                -- logical shift left by 16
                 RegB <= RegBRaw(15 downto 0) & (15 downto 0 => '0');
             when RegOpSel_SHLR2 =>
+                -- logical shift right by 2
                 RegB <= (1 downto 0 => '0') & RegBRaw(31 downto 2);
             when RegOpSel_SHLR8 =>
+                -- logical shift right by 8
                 RegB <= (7 downto 0 => '0') & RegBRaw(31 downto 8);
             when RegOpSel_SHLR16 =>
+                -- logical shift right by 16
                 RegB <= (15 downto 0 => '0') & RegBRaw(31 downto 16);
             when others =>
                 RegB <= (others => 'X');
-
         end case;
     end process;
 

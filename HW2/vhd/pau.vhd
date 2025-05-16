@@ -3,11 +3,13 @@
 --  Program Memory Access Unit (PAU)
 --
 --  This is an implementation of a program memory access unit for the SH-2 CPU.
---  The program memory is addressed as 16-bit words with 32-bits of address. The
---  interface is read only. The program counter (PC) is incremented by the word
---  size on each instruction fetch. Some instruction (conditional branches) have
---  the ability to set the PC or add a signed value to it. The address of an
---  instruction must be even.
+--  The program memory access unit generates the addresses for reads of the program
+--  memory data. The program memory is addressed as 16-bit words with 32-bits of
+--  address that must be accessed as even addresses only. It contains the program
+--  counter register (PC) and the procedure register (PR). It supports various
+--  address and offset sources, including immediate values and registers.
+--  The PC is incremented by the word size (2 bytes) during normal execution, and
+--  can alsob explicitly modified (e.g., branches or procedure calls).
 --
 --  Packages included are:
 --     PAUConstants - constants for the program access unit
@@ -17,6 +19,7 @@
 --
 --  Revision History:
 --     16 Apr 2025  Garrett Knuf    Initial Revision.
+--      9 May 2025  Garrett Knuf    Add procedure register.
 --
 ----------------------------------------------------------------------------
 
@@ -47,11 +50,12 @@ package PAUConstants is
     constant PAU_OffsetReg  : integer := 5;     -- register value
     constant PAU_TempReg    : integer := 6;     -- temporary register
 
+    -- Procedure register (PR) source select
     constant PRSEL_CNT : integer := 4;
-    constant PRSel_None : integer range PRSEL_CNT-1 downto 0 := 0;
-    constant PRSel_PC   : integer range PRSEL_CNT-1 downto 0 := 1;
-    constant PRSel_Reg  : integer range PRSEL_CNT-1 downto 0 := 2;
-    constant PRSel_DB   : integer range PRSEL_CNT-1 downto 0 := 3;
+    constant PRSel_None : integer range PRSEL_CNT-1 downto 0 := 0;  -- no change
+    constant PRSel_PC   : integer range PRSEL_CNT-1 downto 0 := 1;  -- program counter
+    constant PRSel_Reg  : integer range PRSEL_CNT-1 downto 0 := 2;  -- generic register
+    constant PRSel_DB   : integer range PRSEL_CNT-1 downto 0 := 3;  -- databus
 
 end package;
 
@@ -60,8 +64,9 @@ end package;
 -- PAU
 --
 -- This is an implementation of the program access memory unit for the SH-2 CPU.
--- It uses the generic MemUnit to handle many of the program address
--- calculations.
+-- It includes the program counter (PC) and procedure register (PR), and supports
+-- a variety of address sources (PC, PR, DB, zero) and offset type (immediate,
+-- register, etc.). Address calculation is handled using a generic MemUnit component.
 --
 -- Inputs:
 --  SrcSel      - mux select for address source
@@ -69,8 +74,11 @@ end package;
 --  Offset8     - 8-bit offset value
 --  Offset12    - 12-bit offset value
 --  OffsetReg   - register value to use as offset
---  UpdatePC    - change PC value (1) or hold (0)
---  UpdatePR    - change PR value (1) or hold (0)
+--  TempReg     - temporary register
+--  UpdatePC    - change PC value or hold
+--  PRSel       - select modification to PR
+--  IncDecBit   - select bit for maximum inc/dec operations
+--  PrePostSel  - select pre/post when inc/dec address output
 --  CLK         - clock
 --
 -- Outputs:
@@ -89,21 +97,21 @@ use work.PAUConstants.all;
 entity PAU is
 
     port (
-        SrcSel      : in    integer range PAU_SRC_CNT - 1 downto 0;
-        OffsetSel   : in    integer range PAU_OFFSET_CNT - 1 downto 0;
-        Offset8     : in    std_logic_vector(7 downto 0);
-        Offset12    : in    std_logic_vector(11 downto 0);
-        OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        UpdatePC    : in    std_logic;
-        PRSel       : in    integer range PRSEL_CNT-1 downto 0;
-        IncDecBit   : in    integer range 2 downto 0;
-        PrePostSel  : in    std_logic;
-        DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        CLK         : in    std_logic;
-        ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := x"DEADBEEF";
-        PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)
+        SrcSel      : in    integer range PAU_SRC_CNT - 1 downto 0;         -- source select
+        OffsetSel   : in    integer range PAU_OFFSET_CNT - 1 downto 0;      -- offset select
+        Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
+        Offset12    : in    std_logic_vector(11 downto 0);                  -- 12-bit offset
+        OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register offest
+        TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- temporary register offset
+        UpdatePC    : in    std_logic;                                      -- update PC or hold
+        PRSel       : in    integer range PRSEL_CNT-1 downto 0;             -- select modify PR
+        IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
+        PrePostSel  : in    std_logic;                                      -- select decrement by 4
+        DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data bus
+        CLK         : in    std_logic;                                      -- clock
+        ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
+        PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
+        PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)    -- procedure register
     );
 
 end PAU;
@@ -138,19 +146,16 @@ architecture behavioral of PAU is
     signal AddrOff  : std_logic_array(PAU_OFFSET_CNT - 1 downto 0)(ADDR_BUS_SIZE - 1 downto 0);
 
     -- Incrementer/decrementer controls
-    signal IncDecSel    : std_logic;                --
-    -- signal IncDecBit    : integer range 0 downto 0; -- not used
-    -- signal PrePostSel   : std_logic;                -- mux select for pre/post
+    signal IncDecSel    : std_logic;                                    -- not used
     signal AddrSrcOut   : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0); -- not used
-
 
 begin
 
     -- Inputs to address source mux
     AddrSrc(PAU_AddrZero) <= (others => '0');   -- Zero
     AddrSrc(PAU_AddrPC) <= PC;                  -- PC
-    AddrSrc(PAU_AddrPR) <= PR;
-    AddrSrc(PAU_AddrDB) <= DB;
+    AddrSrc(PAU_AddrPR) <= PR;                  -- PR
+    AddrSrc(PAU_AddrDB) <= DB;                  -- DB
 
     -- Inputs to offset mux
     AddrOff(PAU_OffsetZero) <= (others => '0');                                 -- Zero
@@ -161,23 +166,22 @@ begin
     AddrOff(PAU_OffsetReg) <= OffsetReg;                                        -- register value
     AddrOff(PAU_TempReg) <= TempReg;                                            -- temporary register
 
-    -- Incrementer/decrement controls
-    IncDecSel <= MemUnit_DEC;   -- not used (preventing undefined value)
-    -- IncDecBit <= 0;             -- not used (preventing undefined value)
-    -- PrePostSel <= MemUnit_POST; -- use post value to ignore inc/dec
+    -- Always decrementing when using increment/decrementer
+    IncDecSel <= MemUnit_DEC;
 
-    -- Update registors of PAU
+    -- Update registers of PAU
     PAU_registers : process (CLK)
     begin
         if rising_edge(CLK) then
 
+            -- Update PC
             PC <= ProgAddr when UpdatePC = '1' else PC;
 
             -- Update PR
-            PR <= PC        when PRSel = PRSel_PC   else 
-                  OffsetReg when PRSel = PRSel_Reg  else
-                  DB        when PRSel = PRSel_DB   else
-                  PR        when PRSel = PRSel_None else
+            PR <= PC        when PRSel = PRSel_PC   else    -- program counter
+                  OffsetReg when PRSel = PRSel_Reg  else    -- offset register
+                  DB        when PRSel = PRSel_DB   else    -- databus
+                  PR        when PRSel = PRSel_None else    -- no change
                   (others => 'Z');
         end if;
     end process;
@@ -187,7 +191,7 @@ begin
         generic map (
             srcCnt => PAU_SRC_CNT,          -- number of address sources
             offsetCnt => PAU_OFFSET_CNT,    -- number of offset sources
-            maxIncDecBit => 2,              -- 
+            maxIncDecBit => 2,              -- always decrementing by 4 (log_2(4)=2)
             wordsize => ADDR_BUS_SIZE       -- 32-bit addressing
         )
         port map (
@@ -195,8 +199,8 @@ begin
             SrcSel => SrcSel,           -- address source mux select
             AddrOff => AddrOff,         -- offset source
             OffsetSel => OffsetSel,     -- offset source mux select
-            IncDecSel => IncDecSel,     --
-            IncDecBit => IncDecBit,     --
+            IncDecSel => IncDecSel,     -- unused
+            IncDecBit => IncDecBit,     -- unused
             PrePostSel => PrePostSel,   -- always post
             Address => ProgAddr,        -- address bus
             AddrSrcOut => AddrSrcOut    -- inc/dec source

@@ -9,6 +9,8 @@
 --
 --  Revision History:
 --     28 Apr 25  Glen George       Initial revision.
+--     1  May 25  Garrett Knuf      Fix bugs and compilation errors.
+--     2  May 25  Garrett Knuf      Add reading in memory and dumping memory.
 --
 ----------------------------------------------------------------------------
 
@@ -47,8 +49,6 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
--- use ieee.std_logic_arith.all;
--- use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 

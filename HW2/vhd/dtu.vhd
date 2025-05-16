@@ -25,7 +25,7 @@
 --     DTU - data transfer unit
 --
 --  Revision History:
---     14 May 2025  Garrett Knuf    Initial Revision.
+--     14 May 2025  Garrett Knuf    Initial Revision (move from top-level).
 --
 ----------------------------------------------------------------------------
 

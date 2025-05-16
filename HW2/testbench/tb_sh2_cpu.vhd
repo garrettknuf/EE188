@@ -21,8 +21,8 @@ use work.CUConstants.all;
 
 entity tb_sh2_cpu is
     generic (
-        mem0_filepath : string := "no_file_provided"; -- file to read memory from
-        mem1_filepath : string := "no_file_provided"  -- file to read memory from
+        mem0_filepath : string := ""; -- file to read memory from
+        mem1_filepath : string := ""  -- file to read memory from
     );
 end tb_sh2_cpu;
 

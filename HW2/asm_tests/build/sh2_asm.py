@@ -1,5 +1,38 @@
 """
 SH-2 Assembler
+
+This file is a tool designated to translate SH-2 assembly language source code
+into executably binary machine code. It parses the input assembly file, resolves
+symbols and labels, encodes instructions according the the SH-2 instruction set
+architecture in the SH-2 Programming Manual (1996), and produces a binary string
+output file suitable for loading into an SH-2 simulator. Assembled code is in
+big-endian format.
+
+Usage:
+    python sh2_assembler.py <input_file.asm> <output_file.bin>
+
+Architecture:
+    -Lexer/Parser: reads input file line-by-line, tokenizes instructions and
+     operands, and construction internal instruction representations.
+    -Symbol Table: Maintains label definitions and reference to support forward
+     and backward label usage.
+    -Encoder : Converts each parsed instruction into its binary machine code
+     according to SH-2 encoding rules.
+    -Assembler passes: (1) parses instruction, records labels, and instruction
+     addresses (2) resolves label addresses, finalizes instruction encodings,
+     and writes output.
+
+Directives:
+    .text : Marks the beginning of the program code section. Contains the SH-2
+            instructions that will be assembled into executable machine code.
+    .data : Defines pre-initialized data section. The variables can be specified
+            as .byte, .word, .long.
+    .vectable : Defines the exception and interrupt vector table. This section
+                holds the vector addresses used by the CPU. Entries are specified
+                as labels paired with their corresponding 32-bit handler addresses.
+
+Author: Garrett Knuf
+Date: April 25 2025
 """
 
 import re
@@ -13,7 +46,8 @@ REGISTER_MAP = {
     f"R{i}": i for i in range(16)
 }
 
-# Table of instructions
+# Table of instructions (referenced from SuperH RISC Engine SH-1/SH-2 Programming
+# Manual)
 INSTRUCTION_SET = {
     # 0 format
     # Table A.23
@@ -222,12 +256,35 @@ INSTRUCTION_SET = {
 
 }
 
+# Create list of labels during first pass for later assingments
 label_dict = {}
+
+# Create list of relative branches during first pass for later assignment
 pc_rel_branch_list = []
 
 def parse_operand(op):
+    """
+    Parses a single operand string from SH-2 assembly syntax and classifies it.
+
+    Operand types
+    - Immediate values (e.g., "#10")
+    - Pre-decrement and post-increment addressing (e.g., "@-R4", "@R3+")
+    - Register indirect and indexed (e.g., "@R3", "@(4, R2)")
+    - GBR/PC-based indexed (e.g., "@(4, GBR)")
+    - Register direct (e.g., "R7")
+    - Special registers (e.g., "SR", "GBR", "VBR", "PR", "PC")
+    - Symbolic labels or unresolved expressions (fallback case)
+
+    Args:
+        op (str): The operand string to parse.
+
+    Returns:
+        tuple: A tuple of the form (type, value), where:
+            - type (str): The operand type identifier, e.g., "imm", "reg", "label".
+            - value: The operand value(s)
+    """
     op = op.strip().upper()
-    op = re.sub(r"\s+", "", op)  # remove all whitespace
+    op = re.sub(r"\s+", "", op)  # remove whitespace
     
     # Immediate value (e.g., #10, #-5)
     if re.match(r"#-?\d+", op):
@@ -258,8 +315,8 @@ def parse_operand(op):
     # Indexed displacement with GBR (e.g., @(4, GBR))
     match_gbr = re.match(r"@\s*\(\s*([-+]?\d+)\s*,\s*GBR\s*\)", op)
     if match_gbr:
-        disp = int(match_gbr.group(1), 0)  # Handle the displacement (support for base 0)
-        return "indexed_gbr", disp  # GBR doesn't need a register number
+        disp = int(match_gbr.group(1), 0)  # Handle the displacement
+        return "indexed_gbr", disp
     
     # Indexed displacement with R0 and GBR (e.g., @(R0, GBR))
     match_r0_gbr = re.match(r"@\s*\(\s*R0\s*,\s*GBR\s*\)", op)
@@ -269,10 +326,9 @@ def parse_operand(op):
     # Indexed displacement with PC (e.g., @(4, PC))
     match_pc = re.match(r"@\s*\(\s*([-+]?\d+)\s*,\s*PC\s*\)", op)
     if match_pc:
-        disp = int(match_pc.group(1), 0)  # Handle the displacement (support for base 0)
-        return "indexed_pc", disp  # PC doesn't need a register number
+        disp = int(match_pc.group(1), 0)    # Handle the displacement
+        return "indexed_pc", disp
 
-    
     # Indexed indirect with R0: @(R0, Rn)
     match = re.match(r"@\s*\(\s*R0\s*,\s*R(\d+)\s*\)", op)
     if match:
@@ -295,16 +351,35 @@ def parse_operand(op):
     if op == "PC":
         return "pc", None
 
-    # Fallback: probably a label or symbolic address (e.g., jump target)
+    # Otherwise probably a label or symbolic address (e.g., jump target)
     return "label", op
     
+
 def assemble_instruction(line, addr):
+    """
+    Assembles a single line of SH-2 assembly code into bytecode. Removes
+    comments and unneccessary whitespace, tokenizes opcode and operands, parses
+    operands into types and values using parse_operands, looks up encoding from
+    INSTRUCTION_SET table, tracks label defintions and PC-relative branch
+    instructions.
+
+    Args:
+        line (str): a single line of assembly code
+        addr (int): current instruction address in the program
+
+    Returns:
+        int or None: 16-bit machine instruction as integer, or if not a valid
+                     instruction, None
+    """
+
     # Remove comments and strip white space
     line = line.split(';')[0].strip()
-    
+
+    # Do not handle empty lines
     if not line or line == '':
         return None
 
+    # Tokenize instruction
     tokens = line.split(None, 1)
     opcode = tokens[0].upper()
     operands = []
@@ -314,26 +389,46 @@ def assemble_instruction(line, addr):
         raw_operands = re.findall(r'@?\([^)]*\)|[^,]+', tokens[1])
         operands = [op.strip() for op in raw_operands]
 
+    # Parse each operands for its type and value
     parsed_operands = [parse_operand(op) for op in operands]
+
+    # Extract only operand types to determine the instruction format
     operand_types = tuple(op_type for op_type, _ in parsed_operands)
+
+    # Form the key used to look up instruction in INSTRUCTION_SET table
     key = (opcode, operand_types)
 
+    # If a label is found, save it, and return None
     if re.match(r'^\s*([A-Za-z_][A-Za-z0-9_]*):\s*$', opcode):
         label_dict[opcode[:-1]] = addr
         return None
 
+    # Check instruction is valid
     if key not in INSTRUCTION_SET:
         raise ValueError(f"Unsupported instruction: {opcode} {operand_types}\n{line}")
 
+    # Extract operand values for table lookup
     operand_values = [value for _, value in parsed_operands]
 
+    # Defer encoding PC-relative branches until all labels are known (temporarily
+    # just save that this branch exists)
     if opcode in ['BF', 'BF/S', 'BT', 'BT/S', 'BRA','BSR']:
         pc_rel_branch_list.append((opcode, operand_values, addr))
 
+    # Lookup bytecode in table
     return INSTRUCTION_SET[key](*operand_values)
 
 
 def parse_value(val):
+    """
+    Parses a string representing a numer value in binary, hexadecimal, or decimal
+    format.
+
+    Support formats:
+    - Binary: prefixed with 'b' (e.g., 'b1010')
+    - Hexadecimal: prefixed with '0x' (e.g., '0x1F')
+    - Decimal: unprefixed (e.g., '42')
+    """
     val = val.strip()
     if val.startswith("b"):  # Binary literal
         return int(val[1:], 2)
@@ -343,14 +438,28 @@ def parse_value(val):
         return int(val)
 
 def parse_data(line):
-    data = bytearray()
-    labels = {}
-    current_offset = 0
+    """
+    Parses a line from the .data section and returns a list of binary string
+    representations. Strips comments. Data is big-endian.
+    Recognizes the following directives: .byte, .word, .long types.
 
+    Args:
+        line (str): A single line from the .data section.
+
+    Returns:
+        list[str]: A list of binary string representations of the data (8 or 16 bits wide),
+                   or None if the line is not a valid data directive.
+    """
+
+    data = bytearray()  # Uses binary data as bytes
+    labels = {}         # Label dictionary (local)
+
+    # Skip empty lines or comments headers
     line = line.strip()
     if not line or line.startswith(';') or line == ".data":
         return None
     
+    # Remove inline comments
     line = line.split(';')[0].strip()
     
     # Extract label and directive
@@ -358,18 +467,18 @@ def parse_data(line):
     if not label_match:
         return None
     
+    # Track label's offset if needed outside function
     label, directive, value = label_match.groups()
-    labels[label] = current_offset
 
+    # Track output format
     isbyte = False
 
-    if directive == ".ascii":
-        data.extend(value.strip('"').encode('ascii'))
-    elif directive == ".asciiz":
-        data.extend(value.strip('"').encode('ascii') + b'\x00')
-    elif directive == ".byte":
+    # .byte each value becomes one byte
+    if directive == ".byte":
         data.extend(parse_value(v) & 0xFF for v in value.split(','))
         isbyte = True
+
+    # .word each value becomes two bytes
     elif directive == ".word":
         for v in value.split(','):
             intval = parse_value(v)
@@ -377,6 +486,8 @@ def parse_data(line):
             if intval < 0:
                 intval = (1 << 16) + intval  # Two's complement
             data.extend(struct.pack('>H', intval))
+
+    # .long each value becomes foure bytes
     elif directive == ".long":
         for v in value.split(','):
             intval = parse_value(v)
@@ -388,8 +499,8 @@ def parse_data(line):
     else:
         raise ValueError(f"Unknown directive: {directive}")
     
+    # Create final list of binary strings
     binary_strs = []
-
     if not isbyte:
         # Pad to 16-bit boundary if needed
         if len(data) % 2 != 0:
@@ -402,15 +513,14 @@ def parse_data(line):
             word = (high << 8) | low
             binary_strs.append(f"{word:016b}")
     else:
+        # Convert to 8-bit binary strings otherwise
         for byte in data:
-            binary_strs.append(f"{byte:08b}")
-
-    current_offset += len(data)        
+            binary_strs.append(f"{byte:08b}")      
     
     return binary_strs
 
 
-### Main ####
+# Main loop
 if __name__ == '__main__':
 
     # Make sure input and output files provided
@@ -418,7 +528,7 @@ if __name__ == '__main__':
         print("Usage: python3 sh2_asm.py <asm_file>")
         sys.exit(1)
 
-    # Code Section
+    # Code Sections
     SEG_UNKNOWN = 0
     SEG_TEXT = 1
     SEG_DATA = 2
@@ -430,23 +540,24 @@ if __name__ == '__main__':
     chunk2_output = []
     chunk3_output = []
 
+    # Address of chunks
     CHUNK0_ADDR = 1024*0
     CHUNK1_ADDR = 1024*1
-    CHUNK2_ADDR = 1024*2
-    CHUNK3_ADDR = 1024*3
+    CHUNK2_ADDR = 1024*2 # not used
+    CHUNK3_ADDR = 1024*3 # not used
     CHUNK_SIZE = 1024
 
+    # Used to combine bytes into words for output
     between_bytes = False
 
     # Read assembly file
     with open(sys.argv[1], 'r') as asm_file:
         lines = asm_file.readlines()
 
-        addr = 0
-        seg = SEG_UNKNOWN
-        data_arr = []
-        data_map = {}
-        vector_words = []
+        addr = 0            # current memory address in segment
+        seg = SEG_UNKNOWN   # current segment being parsed
+        data_arr = []       # stores binary strings for data segment
+        vector_words = []   # stores binary lines for vector table
 
         # Iterate through all lines of file
         for line_num, line in enumerate(lines):
@@ -483,7 +594,7 @@ if __name__ == '__main__':
                     text = format(asm, '016b') + f'\t; 0x{addr + len(vector_words)*2:08X} : ' + \
                             f"{(lines[line_num].lstrip())}".rstrip('\n') + '\n'
                     chunk0_output.append(text)
-                    addr += 2
+                    addr += 2   # Advances by 2 bytes per instruction
 
             # Parse data segment
             elif seg == SEG_DATA:
@@ -493,31 +604,31 @@ if __name__ == '__main__':
                         if not between_bytes:
                             temp_byte = data[0]
                         else:
+                            # Combine two bytes into a word for output
                             data_arr.append([temp_byte + data[0]])
                         between_bytes = not between_bytes
                     else:
                         data_arr.append(data)
 
-        # Fill in reset of program code memory up until start of next chunk
+        # Pad code segment with 0s up to the chunk size
         addr += 2*len(vector_words)
         while addr < CHUNK0_ADDR + CHUNK_SIZE:
             chunk0_output.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
             addr += 2
 
-        # Add data segment with comments
+        # Add data segment with appropriate comments
         addr = CHUNK1_ADDR
         for var in data_arr:
             for word in var: 
                 dec_val = int(word, 2)
                 hex_val = hex(dec_val)
-                # print(word)
                 left_byte = int(word[:8], 2)
                 right_byte = int(word[8:16], 2)
                 chunk1_output.append(f"{word}\t; 0x{addr:08X} : {left_byte}," +
                                     f"{right_byte} / {dec_val} / {hex_val}\n")
                 addr += 2
 
-        # Fill in data segment with zeros
+        # Pad data segment with zeros
         while addr < CHUNK1_ADDR + CHUNK_SIZE:
             chunk1_output.append(f'{format(0x0000, "016b")}\t; 0x{addr:08X} : 0x00\n')
             addr += 2
@@ -529,9 +640,9 @@ if __name__ == '__main__':
         label_addr = label_dict[branch[1][0]]
         offset = label_addr - branch_instr_addr
         offset = (int)(offset / 2)
-
         new_line = ''
-        # Add displacmenet to instruction
+
+        # Add displacement to instruction
         if branch[0] in ['BF', 'BF/S', 'BT', 'BT/S']:
             # 8-bit displacement
             output_bin = format(offset & 0x00FF, '08b')
@@ -547,17 +658,18 @@ if __name__ == '__main__':
         
         chunk0_output[(int)(branch_instr_addr / 2)] = new_line
 
-
-    # Write to output file
+    # Write to output files
     output_file_basename =  os.path.splitext(os.path.basename(sys.argv[1]))[0]
     output_file_path = '../asm_tests/build/'
 
+    # Write program memory code
     with open(output_file_path + "build_mem0.txt", 'w') as out_file:
         for word in vector_words:
             out_file.write(word)
         for line in chunk0_output:
             out_file.write(line)
 
+    # Write data memory code
     with open(output_file_path  + "build_mem1.txt", 'w') as out_file:
         for line in chunk1_output:
             out_file.write(line)
