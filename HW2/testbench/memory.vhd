@@ -2,10 +2,8 @@
 --
 --  Memory Subsystem
 --
---  This component describes the memory for a 32-bit byte-addressable CPU
---  with a 32-bit address bus.  Only a portion of the full address space is
---  filled in.  Addresses outside the filled in range return 'X' when read
---  and generate error messages when written.
+--  This component describes a memory interface for a 32-bit byte-addressable
+--  CPU with a 32-bit address bus. 
 --
 --  Revision History:
 --     28 Apr 25  Glen George       Initial revision.
@@ -19,17 +17,18 @@
 --  This is a memory component that supports a byte-addressable 32-bit wide
 --  memory with 32-bits of address.  No timing restrictions are implemented,
 --  but if the address bus changes while a WE signal is active an error is
---  generated.  Only a portion of the memory is actually usable.  Addresses
---  outside of the four usable ranges return 'X' on read and generate error
---  messages on write.  The size and address of each memory chunk are generic
---  parameters.
+--  generated. For simulation practicality, only a portion of the full 
+--  address space is filled in. Specifically, four segments of size ajustible 
+--  chunks of 32-bit words (all same size). Addresses outside of the four 
+--  usable ranges return 'X' on read and generate error messages on write. 
+--  The size and address of each memory chunk are generic parameters.
 --
 --  Generics:
---    MEMSIZE - size of the four memory blocks in 32-bit words
---    START_ADDR0 - starting address of first memory block/chunk
---    START_ADDR1 - starting address of second memory block/chunk
---    START_ADDR2 - starting address of third memory block/chunk
---    START_ADDR3 - starting address of fourth memory block/chunk
+--    MEMSIZE     - how many 32-bit words in each of the four memory blocks
+--    START_ADDR0 - starting WORD address of first memory block/chunk
+--    START_ADDR1 - starting WORD address of second memory block/chunk
+--    START_ADDR2 - starting WORD address of third memory block/chunk
+--    START_ADDR3 - starting WORD address of fourth memory block/chunk
 --
 --  Inputs:
 --    RE0    - low byte read enable (active low)
@@ -48,19 +47,17 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
--- use ieee.std_logic_arith.all;
--- use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
 entity  MEMORY32x32  is
 
     generic (
-        MEMSIZE     : integer := 256;   -- default size is 256 words
-        START_ADDR0 : integer;          -- starting address of first block
-        START_ADDR1 : integer;          -- starting address of second block
-        START_ADDR2 : integer;          -- starting address of third block
-        START_ADDR3 : integer;          -- starting address of fourth block
+        MEMSIZE       : integer := 256; -- default size is 256 words
+        START_ADDR0   : integer;        -- starting WORD address of first block
+        START_ADDR1   : integer;        -- starting WORD address of second block
+        START_ADDR2   : integer;        -- starting WORD address of third block
+        START_ADDR3   : integer;        -- starting WORD address of fourth block
         MEM_FILEPATH0 : string;         -- filepath to first block initial values
         MEM_FILEPATH1 : string;         -- filepath to second block initial values
         MEM_FILEPATH2 : string;         -- filepath to third block initial values
@@ -89,18 +86,17 @@ architecture  behavioral  of  MEMORY32x32  is
     -- define the type for the RAM chunks
     type  RAMtype  is array (0 to MEMSIZE - 1) of std_logic_vector(31 downto 0);
 
-    -- now define the RAMs (initialized to X)
+    -- now define the RAM chunks (initialized to X)
     signal  RAMbits0  :  RAMtype  := (others => (others => 'X'));
     signal  RAMbits1  :  RAMtype  := (others => (others => 'X'));
     signal  RAMbits2  :  RAMtype  := (others => (others => 'X'));
     signal  RAMbits3  :  RAMtype  := (others => (others => 'X'));
 
-    -- generate unsigned values for calculating bounds
-    constant  START_ADDR0_U  :  unsigned(31 downto 0) := to_unsigned(START_ADDR0, 32);
-    constant  START_ADDR1_U  :  unsigned(31 downto 0) := to_unsigned(START_ADDR1, 32);
-    constant  START_ADDR2_U  :  unsigned(31 downto 0) := to_unsigned(START_ADDR2, 32);
-    constant  START_ADDR3_U  :  unsigned(31 downto 0) := to_unsigned(START_ADDR3, 32);
-    constant  MEMSIZE_U     :  unsigned(31 downto 0) := to_unsigned(MEMSIZE, 32);
+    -- generate unsigned values for bound calculations
+    constant  START_ADDR0_U : unsigned(31 downto 0) := to_unsigned(START_ADDR0, 32);
+    constant  START_ADDR1_U : unsigned(31 downto 0) := to_unsigned(START_ADDR1, 32);
+    constant  START_ADDR2_U : unsigned(31 downto 0) := to_unsigned(START_ADDR2, 32);
+    constant  START_ADDR3_U : unsigned(31 downto 0) := to_unsigned(START_ADDR3, 32);
 
     -- general read and write signals
     signal  RE  :  std_logic;
@@ -108,29 +104,33 @@ architecture  behavioral  of  MEMORY32x32  is
 
     file    MEM_FILE0 : text;
     file    MEM_FILE1 : text;
+    -- Warning: MEM_FILE2 and MEM_FILE3 are not used in this code
+    --  but are declared for completeness. They can be easily added
+    --  to the code if needed.
     file    MEM_FILE2 : text;
     file    MEM_FILE3 : text;
 
 begin
 
-
     -- compute the general read and write signals (active low signals)
     RE  <=  RE0  and  RE1  and  RE2  and  RE3;
     WE  <=  WE0  and  WE1  and  WE2  and  WE3;
 
+    -- File initialization process
     process
     begin
         -- Read ROM from a file
         file_open(MEM_FILE0, MEM_FILEPATH0, read_mode);
         file_open(MEM_FILE1, MEM_FILEPATH1, read_mode);
+        -- Additional files can be opened here if needed
         wait;
     end process;
 
+    -- Memory dump to file process
     dump_mem : process
 
-        --
-        --
         -- DumpMemToFile
+        -- This procedure dumps the contents of the specified RAM chunk to a file.
         procedure DumpMemToFile(filename : in string;
                                 rambits : in RAMtype) is
             file dump_file : text open write_mode is filename;
@@ -152,9 +152,10 @@ begin
         end procedure;
 
     begin
-
+        -- Wait for the simulation to end
         wait until END_SIM = '1';
-        
+
+        -- and then dump all four memory chunk contents to files
         DumpMemToFile("../asm_tests/mem_dump/dump0.txt", RAMbits0);
         DumpMemToFile("../asm_tests/mem_dump/dump1.txt", RAMbits1);
         DumpMemToFile("../asm_tests/mem_dump/dump2.txt", RAMbits2);
@@ -163,9 +164,9 @@ begin
     end process;
 
 
+    -- Memory read/write process
     process
 
-        --
         -- LoadMemFromFile
         --
         -- This procedure reads a file that contains a 16-bit binary string on
@@ -174,7 +175,7 @@ begin
         -- @arg mem_file [in] - data structure to store file in
         -- @arg ram_chunk [in] - chunk of RAM to set
         procedure LoadMemFromFile(file mem_file : text;
-                                  signal ram_chunk : inout RAMType) is
+                                  signal ram_chunk : out RAMType) is
             variable line_buf1 : line;
             variable line_buf2 : line;
             variable str_buf1 : string(1 to 16);
@@ -226,6 +227,7 @@ begin
 
     begin
 
+        -- Load files
         if files_loaded = '0' then
             LoadMemFromFile(MEM_FILE0, RAMbits0);
             LoadMemFromFile(MEM_FILE1, RAMbits1);
@@ -277,7 +279,7 @@ begin
 
         -- now check if writing
         if  (WE'event and (WE = '0'))  then
-            -- rising edge of write - write the data (check which address range)
+            -- faling edge of write - write the data (check which address range)
             -- first get current value of the byte
             if  (unsigned(MemAB) >= (START_ADDR0_U*4)) and
                  (unsigned(MemAB) - (START_ADDR0_U*4) < 4 * MEMSIZE)  then
