@@ -47,7 +47,7 @@
     Reserved:               0x00000000  ; reserved (14)
     Reserved:               0x00000000  ; reserved (15)
     ; 16-31 typically reserved (but ignoring here)
-    TrapInstUser0:          0x000000BA  ; trap instruction (uservector) (13) (typically 32)
+    TrapInstUser0:          0x000000B4  ; trap instruction (uservector) (13) (typically 32)
     TrapInstUser1:          0x00000000  ; trap instruction (uservector) (14) (typically 33)
     TrapInstUser2:          0x00000000  ; trap instruction (uservector) (15) (typically 34)
     TrapInstUser3:          0x00000000  ; trap instruction (uservector) (16) (typically 35)
@@ -149,7 +149,7 @@ TestPR:
     LDS.L   @R11+,PR   ; Read 432
     ADD     #4, R10    ; Counteract pre-dec
     STS.L   PR,@-R10   ; WRITE 432
-    ADD     #4, R10
+    ADD     #4, R10    
 
 ;;--------------------------------------------------------------------------
 ;; Test Trapa: GOTO TRAPA test
@@ -160,10 +160,10 @@ TestPR:
 ;; Test NOP (Trapa vector address)
 ;;--------------------------------------------------------------------------
 ; NOPTests:
-    NOP     ; TRAPA #16 will point here
-    NOP
-    NOP
-    NOP
+    NOP             ; TRAPA #16 will point here
+    MOV     #3,R8   ; Put a test value to prove it got here
+    MOV.L   R8,@R10 ; WRITE 3
+    ADD     #4,R10
 
 ;;--------------------------------------------------------------------------
 ;; Test RTE: Verify RTE instruction returns with branch slot
@@ -182,6 +182,10 @@ TrapaTests:
     NOP     ; Trapa Test
     NOP
     TRAPA   #16
+    STC     SR,R8   ; Put SR into R8 and put into memory to verify SR restore
+    MOV.L   R8,@R10 ; WRITE 80
+    ADD     #4,R10
+
 
 ;;--------------------------------------------------------------------------
 ;; TestSuccess/Fail: Record final pass/fail code
