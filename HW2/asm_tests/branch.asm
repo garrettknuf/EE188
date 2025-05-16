@@ -4,13 +4,32 @@
 ;                                                                             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; This file tests branch instructions for the SH-2.
+;   This file is an assembly test suite exercising SH-2 data transfer type
+;   instructions to verify correct operation of the following instructions:
+;   - BF
+;   - BT
+;   - BF/S
+;   - BT/S
+;   - BRA
+;   - BRAF
+;   - BSR
+;   - BSRF
+;   - JMP
+;   - JSR
+;   - RTS
 ;
-; The tests are 
+;   Verifies conditional branches, delayed slots, relative and register
+;   based branching, subroutine calls/returns, and program counter
+;   manipulation. Results are written to memory via R10 and a final
+;   pass/fail flag is logged.
+
 ;
 ; Revision History:
 ;   27 Apr 25   Garrett Knuf    Initial revision.
 
+;;------------------------------------------------------------------------------
+;; Exception Vector Table
+;;------------------------------------------------------------------------------
 .vectable
     PowerResetPC:           0x00000050  ; PC for power reset (0)
     PowerResetSP:           0xFFFFFFFC  ; SP for power reset (1)
@@ -41,16 +60,24 @@
     ; 68-71 reserved
     ; 72-255 built-in peripheral modules
 
+;;------------------------------------------------------------------------------
+;; Code Section
+;;------------------------------------------------------------------------------
 .text
 
+;;--------------------------------------------------------------------------
+;; InitDataSegAddr: Compute data buffer base in R0 and set R10
+;;   - Build 0x400 via shifts on 64 in R0
+;;   - R10 points at start of result buffer
+;;--------------------------------------------------------------------------
 InitDataSegAddr:
-    MOV     #64, R0
-    SHLL    R0
-    SHLL    R0
-    SHLL    R0
-    SHLL    R0
-    MOV     R0, R10 ; 1024
+    MOV     #4, R0      ; Load the start of the data segment into R0 (1024)
+    SHLL8   R0          ; Multiply 4 by 258 to arrive at 1024 (8 shifts left)
+    MOV     R0, R10     ; R10 = buffer base (0x400)
 
+;;--------------------------------------------------------------------------
+;; BFTest: Test BF (branch if False) and BFS delayed execution
+;;--------------------------------------------------------------------------
 BFTest:
     CLRT
     BT      TestFail
@@ -67,6 +94,9 @@ BFSTest:
     BRA     TestFail
     NOP
 
+;;--------------------------------------------------------------------------
+;; BTTest: Test BT (branch if True) and BTS delayed execution
+;;--------------------------------------------------------------------------
 BTTest:
     MOV.L   R0, @R10    ; WRITE 1
     ADD     #4, R10
@@ -86,6 +116,9 @@ BTSTest:
     BRA     TestFail
     NOP
 
+;;--------------------------------------------------------------------------
+;; BRATest: Test BRA unconditional and delay slot
+;;--------------------------------------------------------------------------
 BRATest:
     ;ADD     #4, R10
     MOV.L   R0, @R10    ; WRITE 2
@@ -96,6 +129,9 @@ BRATest:
     BRA     TestFail
     NOP
 
+;;--------------------------------------------------------------------------
+;; BRAFTest: Branch Relative Absolute (register offset)
+;;--------------------------------------------------------------------------
 BRAFTest:
     MOV     #10, R3
     BRAF    R3          ; branch to BSRTest (PC+R3)
@@ -104,6 +140,10 @@ BRAFTest:
     BRA     TestFail
     NOP
 
+;;--------------------------------------------------------------------------
+;; BSR_RTSTest: Branch to subroutine (relative)
+;;   - BSR pushes return PC, jumps to TestFunction
+;;--------------------------------------------------------------------------
 BSR_RTSTest:
     MOV    #10, R11
     BSR    TestFunction
@@ -113,18 +153,21 @@ BSR_RTSTest:
     BRA    BSRF_RTSTest
     NOP
 
-;
-; TestFunction (decrement R11)
-;
-; @arg R11 value
-; @return R11 = value-1
-;
+;;--------------------------------------------------------------------------
+;; TestFunction: Decrements R11 and returns via RTS
+;       @arg R11 value
+;       @return R11 = value-1
+;;--------------------------------------------------------------------------
 TestFunction:
     DT          R11
     RTS                     ; return from function call
     MOV     #1, R6          ; should execute
     BRA     TestFail        ; this should not
 
+;;--------------------------------------------------------------------------
+;; BSRF_RTSTest: Branch to subroutine (register form)
+;;   - Offset in R12 calls TestFunction
+;;--------------------------------------------------------------------------
 BSRF_RTSTest:
     MOV     #-12, R12       ; offset to TestFunction
     BSRF    R12             ; call test function
@@ -133,6 +176,9 @@ BSRF_RTSTest:
     ADD    #4, R10
     ; BRA    JMPTest
 
+;;--------------------------------------------------------------------------
+;; JMPTest: Test JMP to PC-relative address via MOVA
+;;--------------------------------------------------------------------------
 JMPTest:
     MOVA    @(3, PC), R0
     MOV    #-20, R1
@@ -142,6 +188,9 @@ JMPTest:
     BRA     TestFail
     NOP
 
+;;--------------------------------------------------------------------------
+;; JSRTest: Test JSR to register-indirect subroutine
+;;--------------------------------------------------------------------------
 JSRTest:
     MOVA    @(0,PC),R0
     ADD     #-32, R0
@@ -151,6 +200,9 @@ JSRTest:
     MOV.L   R11, @R10
     ADD     #4, R10
 
+;;--------------------------------------------------------------------------
+;; TestSuccess/Fail: Record final pass/fail and halt
+;;--------------------------------------------------------------------------
 TestSuccess:
     MOV     #1, R9
     MOV.L   R9, @R10 ; store SUCCESS (1)
@@ -165,4 +217,7 @@ TestFail:
 TestEnd:
     SLEEP
 
+;;------------------------------------------------------------------------------
+;; Data Section: (None required for branch tests)
+;;------------------------------------------------------------------------------
 .data

@@ -4,7 +4,7 @@
 ;                                                                             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-;   This file is an assembly test suite exercising SH-2 system shift type
+;   This file is an assembly test suite exercising SH-2 data transfer type
 ;   instructions to verify correct operation of the following instructions:
 ;   - MOV Rm,Rn
 ;   - MOV.B Rm,@Rn
@@ -71,7 +71,7 @@
 ;;   - R11 = destination buffer base = R10 + 32
 ;;--------------------------------------------------------------------------
 InitDataSegAddr:
-    MOV     #4, R9      ; Load the start of the data segment into R0 (1024)
+    MOV     #4, R9      ; Load the start of the data segment into R9 (1024)
     SHLL8   R9          ; Multiply 4 by 258 to arrive at 1024 (8 shifts left)
     MOV     R9, R10     ; test reg to reg MOV
     MOV     #32, R11    ; R10 is address of data to read from
