@@ -4,19 +4,41 @@
 ;                                                                             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; This file tests shift operations for the SH-2 CPU.
+;   This file is an assembly test suite exercising SH-2 system shift type
+;   instructions to verify correct operation of the following instructions:
+;   - ROTL
+;   - ROTR
+;   - ROTCL
+;   - ROTCR
+;   - SHAL
+;   - SHAR
+;   - SHLL
+;   - SHLR
+;   - SHLL2/SHLR2
+;   - SHLL8/SHLR8
+;   - SHLL16/SHLR16
 ;
-; The tests are 
+;   Test results are written to memory via the GBR base register and records
+;   a final pass/fail code in memory at the end.
 ;
 ; Revision History:
 ;   28 Apr 25   Garrett Knuf    Initial revision.
 
+;;------------------------------------------------------------------------------
+;; Exception Vector Table
+;;------------------------------------------------------------------------------
 .vectable
     PowerResetPC:           0x00000008  ; PC for power reset (0)
     PowerResetSP:           0xFFFFFFFC  ; SP for power reset (1)
 
+;;------------------------------------------------------------------------------
+;; Code Section
+;;------------------------------------------------------------------------------
 .text
 
+;;--------------------------------------------------------------------------
+;; InitGBR: Set GBR to start of data buffer (0x400) via R0 shifts
+;;--------------------------------------------------------------------------
 InitGBR:                  ; calculate starting address of data segment
     MOV     #64, R0
     SHLL    R0
@@ -26,6 +48,9 @@ InitGBR:                  ; calculate starting address of data segment
     LDC     R0, GBR        ; GBR = 0x00000400 (1024)
     ; BRA   ROTTest
 
+;;--------------------------------------------------------------------------
+;; ROTTest: Test simple rotate left/right without carry
+;;--------------------------------------------------------------------------
 ROTTest:
     MOV.L   @(0,GBR),R0
     ROTL    R0
@@ -45,6 +70,9 @@ ROTTest:
     MOV.L   R0,@(7,GBR)    ; write ROTR Num1
     ; BRA   ROTCTest
 
+;;--------------------------------------------------------------------------
+;; ROTCTest: Test rotate through carry (ROTCL/ROTCR)
+;;--------------------------------------------------------------------------
 ROTCTest:
     SETT
     MOV.L   @(0,GBR),R0
@@ -68,6 +96,9 @@ ROTCTest:
     MOV.L   R0,@(11,GBR)    ; write ROTCR(T=0) Num1
     ; BRA   SHATest
 
+;;--------------------------------------------------------------------------
+;; SHATest: Test arithmetic shifts (SHAL/SHAR)
+;;--------------------------------------------------------------------------
 SHATest:
     SETT
     MOV.L   @(0,GBR),R0
@@ -91,6 +122,9 @@ SHATest:
     MOV.L   R0,@(15,GBR)   ; write SHAR Num1
     ; BRA   SHLTest
 
+;;--------------------------------------------------------------------------
+;; SHLTest: Test logical shifts (SHLL/SHLR)
+;;--------------------------------------------------------------------------
 SHLTest:
     SETT
     MOV.L   @(0,GBR),R0
@@ -114,6 +148,9 @@ SHLTest:
     MOV.L   R0,@(19,GBR)   ; write SHAR Num1
     ; BRA   SHL2Test
 
+;;--------------------------------------------------------------------------
+;; SHL2/8/16 Tests: Test multi-bit shifts
+;;--------------------------------------------------------------------------
 SHL2Test:
     MOV.L   @(0,GBR),R0
     SHLL2   R0
@@ -138,6 +175,9 @@ SHL16Test:
     MOV.L   R0,@(25,GBR)   ; write SHLR16(SHLL16 Num0)
     ; BRA   TestSuccess
 
+;;--------------------------------------------------------------------------
+;; TestSuccess/Fail: Record final pass/fail flag at offset 26
+;;--------------------------------------------------------------------------
 TestSuccess:
     MOV     #1, R0
     MOV.L   R0,@(26,GBR) ; store SUCCESS (1)
@@ -151,12 +191,11 @@ TestFail:
 TestEnd:
     SLEEP
 
+;;------------------------------------------------------------------------------
+;; Data Section: Test patterns
+;;------------------------------------------------------------------------------
 .data
 
 Num0:   .long b00101010101111000101110101001010 ; MSB=0,LSB=0
 Num1:   .long b10111011101111010111010111001011 ; MSB=1,LSB=1
-
-
-
-
 
