@@ -25,7 +25,7 @@
 --     DTU - data transfer unit
 --
 --  Revision History:
---     14 May 2025  Garrett Knuf    Initial Revision.
+--     14 May 2025  Garrett Knuf    Initial Revision (move from top-level).
 --
 ----------------------------------------------------------------------------
 
@@ -170,10 +170,12 @@ begin
         end if;
     end process;
 
-    -- Only access memory on falling edge of clock to avoid setup time violations.
+    
+    -- Register read/write enable signals
     process (CLK)
     begin
-        
+
+        -- Default disable any memory access
         WE3 <= '1';
         WE2 <= '1';
         WE1 <= '1';
@@ -183,12 +185,12 @@ begin
         RE1 <= '1';
         RE0 <= '1';
 
+        -- Only access memory on falling edge of clock to avoid setup time violations.
         if falling_edge(CLK) then
             WE3 <= WE(3);
             WE2 <= WE(2);
             WE1 <= WE(1);
             WE0 <= WE(0);
-
             RE3 <= RE(3);
             RE2 <= RE(2);
             RE1 <= RE(1);

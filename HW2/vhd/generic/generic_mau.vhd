@@ -22,7 +22,7 @@
 --                                  for the adder.
 --     16 Apr 25  Garrett Knuf      Flatten some 2d array to fix compilation issues.
 --     17 Apr 25  Garrett Knuf      Fix select lines of pre/post mux;
---     18 Apr 25  Garrett Knuf      Hide AdderBit since already in generic_alu.vhd.
+--     18 Apr 25  Garrett Knuf      Hide AdderBit since already declared in generic_alu.vhd.
 --
 ----------------------------------------------------------------------------
 
@@ -39,7 +39,6 @@ package array_type_pkg is
 
 --  a 2D array of std_logic (VHDL-2008)
    type  std_logic_array  is  array (natural range<>) of std_logic_vector;
-
 
 end package;
 

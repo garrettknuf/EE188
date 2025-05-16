@@ -2,7 +2,7 @@
 --
 --  Generic Constants
 --
---  This is package for general system constants.
+--  This is package for general system constants for the SH-2 CPU.
 --
 --  Revision History:
 --     17 Apr 25    Garrett Knuf    Initial revision.
@@ -24,11 +24,9 @@ package  GenericConstants  is
 
     constant ADDR_BUS_SIZE : integer := LONG_SIZE;  -- address bus num bits
     constant DATA_BUS_SIZE : integer := LONG_SIZE;  -- data bus num bits
-    constant REG_SIZE      : integer := LONG_SIZE;   -- register size
-
-    constant INST_SIZE : integer := WORD_SIZE;  -- data bus num bits
-
-    constant IMM_SIZE : integer := BYTE_SIZE;
+    constant REG_SIZE      : integer := LONG_SIZE;  -- register size
+    constant INST_SIZE     : integer := WORD_SIZE;  -- size of instructions
+    constant IMM_SIZE      : integer := BYTE_SIZE;  -- size of immediate values
 
     constant True   : std_logic := '1';
     constant False  : std_logic := '0';

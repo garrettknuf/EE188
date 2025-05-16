@@ -10,6 +10,9 @@
 --  It implements the GenericALU for general ALU ops and provides an interface
 --  specific for the SH2.
 --
+--  This ALU is built around a GenericALU and adds SH-2 specific control and T-bit
+--  flag logic. Operands selection muxes are also integrated in the unit.
+--
 --  Packages included are:
 --     ALUConstants - constants for ALU control
 --
@@ -18,6 +21,7 @@
 --
 --  Revision History:
 --     17 Apr 2025  Garrett Knuf    Initial Revision.
+--     8  May 2025  Garrett Knuf    Add TAS for T-bit calculation.
 --     13 May 2025  Garrett Knuf    Move external muxes for operands internal.
 --
 ----------------------------------------------------------------------------
@@ -33,10 +37,10 @@ package ALUConstants is
 
     -- ALUOpSelA - Operand A select
     constant ALUOPASEL_CNT      : integer := 4;
-    constant ALUOpASel_RegA     : integer range ALUOPASEL_CNT-1 downto 0 := 0;
-    constant ALUOpASel_DB       : integer range ALUOPASEL_CNT-1 downto 0 := 1; 
-    constant ALUOpASel_Zero     : integer range ALUOPASEL_CNT-1 downto 0 := 2; 
-    constant ALUOpASel_TempReg  : integer range ALUOPASEL_CNT-1 downto 0 := 3; 
+    constant ALUOpASel_RegA     : integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- RegA of RegArray
+    constant ALUOpASel_DB       : integer range ALUOPASEL_CNT-1 downto 0 := 1;  -- Databus
+    constant ALUOpASel_Zero     : integer range ALUOPASEL_CNT-1 downto 0 := 2;  -- All zeros
+    constant ALUOpASel_TempReg  : integer range ALUOPASEL_CNT-1 downto 0 := 3;  -- Temporary register
 
     -- ALUOpSelB - Operand B select
     constant ALUOPBSEL_CNT          : integer := 5;
@@ -66,21 +70,27 @@ end package;
 -- ALU
 --
 -- This is an implementation of an ALU for the SH-2 processor. It uses the
--- GenericALU module and consolidates the flags into a T-bit.
+-- GenericALU module and consolidates the flags into a T-bit. It also controls
+-- muxes that determine operands for computation.
 --
 --  Inputs:
---    ALUOpA   - first operand
---    ALUOpB   - second operand
---    Cin      - carry in (from status register)
---    FCmd     - F-Block operation to perform (4 bits)
---    CinCmd   - adder carry in operation for carry in (2 bits)
---    SCmd     - shift operation to perform (3 bits)
---    ALUCmd   - ALU operation to perform - selects result (2 bits)
---    TbitOp   - select how T-bit is calculated
+--    RegA      - register A from regarray
+--    RegB      - register A from regarray
+--    TempReg   - temporary register
+--    Imm       - immediate value
+--    DBIn      - value from data bus
+--    SR0       - t-bit in status register
+--    ALUOpASel - first operand select line
+--    ALUOpBSel - second operand select line
+--    FCmd      - F-Block operation to perform (4 bits)
+--    CinCmd    - adder carry in operation for carry in (2 bits)
+--    SCmd      - shift operation to perform (3 bits)
+--    ALUCmd    - ALU operation to perform - selects result (2 bits)
+--    TbitOp    - select how T-bit is calculated
 --
 --  Outputs:
---    Result   - ALU result
---    T-bit    - condition checking bit
+--    Result    - ALU result
+--    T-bit     - condition checking bit
 --
 
 library ieee;
@@ -160,7 +170,7 @@ architecture behavioral of ALU is
     signal STR  : std_logic;    -- if Rn and Rm have equivalent byte
     signal PL   : std_logic;    -- if Rn > 0
     signal PZ   : std_logic;    -- if Rn >= 0
-    signal TASZero : std_logic;
+    signal TASZero : std_logic; -- if TAS (checks zero condition on OpB instead of output)
 
 begin
 
@@ -174,7 +184,7 @@ begin
     -- Operand B mux
     OpB <= RegB                                             when ALUOpBSel = ALUOpBSel_RegB else
            (31 downto 8 => '0') & Imm                       when ALUOpBSel = ALUOpBSel_Imm_Unsigned else
-           (31 downto 8 => Imm(7)) & Imm                     when ALUOpBSel = ALUOpBSel_Imm_Signed else
+           (31 downto 8 => Imm(7)) & Imm                    when ALUOpBSel = ALUOpBSel_Imm_Signed else
            (31 downto 1 => '0') & SR0                       when ALUOpBSel = ALUOpBSel_Tbit else
            (31 downto 8 => '0') & '1' & (6 downto 0 => '0') when ALUOpBSel = ALUOpBSel_TASMask else
            (others => 'X');
@@ -188,7 +198,6 @@ begin
                     OpA(31 downto 24) = OpB(31 downto 24) else '0';
     PZ <= not Sign;
     PL <= not Sign and not Zero;
-
     TASZero <= '1' when OpA(7 downto 0) = "00000000" else '0';
 
     -- Mux to determine value of T-bit
@@ -227,14 +236,3 @@ begin
         );
 
 end behavioral;
-
-
-
-
-
-
-
-
-
-
-

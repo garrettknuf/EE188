@@ -138,8 +138,8 @@ entity CU is
         PAU_OffsetSel   : out   integer range PAU_OFFSET_CNT - 1 downto 0;
         PAU_UpdatePC    : out   std_logic;
         PAU_PRSel       : out   integer range PRSEL_CNT-1 downto 0;
-        PAU_IncDecBit   : out   integer range 2 downto 0;
         PAU_IncDecSel   : out   std_logic;
+        PAU_IncDecBit   : out   integer range 2 downto 0;
         PAU_PrePostSel  : out   std_logic;
 
         -- DAU Control Signals
