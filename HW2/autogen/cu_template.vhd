@@ -66,12 +66,13 @@ package CUConstants is
     constant ABOutSel_Prog : integer range 1 downto 0 := 0;
     constant ABOutSel_Data : integer range 1 downto 0 := 1;
 
-    constant TempReg1Sel_CNT      : integer := 5;
+    constant TempReg1Sel_CNT      : integer := 6;
     constant TempReg1Sel_Offset8  : integer range TempReg1Sel_CNT-1 downto 0 := 0;
     constant TempReg1Sel_Offset12 : integer range TempReg1Sel_CNT-1 downto 0 := 1;
     constant TempReg1Sel_RegB     : integer range TempReg1Sel_CNT-1 downto 0 := 2;
     constant TempReg1Sel_Result   : integer range TempReg1Sel_CNT-1 downto 0 := 3;
     constant TempReg1Sel_DataBus  : integer range TempReg1Sel_CNT-1 downto 0 := 4;
+    constant TempReg1Sel_PC       : integer range TempReg1Sel_CNT-1 downto 0 := 5;
 
     constant StatusReg_Tbit     : integer := 0; -- T bit
     constant StatusReg_Sbit     : integer := 1; -- S bit
@@ -122,6 +123,7 @@ entity CU is
         Result      : in  std_logic_vector(LONG_SIZE - 1 downto 0);   -- ALU result
         Tbit    : in    std_logic;
         IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";
+        PC      : in   std_logic_vector(REG_SIZE-1 downto 0);
         
 
         -- ALU Control Signals
@@ -225,11 +227,12 @@ begin
 
     --
     TempReg1MuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempReg1Sel = TempReg1Sel_Offset8 else
-                    (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempReg1Sel = TempReg1Sel_Offset12 else
-                    RegB when TempReg1Sel = TempReg1Sel_RegB else
-                    Result when TempReg1Sel = TempReg1Sel_Result else
-                    DB when TempReg1Sel = TempReg1Sel_DataBus else
-                    (others => 'X');
+                      (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempReg1Sel = TempReg1Sel_Offset12 else
+                      RegB when TempReg1Sel = TempReg1Sel_RegB else
+                      Result when TempReg1Sel = TempReg1Sel_Result else
+                      DB when TempReg1Sel = TempReg1Sel_DataBus else
+                      PC when TempReg1Sel = TempReg1Sel_PC else
+                      (others => 'X');
 
     RegInSel <= to_integer(unsigned(IR(11 downto 8)))   when RegInSelCmd = RegInSelCmd_Rn else
                 R15                                     when RegInSelCmd = RegInSelCmd_R15 else

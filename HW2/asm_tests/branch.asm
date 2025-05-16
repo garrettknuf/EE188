@@ -72,7 +72,7 @@
 ;;--------------------------------------------------------------------------
 InitDataSegAddr:
     MOV     #4, R0      ; Load the start of the data segment into R0 (1024)
-    SHLL8   R0          ; Multiply 4 by 258 to arrive at 1024 (8 shifts left)
+    SHLL8   R0          ; Multiply 4 by 256 to arrive at 1024 (8 shifts left)
     MOV     R0, R10     ; R10 = buffer base (0x400)
 
 ;;--------------------------------------------------------------------------
@@ -110,9 +110,9 @@ BTSTest:
     SETT
     BF/S    TestFail
     MOV     #63, R1
+    MOV     #2, R2
     BT/S    BRATest     ; take this branch (fail otherwise)
-    MOV     #2, R0
-    ;MOV.L   R1, @R10    ; WRITE 63 (test memory access in delay slot)
+    MOV.L   R1, @R10    ; WRITE 63 (test memory access in delay slot)
     BRA     TestFail
     NOP
 
@@ -120,12 +120,10 @@ BTSTest:
 ;; BRATest: Test BRA unconditional and delay slot
 ;;--------------------------------------------------------------------------
 BRATest:
-    ;ADD     #4, R10
-    MOV.L   R0, @R10    ; WRITE 2
     ADD     #4, R10
     BRA     BRAFTest    ; take this branch
-    MOV     #1, R2      ; execute this instruction
-    MOV     #0, R2      ; but not this one
+    MOV.L   R2, @R10
+    ADD     #-20, R10   ; should not executre
     BRA     TestFail
     NOP
 
@@ -133,6 +131,7 @@ BRATest:
 ;; BRAFTest: Branch Relative Absolute (register offset)
 ;;--------------------------------------------------------------------------
 BRAFTest:
+    ADD     #4, R10
     MOV     #10, R3
     BRAF    R3          ; branch to BSRTest (PC+R3)
     MOV     #0, R3      ; change branching offset in R3 (should not matter)
@@ -186,17 +185,14 @@ JMPTest:
     NOP
     NOP
     BRA     TestFail
-    NOP
 
 ;;--------------------------------------------------------------------------
 ;; JSRTest: Test JSR to register-indirect subroutine
 ;;--------------------------------------------------------------------------
 JSRTest:
     MOVA    @(0,PC),R0
-    ADD     #-32, R0
-    MOV     R0, R13
-    JSR     @R13        ; jump to TestFunction
     MOV     #37, R11
+    JSR     @R13        ; jump to TestFunction
     MOV.L   R11, @R10
     ADD     #4, R10
 
