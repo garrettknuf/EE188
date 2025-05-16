@@ -36,11 +36,12 @@ use ieee.std_logic_1164.all;
 package ALUConstants is
 
     -- ALUOpSelA - Operand A select
-    constant ALUOPASEL_CNT      : integer := 4;
+    constant ALUOPASEL_CNT      : integer := 5;
     constant ALUOpASel_RegA     : integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- RegA of RegArray
     constant ALUOpASel_DB       : integer range ALUOPASEL_CNT-1 downto 0 := 1;  -- Databus
     constant ALUOpASel_Zero     : integer range ALUOPASEL_CNT-1 downto 0 := 2;  -- All zeros
     constant ALUOpASel_TempReg  : integer range ALUOPASEL_CNT-1 downto 0 := 3;  -- Temporary register
+    constant ALUOpASel_PC       : integer range ALUOPASEL_CNT-1 downto 0 := 4;  -- Program counter
 
     -- ALUOpSelB - Operand B select
     constant ALUOPBSEL_CNT          : integer := 5;
@@ -77,6 +78,7 @@ end package;
 --    RegA      - register A from regarray
 --    RegB      - register A from regarray
 --    TempReg   - temporary register
+--    PC        - program counter
 --    Imm       - immediate value
 --    DBIn      - value from data bus
 --    SR0       - t-bit in status register

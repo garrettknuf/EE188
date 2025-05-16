@@ -208,14 +208,12 @@ architecture behavioral of CU is
     constant BootReadSP         : integer := 5; -- read stack pointer from vec table on boot
     constant BootWaitForFetch   : integer := 6; -- fetch first instruction to run after boot sequence
     constant WriteBack          : integer := 7; -- write a value from temp reg back to memory
-    constant WaitForFetch_R_TRAPA: integer := 8;
-    constant WaitForFetch2_W     : integer := 9;
-    constant WaitForFetch3       : integer := 10;
-    constant BranchSlotRTE       : integer := 11;
-    constant WaitForFetch_R_RTE  : integer := 12;
-    constant WaitForFetch2_R_RTE : integer := 13;
-    constant Sleep               : integer := 14;   -- idle (no code executing)
-    constant STATE_CNT           : integer := 15;   -- total number of states
+    constant TRAPA_PushPC       : integer := 8; -- push PC onto stack
+    constant TRAPA_ReadVector   : integer := 9; -- read vector address
+    constant RTE_PopSR          : integer := 10; -- pop SR from stack
+    constant RTE_Slot           : integer := 11; -- RTE branch slot
+    constant Sleep              : integer := 12;   -- idle (no code executing)
+    constant STATE_CNT          : integer := 13;   -- total number of states
 
     signal NextState : integer range STATE_CNT-1 downto 0;      -- state to transition to on next clock
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
@@ -263,7 +261,7 @@ begin
 
     RegAxInSel <= to_integer(unsigned(IR(11 downto 8))) when RegAxInSelCmd = RegAxInSelCmd_Rn else
                   to_integer(unsigned(IR(7 downto 4)))  when RegAxInSelCmd = RegAxInSelCmd_Rm else
-                  R15                                   when RegA1SelCmd = RegA1SelCmd_R15 else
+                  R15                                   when RegAxInSelCmd = RegAxInSelCmd_R15 else
                   R0;
 
     -- Control Unit Registers
@@ -334,6 +332,7 @@ begin
 			RD <= '0';
 			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
+			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
@@ -346,7 +345,9 @@ begin
 			CinCmd <= CinCmd_Zero;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -378,7 +379,9 @@ begin
 			CinCmd <= CinCmd_Zero;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -441,7 +444,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -475,7 +480,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -509,7 +516,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -542,7 +551,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -574,7 +585,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -606,7 +619,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -639,7 +654,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -676,7 +693,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -713,7 +732,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -749,7 +770,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -784,7 +807,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -819,7 +844,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -855,7 +882,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -889,7 +918,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -923,7 +954,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -956,7 +989,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -988,7 +1023,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1020,7 +1057,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1053,7 +1092,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1087,7 +1128,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1121,7 +1164,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1154,7 +1199,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1186,7 +1233,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1218,7 +1267,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1251,7 +1302,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1285,7 +1338,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1319,7 +1374,9 @@ begin
 			FCmd <= FCmd_B;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1352,7 +1409,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1384,7 +1443,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1416,7 +1477,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -2398,7 +2461,9 @@ begin
 			FCmd <= FCmd_AND;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -2525,7 +2590,9 @@ begin
 			FCmd <= FCmd_OR;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -2561,7 +2628,9 @@ begin
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= Tbit_TAS;
 			UpdateSR <= '1';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -2661,7 +2730,9 @@ begin
 			ALUCmd <= ALUCmd_FBLOCK;
 			TbitOp <= Tbit_Zero;
 			UpdateSR <= '1';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -2758,7 +2829,9 @@ begin
 			FCmd <= FCmd_XOR;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -3657,7 +3730,9 @@ begin
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '1';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -3691,7 +3766,9 @@ begin
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_GBR) then
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -3725,7 +3802,9 @@ begin
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_VBR) then
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -3790,7 +3869,9 @@ begin
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDSL_At_Rm_Inc_To_PR) then
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_DB;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -3824,7 +3905,9 @@ begin
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSLEEP) then
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -3897,8 +3980,8 @@ begin
 			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_Rn;
 			RegStore <= '0';
-			RegASelCmd <= 0;
-			RegBSelCmd <= 0;
+			RegASelCmd <= RegASelCmd_Rn;
+			RegBSelCmd <= RegBSelCmd_Rn;
 			RegAxInSelCmd <= RegAxInSelCmd_R15;
 			RegAxStore <= '1';
 			RegA1SelCmd <= RegA1SelCmd_R15;
@@ -3910,11 +3993,11 @@ begin
 			DBInMode <= 0;
 			DBOutSel <= 0;
 			DataAccessMode <= DataAccessMode_Long;
-			NextState <= WaitForFetch2_R_RTE;
+			NextState <= RTE_PopSR;
 			UpdateIR <= '0';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_DataBus;
-			SRSel <= SRSel_Tmp2;
+			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSETT) then
 			FCmd <= FCmd_ZERO;
@@ -4045,7 +4128,9 @@ begin
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTCL_SR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4079,7 +4164,9 @@ begin
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTCL_GBR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4113,7 +4200,9 @@ begin
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTCL_VBR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
-			PAU_UpdatePC <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4180,7 +4269,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '0';
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4240,7 +4329,7 @@ begin
 			DBInMode <= 0;
 			DBOutSel <= DBOutSel_SR;
 			DataAccessMode <= DataAccessMode_Long;
-			NextState <= WaitForFetch3;
+			NextState <= TRAPA_PushPC;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			TempRegSel <= 0;
@@ -4288,8 +4377,8 @@ begin
 			ALUOpBSel <= ALUOpBSel_RegB;
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_OffsetSel <= PAU_OffsetZero;
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			DAU_GBRSel <= 0;
 			DAU_VBRSel <= 0;
@@ -4330,17 +4419,16 @@ begin
 			PAU_OffsetSel <= PAU_TempReg;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
-			NextState <= Normal;
 			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 1;
 			PAU_PrePostSel <= MemUnit_PRE;
+			PAU_IncDecSel <= MemUnit_DEC;
 		elsif CurrentState = BranchSlotRet then
 			PAU_SrcSel <= PAU_AddrPR;
 			PAU_OffsetSel <= PAU_OffsetLong;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
-			NextState <= Normal;
-			UpdateTempReg <= '1';
+			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = BranchSlotDirect then
@@ -4348,8 +4436,7 @@ begin
 			PAU_OffsetSel <= PAU_TempReg;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
-			NextState <= Normal;
-			UpdateTempReg <= '1';
+			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = BootReadSP then
@@ -4404,6 +4491,7 @@ begin
 			DAU_GBRSel <= GBRSel_None;
 			DAU_VBRSel <= VBRSel_None;
 			RegStore <= '0';
+			RegAxStore <= '0';
 			RD <= '1';
 			WR <= '0';
 			ABOutSel <= ABOutSel_Data;
@@ -4414,63 +4502,70 @@ begin
 			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
-		elsif CurrentState = WaitForFetch_R_TRAPA then
-			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_OffsetZero;
-			PAU_UpdatePC <= '1';
-			RegAxStore <= '0';
-			RD <= '0';
-			WR <= '1';
-			ABOutSel <= ABOutSel_Prog;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
-		elsif CurrentState = WaitForFetch2_W then
+		elsif CurrentState = TRAPA_PushPC then
+			PAU_UpdatePC <= '0';
+			DAU_SrcSel <= DAU_AddrRn;
+			DAU_OffsetSel <= DAU_OffsetZero;
+			DAU_IncDecSel <= MemUnit_DEC;
+			DAU_IncDecBit <= 2;
+			DAU_PrePostSel <= MemUnit_PRE;
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
+			RegStore <= '0';
+			RegAxInDataSel <= RegAxInSelCmd_R15;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_R15;
+			RD <= '1';
+			WR <= '0';
+			ABOutSel <= ABOutSel_Data;
+			DBOutSel <= DBOutSel_PC;
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= TRAPA_ReadVector;
+			UpdateIR <= '0';
+		elsif CurrentState = TRAPA_ReadVector then
 			PAU_SrcSel <= PAU_AddrDB;
 			PAU_OffsetSel <= PAU_OffsetZero;
 			PAU_UpdatePC <= '1';
 			DAU_SrcSel <= DAU_AddrVBR;
 			DAU_OffsetSel <= DAU_Offset8x4;
 			DAU_PrePostSel <= MemUnit_POST;
+			DAU_GBRSel <= GBRSel_None;
+			DAU_VBRSel <= VBRSel_None;
+			RegStore <= '0';
+			RegAxInDataSel <= RegAxInSelCmd_R15;
 			RegAxStore <= '0';
 			RD <= '0';
 			WR <= '1';
-			NextState <= WaitForFetch_R_TRAPA;
-		elsif CurrentState = WaitForFetch3 then
-			DBOutSel <= DBOutSel_PC;
-			NextState <= WaitForFetch2_W;
-		elsif CurrentState = BranchSlotRTE then
-			UpdateSR <= '1';
-			PAU_SrcSel <= PAU_AddrZero;
-			PAU_OffsetSel <= PAU_TempReg;
-			PAU_UpdatePC <= '1';
-			PAU_PRSel <= PRSel_None;
-			ABOutSel <= ABOutSel_Prog;
-			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			PAU_IncDecBit <= 1;
-			PAU_PrePostSel <= MemUnit_PRE;
-			UpdateTempReg2 <= '0';
-			PAU_IncDecSel <= '0';
-			SRSel <= SRSel_Tmp2;
-		elsif CurrentState = WaitForFetch_R_RTE then
-			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_OffsetWord;
+			ABOutSel <= ABOutSel_Data;
+			DBInMode <= DBInMode_Unsigned;
+			DataAccessMode <= DataAccessMode_Long;
+			NextState <= WaitForFetch;
+			UpdateIR <= '0';
+		elsif CurrentState = RTE_PopSR then
+			PAU_SrcSel <= PAU_AddrDB;
+			PAU_OffsetSel <= PAU_OffsetZero;
 			PAU_UpdatePC <= '1';
 			RegStore <= '0';
-			RegAxStore <= '0';
-			ABOutSel <= ABOutSel_Prog;
+			RegAxInDataSel <= RegAxInSelCmd_R15;
+			RegAxStore <= '1';
+			RegA1SelCmd <= RegA1SelCmd_R15;
+			RD <= '0';
+			WR <= '1';
+			ABOutSel <= ABOutSel_Data;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= BranchSlotRTE;
+			NextState <= BranchSlotDirect;
 			UpdateIR <= '1';
 			UpdateTempReg <= '0';
-			UpdateTempReg2 <= '0';
-		elsif CurrentState = WaitForFetch2_R_RTE then
-			NextState <= WaitForFetch_R_RTE;
-			UpdateTempReg <= '0';
 			UpdateTempReg2 <= '1';
+		elsif CurrentState = RTE_Slot then
+			PAU_UpdatePC <= '0';
+			PAU_PRSel <= PRSel_None;
+			RegStore <= '0';
+			RegAxInDataSel <= RegAxInSelCmd_R15;
+			RegAxStore <= '0';
+			UpdateTempReg <= '0';
+			PAU_IncDecBit <= 0;
+			PAU_PrePostSel <= MemUnit_POST;
 		end if;
 
 

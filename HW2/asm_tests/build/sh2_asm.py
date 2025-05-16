@@ -55,7 +55,7 @@ INSTRUCTION_SET = {
     ("CLRMAC", ()): lambda : 0x0028,
     ("DIV0U", ()):  lambda : 0x0019,
     ("NOP", ()):    lambda : 0x0009,
-    ("RTE", ()):    lambda : 0x0029,
+    ("RTE", ()):    lambda : 0x002B,
     ("RTS", ()):    lambda : 0x000B,
     ("SETT", ()):   lambda : 0x0018,
     ("SLEEP", ()):  lambda : 0x001B,

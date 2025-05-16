@@ -72,7 +72,7 @@
 ;;--------------------------------------------------------------------------
 InitDataSegAddr:
     MOV     #4, R0      ; Load the start of the data segment into R0 (1024)
-    SHLL8   R0          ; Multiply 4 by 258 to arrive at 1024 (8 shifts left)
+    SHLL8   R0          ; Multiply 4 by 256 to arrive at 1024 (8 shifts left)
     MOV     R0, R10     ; R10 = buffer base (0x400)
 
 ;;--------------------------------------------------------------------------
@@ -111,8 +111,7 @@ BTSTest:
     BF/S    TestFail
     MOV     #63, R1
     BT/S    BRATest     ; take this branch (fail otherwise)
-    MOV     #2, R0
-    ;MOV.L   R1, @R10    ; WRITE 63 (test memory access in delay slot)
+    MOV.L   R1, @R10    ; WRITE 63 (test memory access in delay slot)
     BRA     TestFail
     NOP
 
@@ -120,8 +119,6 @@ BTSTest:
 ;; BRATest: Test BRA unconditional and delay slot
 ;;--------------------------------------------------------------------------
 BRATest:
-    ;ADD     #4, R10
-    MOV.L   R0, @R10    ; WRITE 2
     ADD     #4, R10
     BRA     BRAFTest    ; take this branch
     MOV     #1, R2      ; execute this instruction
@@ -146,8 +143,10 @@ BRAFTest:
 ;;--------------------------------------------------------------------------
 BSR_RTSTest:
     MOV    #10, R11
+    MOV    #1, R4
     BSR    TestFunction
-    MOV    #1, R4          ; should execute
+    MOV.L  R11, @R10       ; WRITE 10 (should execute before branch)
+    ADD    #4, R10         ; should execute after branch
     MOV.L  R11, @R10       ; WRITE 9
     ADD    #4, R10
     BRA    BSRF_RTSTest
@@ -169,7 +168,7 @@ TestFunction:
 ;;   - Offset in R12 calls TestFunction
 ;;--------------------------------------------------------------------------
 BSRF_RTSTest:
-    MOV     #-12, R12       ; offset to TestFunction
+    MOV     #-10, R12       ; offset to TestFunction
     BSRF    R12             ; call test function
     MOV     #20, R11        ; should execute
     MOV.L  R11, @R10        ; WRITE 19 on first call, 36 on second call
@@ -181,7 +180,7 @@ BSRF_RTSTest:
 ;;--------------------------------------------------------------------------
 JMPTest:
     MOVA    @(3, PC), R0
-    MOV    #-20, R1
+    MOV     #-20, R1
     JMP     @R0
     NOP
     NOP
@@ -192,8 +191,10 @@ JMPTest:
 ;; JSRTest: Test JSR to register-indirect subroutine
 ;;--------------------------------------------------------------------------
 JSRTest:
+    MOV.L   R1, @R10
+    ADD     #4, R10     ; WRITE -20
     MOVA    @(0,PC),R0
-    ADD     #-32, R0
+    ADD     #-36, R0
     MOV     R0, R13
     JSR     @R13        ; jump to TestFunction
     MOV     #37, R11

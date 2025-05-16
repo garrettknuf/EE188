@@ -208,14 +208,12 @@ architecture behavioral of CU is
     constant BootReadSP         : integer := 5; -- read stack pointer from vec table on boot
     constant BootWaitForFetch   : integer := 6; -- fetch first instruction to run after boot sequence
     constant WriteBack          : integer := 7; -- write a value from temp reg back to memory
-    constant WaitForFetch_R_TRAPA: integer := 8;
-    constant WaitForFetch2_W     : integer := 9;
-    constant WaitForFetch3       : integer := 10;
-    constant BranchSlotRTE       : integer := 11;
-    constant WaitForFetch_R_RTE  : integer := 12;
-    constant WaitForFetch2_R_RTE : integer := 13;
-    constant Sleep               : integer := 14;   -- idle (no code executing)
-    constant STATE_CNT           : integer := 15;   -- total number of states
+    constant TRAPA_PushPC       : integer := 8; -- push PC onto stack
+    constant TRAPA_ReadVector   : integer := 9; -- read vector address
+    constant RTE_PopSR          : integer := 10; -- pop SR from stack
+    constant RTE_Slot           : integer := 11; -- RTE branch slot
+    constant Sleep              : integer := 12;   -- idle (no code executing)
+    constant STATE_CNT          : integer := 13;   -- total number of states
 
     signal NextState : integer range STATE_CNT-1 downto 0;      -- state to transition to on next clock
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
@@ -263,7 +261,7 @@ begin
 
     RegAxInSel <= to_integer(unsigned(IR(11 downto 8))) when RegAxInSelCmd = RegAxInSelCmd_Rn else
                   to_integer(unsigned(IR(7 downto 4)))  when RegAxInSelCmd = RegAxInSelCmd_Rm else
-                  R15                                   when RegA1SelCmd = RegA1SelCmd_R15 else
+                  R15                                   when RegAxInSelCmd = RegAxInSelCmd_R15 else
                   R0;
 
     -- Control Unit Registers

@@ -171,6 +171,7 @@ begin
     AddrSrc(DAU_AddrPC) <= PC;
     AddrSrc(DAU_AddrPC_LW) <= PC and x"FFFFFFFC"; -- mask bottom two bits if long word
     AddrSrc(DAU_AddrRn) <= Rn;
+    AddrSrc(DAU_AddrVBR) <= VBR;
     AddrSrc(DAU_AddrGBR) <= GBR;
     AddrSrc(DAU_AddrZero) <= (others => '0');
 

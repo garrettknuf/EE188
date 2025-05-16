@@ -363,6 +363,7 @@ begin
              VBR        when DBOutSel = DBOutSel_VBR    else
              SR         when DBOutSel = DBOutSel_SR     else
              PR         when DBOutSel = DBOutSel_PR     else
+             PC         when DBOutSel = DBOutSel_PC     else
              (others => 'X');
 
     -- Create 32-bit ALU for standard logic and arithmetic operations
