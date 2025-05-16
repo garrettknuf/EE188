@@ -4,34 +4,63 @@
 ;                                                                             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; This file tests arithmetic operations for the SH-2 CPU.
+;   This file is an assembly test suite exercising SH-2 ALU and arithmetic type
+;   instructions to verify correct operation of the following instructions:
+;   - ADD
+;   - ADDC
+;   - ADDV
+;   - DT
+;   - NEG
+;   - NEGC
+;   - SUB
+;   - SUBC
+;   - SUBV
+;   - EXTS.B
+;   - EXTS.W
+;   - EXTU.B
+;   - EXTU.W
+;   - CMP/EQ
+;   - CMP/HS
+;   - CMP/GE
+;   - CMP/HI
+;   - CMP/GT
+;   - CMP/PL
+;   - CMP/PZ
+;   - CMP/PZ
+;   - CMP/STR
+;
 ; It writes necessary ALU results to memory using the GBR. These values can be
 ; evaluated after the simulation runs in a memory dump. If the Tbit is the incorrect
 ; value, the code will jump to TestFail and not finish the remaining tests.
-;
-; The tests are the arithmetic instructions in Table 5.4 of SH-2 Programming Manual.
-; Tests: ADD, ADDC, ADDV, DT, NEG, NEGC, SUB, SUBC, SUBV,
-;        EXTS.B, EXTS.W, EXTU.B, EXTU.W,
-;        CMP/EQ, CMP/HS, CMP/GE, CMP/HI, CMP/GT, CMP/PL, CMP/PZ, CMP/PZ, CMP/STR
+; It also records a final pass/fail code in memory at the end.
 ;
 ; Revision History:
 ;   26 Apr 25   Garrett Knuf    Initial revision.
 
+;;------------------------------------------------------------------------------
+;; Exception Vector Table
+;;------------------------------------------------------------------------------
 .vectable
     PowerResetPC:           0x00000008  ; PC for power reset (0)
     PowerResetSP:           0xFFFFFFFC  ; SP for power reset (1)
 
+;;------------------------------------------------------------------------------
+;; Code Section
+;;------------------------------------------------------------------------------
 .text
 
+;;--------------------------------------------------------------------------
+;; InitGBR: Calculate GBR = 0x400 for result buffer base
+;;--------------------------------------------------------------------------
 InitGBR:                    ; calculate starting address of data segment
-    MOV     #64, R0
-    SHLL    R0
-    SHLL    R0
-    SHLL    R0
-    SHLL    R0
+    MOV     #4, R0      ; Load the start of the data segment into R0 (1024)
+    SHLL8   R0          ; Multiply 4 by 258 to arrive at 1024 (8 shifts left)
     LDC     R0, GBR         ; GBR = 0x00000400 (1024)
     ; BRA   ADDTests
 
+;;--------------------------------------------------------------------------
+;; ADDTests: Basic ADD and immediate adjustment
+;;--------------------------------------------------------------------------
 ADDTests:
     SETT
     MOV     #30, R0
@@ -42,6 +71,9 @@ ADDTests:
     MOV.L   R0,@(5,GBR) ; WRITE 54-5=49
     ; BRA   ADDCTests
 
+;;--------------------------------------------------------------------------
+;; ADDCTests: Add with carry
+;;--------------------------------------------------------------------------
 ADDCTests:
     CLRT
     MOV     #17, R0
@@ -60,6 +92,9 @@ ADDCTests:
     MOV.L   R0,@(8,GBR) ; WRITE 0+52+T=53 where T=1
     ;BRA    ADDVTests
 
+;;--------------------------------------------------------------------------
+;; ADDVTests: Add with overflow detection
+;;--------------------------------------------------------------------------
 ADDVTests:
     MOV.L   @(2,GBR),R0
     MOV     #1, R1
@@ -73,6 +108,9 @@ ADDVTests:
     BT      TestFail    ; overflow = 0
     ;BF     DTTests
 
+;;--------------------------------------------------------------------------
+;; DTTests: Decrement and test
+;;--------------------------------------------------------------------------
 DTTests:
     MOV     #2, R2
     DT      R2
@@ -83,6 +121,9 @@ DTTests:
     BF      TestFail        ; R2 = 0
     ;BT     EXTTests
 
+;;--------------------------------------------------------------------------
+;; EXTTests: Sign and zero extending
+;;--------------------------------------------------------------------------
 EXTTests:   
     MOV.L   @(1,GBR),R0 ; read 0x5555D19B
     EXTS.B  R0, R1      ; sign extend byte
@@ -99,6 +140,9 @@ EXTTests:
     MOV.L   R0,@(15,GBR) ; WRITE 0x0000D19B
     ;BRA    NEGTests
 
+;;--------------------------------------------------------------------------
+;; NEGTests: Negate and negate with carry
+;;--------------------------------------------------------------------------
 NEGTests:
     SETT
     MOV     #-23, R1
@@ -119,7 +163,9 @@ NEGTests:
     BT      TestFail     ; borrow = 0
     ;BRA    SUBTests
 
-
+;;--------------------------------------------------------------------------
+;; SUBTests: Subtract
+;;--------------------------------------------------------------------------
 SUBTests:
     SETT
     MOV     #78, R0
@@ -131,6 +177,9 @@ SUBTests:
     MOV.L   R0,@(21,GBR) ; WRITE 67-(-3)=70
     ;BRA    SUBCTests
 
+;;--------------------------------------------------------------------------
+;; SUBCTests: Subtract with carry/borrow
+;;--------------------------------------------------------------------------
 SUBCTests:
     SETT
     MOV     #11, R1
@@ -144,6 +193,9 @@ SUBCTests:
     BF      TestFail        ; borrow = 1
     ;BRA    SUBVTests
 
+;;--------------------------------------------------------------------------
+;; SUBVTests: Subtract with overflow
+;;--------------------------------------------------------------------------
 SUBVTests:
     MOV.L   @(2,GBR),R0
     MOV     #-1, R1
@@ -157,6 +209,9 @@ SUBVTests:
     BF      TestFail    ; overflow = 1
     ;BT     InitCMPTests
 
+;;--------------------------------------------------------------------------
+;; InitCMPTests: Prepare registers for comparisons
+;;--------------------------------------------------------------------------
 InitCMPTests:
     MOV     #17, R3     ; set register values for comparison
     MOV     #-9, R4
@@ -165,6 +220,9 @@ InitCMPTests:
     MOV     #0, R7
     ;BRA    CMPEQTest
 
+;;--------------------------------------------------------------------------
+;; CMPEQTest: Compare equal
+;;--------------------------------------------------------------------------
 CMPEQTest:
     MOV     #10, R0
     CMP/EQ  #11, R0     ; 11 = 10 (false)
@@ -178,6 +236,10 @@ CMPEQTest:
     BF      TestFail
     ;BT     CMPHSTest
 
+;;--------------------------------------------------------------------------
+;; CMPHSTest: Compare unsigned >=
+;;--------------------------------------------------------------------------
+CMPHSTest:
 CMPHSTest:
     CMP/HS  R3, R5       ; 17 >= 17 (true)
     BF      TestFail
@@ -187,6 +249,9 @@ CMPHSTest:
     BF      TestFail
     ;BT     CMPGETest
 
+;;--------------------------------------------------------------------------
+;; CMPGETest: Compare signed >=
+;;--------------------------------------------------------------------------
 CMPGETest:
     CMP/GE  R3, R5       ; 17 >= 17 (true)
     BF      TestFail
@@ -196,6 +261,9 @@ CMPGETest:
     BT      TestFail
     ;BF     CMPHITest
 
+;;--------------------------------------------------------------------------
+;; CMPHITest: Compare unsigned >
+;;--------------------------------------------------------------------------
 CMPHITest:
     CMP/HI  R3, R5       ; 17 > 17 (false)
     BT      TestFail
@@ -205,6 +273,9 @@ CMPHITest:
     BF      TestFail
     ;BT     CMPGTTest
 
+;;--------------------------------------------------------------------------
+;; CMPGTTest: Compare signed >
+;;--------------------------------------------------------------------------
 CMPGTTest:
     CMP/HI  R3, R5       ; 17 > 17 (false)
     BT      TestFail
@@ -214,6 +285,9 @@ CMPGTTest:
     BF      TestFail
     ;BT     CMPPLTest
 
+;;--------------------------------------------------------------------------
+;; CMPPLTest: Compare plus (positive)
+;;--------------------------------------------------------------------------
 CMPPLTest:
     CMP/PL  R3  ; 17 > 0 (true)
     BF      TestFail
@@ -223,6 +297,9 @@ CMPPLTest:
     BT      TestFail
     ;BF     CMPPZTest
 
+;;--------------------------------------------------------------------------
+;; CMPPZTest: Compare plus or zero
+;;--------------------------------------------------------------------------
 CMPPZTest:
     CMP/PZ  R3  ; 17 > 0 (true)
     BF      TestFail
@@ -232,6 +309,9 @@ CMPPZTest:
     BF      TestFail
     ;BT     CMPSTRTest
 
+;;--------------------------------------------------------------------------
+;; CMPSTRTest: Compare strings (byte-by-byte)
+;;--------------------------------------------------------------------------
 CMPSTRTest:
     MOV.L   @(1,GBR),R0
     MOV     R0, R3
@@ -245,6 +325,9 @@ CMPSTRTest:
     BT      TestFail    ; no bytes match
     ;BF     TestSuccess
 
+;;--------------------------------------------------------------------------
+;; TestSuccess/Fail: Record final pass/fail and halt
+;;--------------------------------------------------------------------------
 TestSuccess:
     MOV     #1, R0
     MOV.L   R0,@(26,GBR)
@@ -258,6 +341,9 @@ TestFail:
 TestEnd:
     SLEEP
 
+;;------------------------------------------------------------------------------
+;; Data Section: Test constants
+;;------------------------------------------------------------------------------
 .data
 
 Num0:   .long   0x40000000
