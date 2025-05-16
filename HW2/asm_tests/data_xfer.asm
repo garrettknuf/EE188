@@ -214,7 +214,8 @@ TestReadAtDispGBRToR0:
 ;; TestReadAtDispPCToRn: PC-relative loads of opcodes for self-test
 ;;--------------------------------------------------------------------------
 TestReadAtDispPCToRn:       ; read @(disp + PC) to reg
-    MOV.W   @(6, PC), R15   ; put MOV.L(2, PC) op code into R15
+    MOV.W   @(7, PC), R15   ; put MOV.L(2, PC) op code into R15
+    NOP
     NOP
     NOP
     NOP
@@ -231,7 +232,7 @@ TestReadAtDispPCToRn:       ; read @(disp + PC) to reg
 ;; TestMOVA: MOVA PC-relative address calculation
 ;;--------------------------------------------------------------------------
 TestMOVA:
-    MOVA    @(5,PC),R0      ; read (PC+5*4) = (0xE0 + 0x14) = 0xF4
+    MOVA    @(7,PC),R0      ; read (PC+7*4) = (0xDC + 0x1C) = 0xF8
     MOV.L   R0, @R11
     ADD     #4, R11
 

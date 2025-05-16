@@ -173,6 +173,16 @@ begin
     -- Only access memory on falling edge of clock to avoid setup time violations.
     process (CLK)
     begin
+        
+        WE3 <= '1';
+        WE2 <= '1';
+        WE1 <= '1';
+        WE0 <= '1';
+        RE3 <= '1';
+        RE2 <= '1';
+        RE1 <= '1';
+        RE0 <= '1';
+
         if falling_edge(CLK) then
             WE3 <= WE(3);
             WE2 <= WE(2);
@@ -183,15 +193,6 @@ begin
             RE2 <= RE(2);
             RE1 <= RE(1);
             RE0 <= RE(0);
-        else
-            WE3 <= '1';
-            WE2 <= '1';
-            WE1 <= '1';
-            WE0 <= '1';
-            RE3 <= '1';
-            RE2 <= '1';
-            RE1 <= '1';
-            RE0 <= '1';
         end if;
     end process;
 
