@@ -4,13 +4,31 @@
 ;                                                                             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; This file tests system control instructions for the SH-2.
+;   This file is an assembly test suite exercising SH-2 system control type
+;   instructions to verify correct operation of the following instructions:
+;   - SETT
+;   - CLRT
+;   - LDC   Rn,GBR/VBR/SR
+;   - STC   GBR/VBR/SR,Rn
+;   - LDC.L @Rn+,GBR/VBR/SR
+;   - STC.L GBR/VBR/SR,@-Rn
+;   - LDS   Rn,PR
+;   - STS   PR,Rn
+;   - LDS.L @Rn+,PR
+;   - STS.L PR,@-Rn
+;   - NOP
+;   - RTE
+;   - TRAPA
 ;
-; The tests are 
+;   Test results are written to memory and a final
+;   success/fail code is stored.
 ;
 ; Revision History:
 ;   27 Apr 25   Garrett Knuf    Initial revision.
 
+;;------------------------------------------------------------------------------
+;; Exception Vector Table
+;;------------------------------------------------------------------------------
 .vectable
     PowerResetPC:           0x00000050  ; PC for power reset (0)
     PowerResetSP:           0x00000000  ; SP for power reset (1)
@@ -41,29 +59,43 @@
     ; 68-71 reserved
     ; 72-255 built-in peripheral modules
 
+;;------------------------------------------------------------------------------
+;; Code Section
+;;------------------------------------------------------------------------------
 .text
 
+;;--------------------------------------------------------------------------
+;; Initialize Data Segment Pointers
+;;   R10 -> write buffer base + offset
+;;   R11 -> read buffer base
+;;--------------------------------------------------------------------------
 InitDataSegAddr:
-    MOV     #64, R0
-    SHLL    R0
-    SHLL    R0
-    SHLL    R0
-    SHLL    R0
-    MOV     R0, R10 ; R10 is pointer to data to write to
-    ADD     #24, R10
-    MOV     R0, R11 ; R11 is pointer to data to read from
+    MOV     #4, R0      ; Load the start of the data segment into R0 (1024)
+    SHLL8   R0          ; Multiply 4 by 258 to arrive at 1024 (8 shifts left)
+    MOV     R0, R10     ; R10 = write buffer pointer
+    ADD     #24, R10    ; Increment buffer write pointer
+    MOV     R0, R11     ; R11 = read buffer pointer
 
+;;--------------------------------------------------------------------------
+;; BootTest: Store initial SP (R15) into write buffer
+;;--------------------------------------------------------------------------
 BootTest:
-    MOV.L   R15, @R10   ; write 0xFFFFFFFF (SP)
-    ADD     #4, R10
+    MOV.L   R15, @R10       ; Write current SP (0x00000000) to buffer
+    ADD     #4, R10         ; Advance write pointer
 
+;;--------------------------------------------------------------------------
+;; TbitTests: Test T flag manipulation
+;;   SETT sets T=1, CLRT clears T=0
+;;--------------------------------------------------------------------------
 TbitTests:
-    SETT                ; T=1
-    BF      TestFail    ; fail if T=0
-    CLRT                ; T= 0
-    BT      TestFail    ; fail if T=1
-    ;BRA    LoadCtrlRegTests
+    SETT                    ; Assert T flag
+    BF      TestFail        ; Branch if T=0 -> failure
+    CLRT                    ; Clear T flag
+    BT      TestFail        ; Branch if T=1 -> failure
 
+;;--------------------------------------------------------------------------
+;; TestGBR: Verify GBR load/store
+;;--------------------------------------------------------------------------
 TestGBR:
     MOV     #62,R7
     LDC     R7,GBR      ; R7 = 62
@@ -75,6 +107,9 @@ TestGBR:
     STC.L   GBR,@-R10   ; WRITE 1024
     ADD     #4, R10
 
+;;--------------------------------------------------------------------------
+;; TestSR: Verify SR (status register) load/store
+;;--------------------------------------------------------------------------
 TestSR:
     MOV     #23,R7
     LDC     R7,SR       ; R7 = 23
@@ -86,6 +121,9 @@ TestSR:
     STC.L   SR,@-R10    ; WRITE 80
     ADD     #4, R10
 
+;;--------------------------------------------------------------------------
+;; TestVBR: Verify VBR (vector base register) load/store
+;;--------------------------------------------------------------------------
 TestVBR:
     MOV     #42,R7
     LDC     R7,VBR      ; R7 = 42
@@ -99,6 +137,9 @@ TestVBR:
     MOV     #0,R2       ; Set VBR back to 0
     LDC     R2,VBR
 
+;;--------------------------------------------------------------------------
+;; TestPR: Verify PR (processor register) load/store
+;;--------------------------------------------------------------------------
 TestPR:
     MOV     #98,R7
     LDS     R7,PR      ; R7 = 98
@@ -109,60 +150,42 @@ TestPR:
     ADD     #4, R10    ; Counteract pre-dec
     STS.L   PR,@-R10   ; WRITE 432
     ADD     #4, R10
-; AFTER TESTING PR BEGIN TESTING TRAPA
+
+;;--------------------------------------------------------------------------
+;; Test Trapa: GOTO TRAPA test
+;;--------------------------------------------------------------------------
     BRA    TrapaTests
 
-; LoadCtrlRegTests:
-;     LDC     Rm, SR
-;     LDC     Rm, GBR
-;     LDC     Rm, VBR
-;     LDC.L   @Rm+, SR
-;     LDC.L   @Rm+, GBR
-;     LDC.L   @Rm+, VBR
-;     ;BRA    LoadSysRegTests
-
-; LoadSysRegTests:
-;     LDS     Rm, PR
-;     LDS.L   @Rm+,PR
-;     ;BRA    NOPTests
-
+;;--------------------------------------------------------------------------
+;; Test NOP (Trapa vector address)
+;;--------------------------------------------------------------------------
 ; NOPTests:
-    NOP     ; NOP Tests
+    NOP     ; TRAPA #16 will point here
     NOP
     NOP
     NOP
-;     ;BRA    RTETests
 
+;;--------------------------------------------------------------------------
+;; Test RTE: Verify RTE instruction returns with branch slot
+;;--------------------------------------------------------------------------
 ; RTETests:
-    SETT    ; RTE Tests
+    SETT    ; Change SR to test SR restore
     RTE
-    NOP
+    NOP     ; Branch slot NOP
 ; IF CODE GETS PAST RTE SLOT THEN IT HAS FAILED
     BRA    TestFail
-;     ;BRA    StoreCtrlRegTests
 
-; StoreCtrlRegTests:
-;     STC     SR, Rn
-;     STC     GBR, Rn
-;     STC     VBR, Rn
-;     STC.L   SR, @-Rn
-;     STC.L   GBR, @-Rn
-;     STC.L   VBR, @-Rn
-;     ;BRA    StoreSysRegTests
-
-; StoreSysRegTests:
-;     STS     PR, Rn
-;     STS.L   PR, @-Rn
-;     ;BRA    TrapaTests
-
+;;--------------------------------------------------------------------------
+;; Test Trapa: Verify TRAPA instruction triggers trap
+;;--------------------------------------------------------------------------
 TrapaTests:
     NOP     ; Trapa Test
     NOP
     TRAPA   #16
-    NOP
-    NOP
-;     ;BRA    TestSuccess
 
+;;--------------------------------------------------------------------------
+;; TestSuccess/Fail: Record final pass/fail code
+;;--------------------------------------------------------------------------
 TestSuccess:
     MOV     #1, R9
     MOV.L   R9, @R10 ; store SUCCESS (1)
@@ -176,6 +199,9 @@ TestFail:
 TestEnd:
     SLEEP
 
+;;------------------------------------------------------------------------------
+;; Data Section:
+;;------------------------------------------------------------------------------
 .data
 
 GBRVal: .long   1024
