@@ -42,6 +42,9 @@
 ;   - MOV.L @(disp,Rm),Rn
 ;   - MOVA
 ;   - MOVT Rn
+;   - SWAP.B
+;   - SWAP.W
+;   - XTRCT
 ;
 ;   Test results are written sequentially to a memory buffer via R11,
 ;   and a pass/fail flag is recorded.
