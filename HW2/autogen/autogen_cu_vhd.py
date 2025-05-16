@@ -4,15 +4,22 @@ Automatic code-generation for SH-2 Control Unit.
 There are a large amount of control signals that need to be set for instruction
 decoding for the control unit, so this script utilizes an excel spreadsheet with
 all the control signals and their corresponding instruction to create code for
-instruction decoding.
-This script only inserts instruction decoding, so code needs to be written in
-cu_template.vhd for everything else.
+instruction decoding. This script only inserts instruction decoding, so code
+needs to be written in cu_template.vhd for everything else. CUSignals.xlsx is
+the spreadsheet deciding control signals for each instruction. Signals that are
+integers need to be added to integer_signal_list. The 'master' is parsed for
+instruction decoding, and the 'states' spreadsheet is parsed for signal decoding
+for states other than the Normal state.
 
-CUSignals.xlsx is the spreadsheet control control signals for each instruction.
-Cells contain either a variable name or std_logic value.
+Spreadsheet expectations:
+- Cells contain either signal names, '-', 'ignored', 'unused', 0, or 1.
+- Integer signals must be listed in `integer_signal_list`.
+
+The resulting file is also set to read-only permissions so that the user will
+make future edits to cu_template.vhd instead of cu.vhd and will re-run script.
 
 The instruction decoding will replace the following line in the template file:
-'-- <AUTO-GEN PLACEHOLDER (do not remove): Instruction decoding>'
+'-- <AUTO-GEN PLACEHOLDER (do not remove or modify): Instruction decoding>'
 
 Author: Garrett Knuf
 Date:   21 Apr 2025
@@ -55,13 +62,43 @@ integer_signal_list = ['PAU_SrcSel', 'PAU_OffsetSel', 'DAU_SrcSel', 'DAU_OffsetS
 for instruction, normal_control_signals in instruction_decoding.items():
     vhdl_str += f"if std_match(IR, {instruction}) then\n"
     for signal, value in normal_control_signals.items():
-        value = normal_control_signals.get(signal, 'X')
 
-        if value == '-':
-            if signal in std_logic_signal_list:
-                value = "'-'"
+        # Parse value (or ignore it if not)
+        value = normal_control_signals.get(signal, 'X')
+        if value == '-' or value == 'ignored' or value == 'unused':
+            continue
+        elif value == 0:
+            # Choose either std_logic or integer for value zero
+            if signal not in integer_signal_list:
+                value = "'0'"
             else:
-                value = "(others => '-')"
+                value = "0"
+        elif value == 1:
+            # Choose either std_logic or integer for value one
+            if signal not in integer_signal_list:
+                value = "'1'"
+            else:
+                value = "1"
+
+        # Add signal
+        vhdl_str += f"\t\t\t{signal} <= {value};\n"
+    
+    # Add elsif
+    vhdl_str += f"\t\tels"
+
+# Finish instruction decoding
+vhdl_str = vhdl_str[:-3] + "end if;\n" 
+
+# Create signals for state decoding
+vhdl_str += "\n\t\t-- State Decoding Autogen\n\t\t"
+for state, state_control_signals in state_decoding.items():
+    vhdl_str += f"if CurrentState = {state} then\n"
+    for signal, value in state_control_signals.items():
+
+        # Parse value (or ignore)
+        value = state_control_signals.get(signal, 'X')
+        if value == '-' or value == 'ignored' or value == 'unused':
+            continue
         elif value == 0:
             if signal not in integer_signal_list:
                 value = "'0'"
@@ -74,33 +111,6 @@ for instruction, normal_control_signals in instruction_decoding.items():
                 value = "1"
 
         vhdl_str += f"\t\t\t{signal} <= {value};\n"
-    vhdl_str += f"\t\tels"
-vhdl_str = vhdl_str[:-3] + "end if;\n" 
-vhdl_str += "\n\t\t-- State Decoding Autogen\n\t\t"
-# Create state decoding
-for state, state_control_signals in state_decoding.items():
-    vhdl_str += f"if CurrentState = {state} then\n"
-    for signal, value in state_control_signals.items():
-        value = state_control_signals.get(signal, 'X')
-
-        if value == '-':
-            if signal in std_logic_signal_list:
-                value = "'-'"
-            else:
-                value = "(others => '-')"
-        elif value == 0:
-            if signal not in integer_signal_list:
-                value = "'0'"
-            else:
-                value = "0"
-        elif value == 1:
-            if signal not in integer_signal_list:
-                value = "'1'"
-            else:
-                value = "1"
-
-        if value != "ignored":
-            vhdl_str += f"\t\t\t{signal} <= {value};\n"
     vhdl_str += f"\t\tels"
 vhdl_str = vhdl_str[:-3] + "end if;\n" 
 
@@ -132,8 +142,6 @@ try:
 
     # Change the destination file to read-only
     os.chmod(dest_file, 0o444)
-    
-    # print(f"Successfully auto-generated code for '{dest_file}'")
     
 except Exception as e:
     print(f"An error occurred: {e}")

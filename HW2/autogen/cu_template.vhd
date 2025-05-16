@@ -2,13 +2,23 @@
 --
 --  SH-2 Control Unit
 --
---  This is an implementation of 
+--  This file contains the control unit (CU) implementation for a SH-2 processor.
+--  It decodes instructions and generates control signals for the ALU, PAU, DAU,
+--  RegArray, DTU, and top-level muxes. It also includes a FSM for instruction
+--  sequencing and control
+--
+--  Packages included are:
+--   CUConstants - constants for control signal values
 --
 --  Entities included are:
---    
+--   CU - control unit    
 --
 --  Revision History:
 --     18 April 2025    Garrett Knuf    Initial revision.
+--     20 April 2025    Garrett Knuf    Add autogen markers for instruction decoding.
+--     24 April 2025    Garrett Knuf    Add FSM.
+--     12 May 2025      Garrett Knuf    Fix bugs in decoding.
+--     15 May 2025      Garrett Knuf    Optimize logic.
 --
 ----------------------------------------------------------------------------
 
@@ -41,31 +51,32 @@ package CUConstants is
     
     -- RegA1SelCmd - select what RegA1 outputs
     constant RegA1SelCmd_CNT : integer := 4;
-    constant RegA1SelCmd_Rn  : integer range RegA1SelCmd_CNT-1 downto 0 := 0;
-    constant RegA1SelCmd_Rm  : integer range RegA1SelCmd_CNT-1 downto 0 := 1;
-    constant RegA1SelCmd_R0  : integer range RegA1SelCmd_CNT-1 downto 0 := 2;
-    constant RegA1SelCmd_R15 : integer range RegA1SelCmd_CNT-1 downto 0 := 3;
+    constant RegA1SelCmd_Rn  : integer range RegA1SelCmd_CNT-1 downto 0 := 0;   -- generic register
+    constant RegA1SelCmd_Rm  : integer range RegA1SelCmd_CNT-1 downto 0 := 1;   -- generic register
+    constant RegA1SelCmd_R0  : integer range RegA1SelCmd_CNT-1 downto 0 := 2;   -- R0
+    constant RegA1SelCmd_R15 : integer range RegA1SelCmd_CNT-1 downto 0 := 3;   -- R15
 
     -- RegAxInSelCmd - select what RegA1 outputs
     constant RegAxInSelCmd_CNT : integer := 4;
-    constant RegAxInSelCmd_Rn  : integer range RegAxInSelCmd_CNT-1 downto 0 := 0;
-    constant RegAxInSelCmd_Rm  : integer range RegAxInSelCmd_CNT-1 downto 0 := 1;
-    constant RegAxInSelCmd_R0  : integer range RegAxInSelCmd_CNT-1 downto 0 := 2;
-    constant RegAxInSelCmd_R15 : integer range RegAxInSelCmd_CNT-1 downto 0 := 3;
+    constant RegAxInSelCmd_Rn  : integer range RegAxInSelCmd_CNT-1 downto 0 := 0;   -- generic register
+    constant RegAxInSelCmd_Rm  : integer range RegAxInSelCmd_CNT-1 downto 0 := 1;   -- generic register
+    constant RegAxInSelCmd_R0  : integer range RegAxInSelCmd_CNT-1 downto 0 := 2;   -- R0
+    constant RegAxInSelCmd_R15 : integer range RegAxInSelCmd_CNT-1 downto 0 := 3;   -- R15
 
     -- DBOutSel - select output of databus
     constant DBOUTSEL_CNT    : integer := 6;
-    constant DBOutSel_Result : integer range DBOUTSEL_CNT-1 downto 0 := 0;
-    constant DBOutSel_SR     : integer range DBOUTSEL_CNT-1 downto 0 := 1;
-    constant DBOutSel_GBR    : integer range DBOUTSEL_CNT-1 downto 0 := 2;
-    constant DBOutSel_VBR    : integer range DBOUTSEL_CNT-1 downto 0 := 3;
-    constant DBOutSel_PR     : integer range DBOUTSEL_CNT-1 downto 0 := 4;
-    constant DBOutSel_PC     : integer range DBOUTSEL_CNT-1 downto 0 := 5;
+    constant DBOutSel_Result : integer range DBOUTSEL_CNT-1 downto 0 := 0;  -- ALU result
+    constant DBOutSel_SR     : integer range DBOUTSEL_CNT-1 downto 0 := 1;  -- status reg
+    constant DBOutSel_GBR    : integer range DBOUTSEL_CNT-1 downto 0 := 2;  -- GBR
+    constant DBOutSel_VBR    : integer range DBOUTSEL_CNT-1 downto 0 := 3;  -- VBR
+    constant DBOutSel_PR     : integer range DBOUTSEL_CNT-1 downto 0 := 4;  -- PR
+    constant DBOutSel_PC     : integer range DBOUTSEL_CNT-1 downto 0 := 5;  -- PC
 
     -- ABSel - select output of address bus
-    constant ABOutSel_Prog : integer range 1 downto 0 := 0;
-    constant ABOutSel_Data : integer range 1 downto 0 := 1;
+    constant ABOutSel_Prog : integer range 1 downto 0 := 0; -- PAU address
+    constant ABOutSel_Data : integer range 1 downto 0 := 1; -- DAU address
 
+    -- TempRegSel - select value to put into temporary register
     constant TempRegSel_CNT      : integer := 5;
     constant TempRegSel_Offset8  : integer range TempRegSel_CNT-1 downto 0 := 0;
     constant TempRegSel_Offset12 : integer range TempRegSel_CNT-1 downto 0 := 1;
@@ -73,6 +84,7 @@ package CUConstants is
     constant TempRegSel_Result   : integer range TempRegSel_CNT-1 downto 0 := 3;
     constant TempRegSel_DataBus  : integer range TempRegSel_CNT-1 downto 0 := 4;
 
+    -- Bit indices of SR
     constant StatusReg_Tbit     : integer := 0; -- T bit
     constant StatusReg_Sbit     : integer := 1; -- S bit
     constant StatusReg_I0bit    : integer := 4; -- Interrupt mask I0
@@ -82,20 +94,26 @@ package CUConstants is
     constant StatusReg_Qbit     : integer := 8; -- Q bit
     constant StatusReg_Mbit     : integer := 9; -- M bit
 
+    -- SRSel - select value to load into SR
     constant SRSEL_CNT  : integer := 4;
     constant SRSel_Tbit : integer range SRSEL_CNT-1 downto 0 := 0;
     constant SRSel_DB   : integer range SRSEL_CNT-1 downto 0 := 1;
     constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;
     constant SRSel_Tmp2 : integer range SRSEL_CNT-1 downto 0 := 3;
 
-    constant unused : integer := 0;
-
 end package;
 
 
 --
---
---
+-- This architecture implements the finite state machine (FSM) and instruction
+-- decoding logic for the SH-2 control unit. It generates approprate
+-- control signals for:
+--  ALU operation selection and operand routing
+--  Program address updates via the PAU
+--  Data addres updates via the DAU
+--  Register access and storage
+--  Memory and I/O control
+--  Special handling for T-bit and SR register operations
 --
 library ieee;
 use ieee.std_logic_1164.all;
@@ -114,116 +132,113 @@ use work.OpcodeConstants.all;
 entity CU is
 
     port (
-        -- CU Input Signals
-        CLK     : in    std_logic;
-        RST     : in    std_logic;
-        DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
-        AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
-        Result      : in  std_logic_vector(LONG_SIZE - 1 downto 0);   -- ALU result
-        Tbit    : in    std_logic;
-        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";
-        
+     -- CU Input Signals
+        CLK     : in    std_logic;                                      -- system clock
+        RST     : in    std_logic;                                      -- system reset
+        DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- data bus
+        AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- address bus
+        Result  : in    std_logic_vector(LONG_SIZE - 1 downto 0);       -- ALU result
+        Tbit    : in    std_logic;                                      -- Tbit from ALU
+        RegB    : in    std_logic_vector(REG_SIZE - 1 downto 0);
 
+        -- CU Registers
+        IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";    -- instruction register
+        SR      : out std_logic_vector(REG_SIZE - 1 downto 0);                  -- status register
+        TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);             -- temporary register
+        TempRegSel : out integer range 4 downto 0;                              -- select temporary register
+        
         -- ALU Control Signals
-        ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;
-        ALUOpBSel   : out     integer range ALUOPBSEL_CNT-1 downto 0 := 0;
-        FCmd        : out     std_logic_vector(3 downto 0);            
-        CinCmd      : out     std_logic_vector(1 downto 0);            
-        SCmd        : out     std_logic_vector(2 downto 0);            
-        ALUCmd      : out     std_logic_vector(1 downto 0);
-        TbitOp      : out     std_logic_vector(3 downto 0);
+        ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
+        ALUOpBSel   : out     integer range ALUOPBSEL_CNT-1 downto 0 := 0;  -- select operand B
+        FCmd        : out     std_logic_vector(3 downto 0);                 -- Fblock control
+        CinCmd      : out     std_logic_vector(1 downto 0);                 -- carry in
+        SCmd        : out     std_logic_vector(2 downto 0);                 -- shift block control
+        ALUCmd      : out     std_logic_vector(1 downto 0);                 -- output mux
+        TbitOp      : out     std_logic_vector(3 downto 0);                 -- tbit control
 
         -- PAU Control Signals
-        PAU_SrcSel      : out   integer range PAU_SRC_CNT - 1 downto 0;
-        PAU_OffsetSel   : out   integer range PAU_OFFSET_CNT - 1 downto 0;
-        PAU_UpdatePC    : out   std_logic;
-        PAU_PRSel       : out   integer range PRSEL_CNT-1 downto 0;
-        PAU_IncDecSel   : out   std_logic;
-        PAU_IncDecBit   : out   integer range 2 downto 0;
-        PAU_PrePostSel  : out   std_logic;
+        PAU_SrcSel      : out   integer range PAU_SRC_CNT - 1 downto 0;     -- select address source
+        PAU_OffsetSel   : out   integer range PAU_OFFSET_CNT - 1 downto 0;  -- select offset source
+        PAU_UpdatePC    : out   std_logic;                                  -- update PC
+        PAU_PRSel       : out   integer range PRSEL_CNT-1 downto 0;         -- select PR control
+        PAU_IncDecSel   : out   std_logic;                                  -- select inc/dec
+        PAU_IncDecBit   : out   integer range 2 downto 0;                   -- select inc/dec bit
+        PAU_PrePostSel  : out   std_logic;                                  -- select pre/post
 
         -- DAU Control Signals
-        DAU_SrcSel      : out   integer range DAU_SRC_CNT - 1 downto 0;
-        DAU_OffsetSel   : out   integer range DAU_OFFSET_CNT - 1 downto 0;
-        DAU_IncDecSel   : out   std_logic;
-        DAU_IncDecBit   : out   integer range 2 downto 0;
-        DAU_PrePostSel  : out   std_logic;
-        DAU_GBRSel      : out   integer range GBRSEL_CNT-1 downto 0;
-        DAU_VBRSel      : out   integer range VBRSEL_CNT-1 downto 0;
+        DAU_SrcSel      : out   integer range DAU_SRC_CNT - 1 downto 0;     -- select address source
+        DAU_OffsetSel   : out   integer range DAU_OFFSET_CNT - 1 downto 0;  -- select offset source
+        DAU_IncDecSel   : out   std_logic;                                  -- select inc/dec
+        DAU_IncDecBit   : out   integer range 2 downto 0;                   -- select inc/dec bit
+        DAU_PrePostSel  : out   std_logic;                                  -- select pre/post
+        DAU_GBRSel      : out   integer range GBRSEL_CNT-1 downto 0;        -- select GBR load
+        DAU_VBRSel      : out   integer range VBRSEL_CNT-1 downto 0;        -- select VBR load
 
         -- RegArray Control Signals
-        RegInSel        : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegStore        : out   std_logic;
-        RegASel         : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegBSel         : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegAxInSel      : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegAxInDataSel  : out   integer range REGAXINDATASEL_CNT - 1 downto 0;
-        RegAxStore      : out   std_logic;
-        RegA1Sel        : out   integer  range REGARRAY_RegCnt - 1 downto 0;
-        RegOpSel        : out   integer  range REGOPSEL_CNT - 1 downto 0;
+        RegInSel        : out   integer  range REGARRAY_RegCnt - 1 downto 0;    -- select input reg
+        RegStore        : out   std_logic;                                      -- store input reg
+        RegASel         : out   integer  range REGARRAY_RegCnt - 1 downto 0;    -- select output RegA
+        RegBSel         : out   integer  range REGARRAY_RegCnt - 1 downto 0;    -- select output regB
+        RegAxInSel      : out   integer  range REGARRAY_RegCnt - 1 downto 0;    -- select address input reg
+        RegAxInDataSel  : out   integer range REGAXINDATASEL_CNT - 1 downto 0;  -- select data to address input
+        RegAxStore      : out   std_logic;                                      -- store address input
+        RegA1Sel        : out   integer  range REGARRAY_RegCnt - 1 downto 0;    -- select address reg output
+        RegOpSel        : out   integer  range REGOPSEL_CNT - 1 downto 0;       -- select special reg operation
     
         -- IO Control signals
-        DBOutSel : out integer range DBOUTSEL_CNT-1 downto 0;
-        ABOutSel : out integer range 1 downto 0;
-        DBInMode : out integer range 1 downto 0;
-        RD     : out   std_logic;
-        WR     : out   std_logic;
-        DataAccessMode : out integer range 2 downto 0;
-
-        TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        TempRegSel : out integer range 4 downto 0;
-
-        SR      : out std_logic_vector(REG_SIZE - 1 downto 0);
-
-        RegB : in std_logic_vector(REG_SIZE - 1 downto 0)
+        DBOutSel : out integer range DBOUTSEL_CNT-1 downto 0;   -- select databus output
+        ABOutSel : out integer range 1 downto 0;                -- select addressbus output
+        DBInMode : out integer range 1 downto 0;                -- select sign/unsigned databus read
+        RD     : out   std_logic;                               -- read (active-low)
+        WR     : out   std_logic;                               -- write (active-low)
+        DataAccessMode : out integer range 2 downto 0           -- align bytes, words, long
     );
+
 
 end CU;
 
 architecture behavioral of CU is
 
-    constant Normal              : integer := 0;
-    constant WaitForFetch        : integer := 1;
-    constant BranchSlot          : integer := 2;
-    constant BranchSlotRet       : integer := 3;
-    constant BranchSlotDirect    : integer := 4;
-    constant BootReadSP          : integer := 5;
-    constant BootWaitForFetch    : integer := 6;
-    constant WriteBack           : integer := 7;
+    -- Finite-state machine (FSM) states
+    constant Normal             : integer := 0; -- fetch next instruction while executing current
+    constant WaitForFetch       : integer := 1; -- one clock wait to fetch next instruction
+    constant BranchSlot         : integer := 2; -- branch slot to reg+offset
+    constant BranchSlotRet      : integer := 3; -- branch slot when returning from function call
+    constant BranchSlotDirect   : integer := 4; -- branch slot to offset
+    constant BootReadSP         : integer := 5; -- read stack pointer from vec table on boot
+    constant BootWaitForFetch   : integer := 6; -- fetch first instruction to run after boot sequence
+    constant WriteBack          : integer := 7; -- write a value from temp reg back to memory
     constant WaitForFetch_R_TRAPA: integer := 8;
     constant WaitForFetch2_W     : integer := 9;
     constant WaitForFetch3       : integer := 10;
     constant BranchSlotRTE       : integer := 11;
     constant WaitForFetch_R_RTE  : integer := 12;
     constant WaitForFetch2_R_RTE : integer := 13;
-    constant Sleep               : integer := 14;
-    constant STATE_CNT           : integer := 15;
+    constant Sleep               : integer := 14;   -- idle (no code executing)
+    constant STATE_CNT           : integer := 15;   -- total number of states
 
-    signal NextState : integer range STATE_CNT-1 downto 0;
-    signal CurrentState : integer range STATE_CNT-1 downto 0;
+    signal NextState : integer range STATE_CNT-1 downto 0;      -- state to transition to on next clock
+    signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
 
-    signal UpdateIR : std_logic;
-    signal UpdateSR : std_logic;
+    -- CU internal control signals
+    signal UpdateIR : std_logic;                                        -- control signal to update IR or not
+    signal UpdateSR : std_logic;                                        -- control signal to update SR or not
+    signal SRSel : integer range SRSEL_CNT-1 downto 0;                  -- select input to status register
 
-    signal UpdateTempReg : std_logic;
+    signal RegInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;      -- select register for RegArray input
+    signal RegASelCmd : integer range REGARRAY_RegCnt-1 downto 0;       -- select register for RegArray RegA
+    signal RegBSelCmd : integer range REGARRAY_RegCnt-1 downto 0;       -- select register for RegArray RegB
+    signal RegAxInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;    -- select register for RegArray address input 
+    signal RegA1SelCmd : integer range REGARRAY_RegCnt-1 downto 0;      -- select register for RegArray RegA1
 
-    signal TempRegMuxOut : std_logic_vector(31 downto 0);
-
+    signal UpdateTempReg : std_logic;                                   -- control signal to update TempReg or not
+    signal TempRegMuxOut : std_logic_vector(REG_SIZE-1 downto 0);       -- select input to TempReg
     signal UpdateTempReg2 : std_logic;
-
-    signal TempReg2 : std_logic_vector(31 downto 0);
-
-    signal RegInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;
-    signal RegASelCmd : integer range REGARRAY_RegCnt-1 downto 0;
-    signal RegBSelCmd : integer range REGARRAY_RegCnt-1 downto 0;
-    signal RegAxInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;
-    signal RegA1SelCmd : integer range REGARRAY_RegCnt-1 downto 0;
-    
-    signal SRSel : integer range SRSEL_CNT-1 downto 0;
+    signal TempReg2     : std_logic_vector(REG_SIZE-1 downto 0);
     
 begin
 
-    --
+    -- Signal to set temporary register 1 to
     TempRegMuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempRegSel = TempRegSel_Offset8 else
                     (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempRegSel = TempRegSel_Offset12 else
                     RegB when TempRegSel = TempRegSel_RegB else
@@ -231,21 +246,25 @@ begin
                     DB when TempRegSel = TempRegSel_DataBus else
                     (others => 'X');
 
+    -- Select registers to access in register array
     RegInSel <= to_integer(unsigned(IR(11 downto 8)))   when RegInSelCmd = RegInSelCmd_Rn else
                 R15                                     when RegInSelCmd = RegInSelCmd_R15 else
                 R0                                      when RegInSelCmd = RegInSelCmd_R0;
-    RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
-    RegBSel <= to_integer(unsigned(IR(7 downto 4))) when RegBSelCmd = RegBSelCmd_Rm else
-               to_integer(unsigned(IR(11 downto 8))) when RegBSelCmd = RegBSelCmd_Rn else 0;
 
-    RegA1Sel <= to_integer(unsigned(IR(11 downto 8))) when RegA1SelCmd = RegA1SelCmd_Rn else
-                to_integer(unsigned(IR(7 downto 4))) when RegA1SelCmd = RegA1SelCmd_Rm else
-                15 when RegA1SelCmd = RegA1SelCmd_R15 else
-                0;
+    RegASel <= to_integer(unsigned(IR(11 downto 8)))    when RegASelCmd = RegASelCmd_Rn else R0;
+
+    RegBSel <= to_integer(unsigned(IR(7 downto 4)))     when RegBSelCmd = RegBSelCmd_Rm else
+               to_integer(unsigned(IR(11 downto 8)))    when RegBSelCmd = RegBSelCmd_Rn else R0;
+
+    RegA1Sel <= to_integer(unsigned(IR(11 downto 8)))   when RegA1SelCmd = RegA1SelCmd_Rn else
+                to_integer(unsigned(IR(7 downto 4)))    when RegA1SelCmd = RegA1SelCmd_Rm else
+                R15                                     when RegA1SelCmd = RegA1SelCmd_R15 else
+                R0;
+
     RegAxInSel <= to_integer(unsigned(IR(11 downto 8))) when RegAxInSelCmd = RegAxInSelCmd_Rn else
-                  to_integer(unsigned(IR(7 downto 4))) when RegAxInSelCmd = RegAxInSelCmd_Rm else
-                  15 when RegA1SelCmd = RegA1SelCmd_R15 else
-                  0;
+                  to_integer(unsigned(IR(7 downto 4)))  when RegAxInSelCmd = RegAxInSelCmd_Rm else
+                  R15                                   when RegA1SelCmd = RegA1SelCmd_R15 else
+                  R0;
 
     -- Control Unit Registers
     process (CLK)
@@ -260,6 +279,7 @@ begin
                       DB(15 downto 0) when UpdateIR = '1' and AB(1 downto 0) = "10" else
                       IR;
 
+                -- Update status register accordingly
                 if UpdateSR = '1' then
                     SR <= (31 downto 1 => '0') & Tbit  when SRSel = SRSel_Tbit else
                           DB    when SRSel = SRSel_DB   else
@@ -268,14 +288,15 @@ begin
                           (others => 'X');
                 end if;
 
-                --
+                -- Update temporary register 1
                 TempReg <= TempRegMuxOut when UpdateTempReg = '1' else TempReg;
 
-                --
+                -- Update temporary register 2
                 TempReg2 <= DB when UpdateTempReg2 = '1' else TempReg2;
 
                 -- Set state of FSM
                 CurrentState <= NextState;
+
             else
                 -- Reset to idle instruction (rising edge after reset)
                 IR <= OpBoot;
