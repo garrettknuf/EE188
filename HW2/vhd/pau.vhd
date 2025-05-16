@@ -45,7 +45,7 @@ package PAUConstants is
     constant PAU_Offset8    : integer := 3;     -- 8-bit offset (sign ext.)
     constant PAU_Offset12   : integer := 4;     -- 12-bit offset (sign ext.)
     constant PAU_OffsetReg  : integer := 5;     -- register value
-    constant PAU_TempReg    : integer := 6;     -- temporary register
+    constant PAU_TempReg1   : integer := 6;     -- temporary register 1
 
     constant PRSEL_CNT : integer := 4;
     constant PRSel_None : integer range PRSEL_CNT-1 downto 0 := 0;
@@ -94,7 +94,7 @@ entity PAU is
         Offset8     : in    std_logic_vector(7 downto 0);
         Offset12    : in    std_logic_vector(11 downto 0);
         OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+        TempReg1    : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
         UpdatePC    : in    std_logic;
         PRSel       : in    integer range PRSEL_CNT-1 downto 0;
         IncDecBit   : in    integer range 2 downto 0;
@@ -160,7 +160,7 @@ begin
     AddrOff(PAU_Offset8) <= (31 downto 9 => Offset8(7)) & Offset8 & '0';        -- disp8 x 2 (sign-extended)
     AddrOff(PAU_Offset12) <= (31 downto 13 => Offset12(11)) & Offset12 & '0';   -- disp12 x 2 (sign-extended)
     AddrOff(PAU_OffsetReg) <= OffsetReg;                                        -- register value
-    AddrOff(PAU_TempReg) <= TempReg;                                            -- temporary register
+    AddrOff(PAU_TempReg1) <= TempReg1;                                          -- temporary register
 
     -- Incrementer/decrement controls
     -- IncDecSel <= MemUnit_DEC;   -- not used (preventing undefined value)

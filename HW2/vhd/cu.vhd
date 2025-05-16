@@ -66,12 +66,12 @@ package CUConstants is
     constant ABOutSel_Prog : integer range 1 downto 0 := 0;
     constant ABOutSel_Data : integer range 1 downto 0 := 1;
 
-    constant TempRegSel_CNT      : integer := 5;
-    constant TempRegSel_Offset8  : integer range TempRegSel_CNT-1 downto 0 := 0;
-    constant TempRegSel_Offset12 : integer range TempRegSel_CNT-1 downto 0 := 1;
-    constant TempRegSel_RegB     : integer range TempRegSel_CNT-1 downto 0 := 2;
-    constant TempRegSel_Result   : integer range TempRegSel_CNT-1 downto 0 := 3;
-    constant TempRegSel_DataBus  : integer range TempRegSel_CNT-1 downto 0 := 4;
+    constant TempReg1Sel_CNT      : integer := 5;
+    constant TempReg1Sel_Offset8  : integer range TempReg1Sel_CNT-1 downto 0 := 0;
+    constant TempReg1Sel_Offset12 : integer range TempReg1Sel_CNT-1 downto 0 := 1;
+    constant TempReg1Sel_RegB     : integer range TempReg1Sel_CNT-1 downto 0 := 2;
+    constant TempReg1Sel_Result   : integer range TempReg1Sel_CNT-1 downto 0 := 3;
+    constant TempReg1Sel_DataBus  : integer range TempReg1Sel_CNT-1 downto 0 := 4;
 
     constant StatusReg_Tbit     : integer := 0; -- T bit
     constant StatusReg_Sbit     : integer := 1; -- S bit
@@ -170,8 +170,8 @@ entity CU is
         WR     : out   std_logic;
         DataAccessMode : out integer range 2 downto 0;
 
-        TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        TempRegSel : out integer range 4 downto 0;
+        TempReg1 : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+        TempReg1Sel : out integer range 4 downto 0;
 
         SR      : out std_logic_vector(REG_SIZE - 1 downto 0);
 
@@ -205,9 +205,9 @@ architecture behavioral of CU is
     signal UpdateIR : std_logic;
     signal UpdateSR : std_logic;
 
-    signal UpdateTempReg : std_logic;
+    signal UpdateTempReg1 : std_logic;
 
-    signal TempRegMuxOut : std_logic_vector(31 downto 0);
+    signal TempReg1MuxOut : std_logic_vector(31 downto 0);
 
     signal UpdateTempReg2 : std_logic;
 
@@ -224,11 +224,11 @@ architecture behavioral of CU is
 begin
 
     --
-    TempRegMuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempRegSel = TempRegSel_Offset8 else
-                    (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempRegSel = TempRegSel_Offset12 else
-                    RegB when TempRegSel = TempRegSel_RegB else
-                    Result when TempRegSel = TempRegSel_Result else
-                    DB when TempRegSel = TempRegSel_DataBus else
+    TempReg1MuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempReg1Sel = TempReg1Sel_Offset8 else
+                    (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempReg1Sel = TempReg1Sel_Offset12 else
+                    RegB when TempReg1Sel = TempReg1Sel_RegB else
+                    Result when TempReg1Sel = TempReg1Sel_Result else
+                    DB when TempReg1Sel = TempReg1Sel_DataBus else
                     (others => 'X');
 
     RegInSel <= to_integer(unsigned(IR(11 downto 8)))   when RegInSelCmd = RegInSelCmd_Rn else
@@ -269,7 +269,7 @@ begin
                 end if;
 
                 --
-                TempReg <= TempRegMuxOut when UpdateTempReg = '1' else TempReg;
+                TempReg1 <= TempReg1MuxOut when UpdateTempReg1 = '1' else TempReg1;
 
                 --
                 TempReg2 <= DB when UpdateTempReg2 = '1' else TempReg2;
@@ -329,8 +329,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_At_Disp_PC_To_Rn) then
@@ -373,8 +373,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_At_Disp_PC_To_Rn) then
@@ -417,8 +417,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOV_Rm_To_Rn) then
@@ -461,8 +461,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Rn) then
@@ -505,8 +505,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Rn) then
@@ -549,8 +549,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Rn) then
@@ -593,8 +593,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_At_Rm_To_Rn) then
@@ -637,8 +637,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_At_Rm_To_Rn) then
@@ -681,8 +681,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_At_Rm_Rn) then
@@ -725,8 +725,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Dec_Rn) then
@@ -769,8 +769,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Dec_Rn) then
@@ -813,8 +813,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Dec_Rn) then
@@ -857,8 +857,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_At_Rm_Inc_To_Rn) then
@@ -901,8 +901,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_At_Rm_Inc_To_Rn) then
@@ -945,8 +945,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_At_Rm_Inc_To_Rn) then
@@ -989,8 +989,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_Rn) then
@@ -1033,8 +1033,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_Rn) then
@@ -1077,8 +1077,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_Rn) then
@@ -1121,8 +1121,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_At_Disp_Rm_To_R0) then
@@ -1165,8 +1165,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_At_Disp_Rm_To_R0) then
@@ -1209,8 +1209,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_At_Disp_Rm_To_Rn) then
@@ -1253,8 +1253,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_Rm_To_At_R0_Rn) then
@@ -1297,8 +1297,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_R0_Rn) then
@@ -1341,8 +1341,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_R0_Rn) then
@@ -1385,8 +1385,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_At_R0_Rm_To_Rn) then
@@ -1429,8 +1429,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_At_R0_Rm_To_Rn) then
@@ -1473,8 +1473,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_At_R0_Rm_To_Rn) then
@@ -1517,8 +1517,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_GBR) then
@@ -1561,8 +1561,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_GBR) then
@@ -1605,8 +1605,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_GBR) then
@@ -1649,8 +1649,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVB_At_Disp_GBR_To_R0) then
@@ -1693,8 +1693,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVW_At_Disp_GBR_To_R0) then
@@ -1737,8 +1737,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVL_At_Disp_GBR_To_R0) then
@@ -1781,8 +1781,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVA) then
@@ -1825,8 +1825,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpMOVT) then
@@ -1869,8 +1869,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSwapB) then
@@ -1913,8 +1913,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSwapW) then
@@ -1957,8 +1957,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpXTRCT) then
@@ -2001,8 +2001,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpADD_Rm_Rn) then
@@ -2045,8 +2045,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpADD_Imm_Rn) then
@@ -2089,8 +2089,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpADDC) then
@@ -2133,8 +2133,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpADDV) then
@@ -2177,8 +2177,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_EQ_Imm) then
@@ -2221,8 +2221,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_EQ_RmRn) then
@@ -2265,8 +2265,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_HS) then
@@ -2309,8 +2309,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_GE) then
@@ -2353,8 +2353,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_HI) then
@@ -2397,8 +2397,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_GT) then
@@ -2441,8 +2441,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_PL) then
@@ -2485,8 +2485,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_PZ) then
@@ -2529,8 +2529,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCMP_STR) then
@@ -2573,8 +2573,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpDT) then
@@ -2617,8 +2617,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpEXTS_B) then
@@ -2661,8 +2661,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpEXTS_W) then
@@ -2705,8 +2705,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpEXTU_B) then
@@ -2749,8 +2749,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpEXTU_W) then
@@ -2793,8 +2793,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpNEG) then
@@ -2837,8 +2837,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpNEGC) then
@@ -2881,8 +2881,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSUB) then
@@ -2925,8 +2925,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSUBC) then
@@ -2969,8 +2969,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSUBV) then
@@ -3013,8 +3013,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpAND_Rm_Rn) then
@@ -3057,8 +3057,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpAND_Imm_Rn) then
@@ -3101,8 +3101,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpAND_Imm_B) then
@@ -3145,8 +3145,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WriteBack;
 			UpdateIR <= '0';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Result;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Result;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpNOT) then
@@ -3189,8 +3189,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpOR_Rm_Rn) then
@@ -3233,8 +3233,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpOR_Imm) then
@@ -3277,8 +3277,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpOR_Imm_B) then
@@ -3321,8 +3321,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WriteBack;
 			UpdateIR <= '0';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Result;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Result;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpTAS_B) then
@@ -3365,8 +3365,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WriteBack;
 			UpdateIR <= '0';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Result;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Result;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpTST_Rm_Rn) then
@@ -3409,8 +3409,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpTST_Imm) then
@@ -3453,8 +3453,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpTST_Imm_B) then
@@ -3497,8 +3497,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Result;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Result;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpXOR_Rm_Rn) then
@@ -3541,8 +3541,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpXOR_Imm) then
@@ -3585,8 +3585,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpXOR_Imm_B) then
@@ -3629,8 +3629,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WriteBack;
 			UpdateIR <= '0';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Result;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Result;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpROTL) then
@@ -3673,8 +3673,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpROTR) then
@@ -3717,8 +3717,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpROTCL) then
@@ -3761,8 +3761,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpROTCR) then
@@ -3805,8 +3805,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHAL) then
@@ -3849,8 +3849,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHAR) then
@@ -3893,8 +3893,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHLL) then
@@ -3937,8 +3937,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHLR) then
@@ -3981,8 +3981,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHLL2) then
@@ -4025,8 +4025,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHLR2) then
@@ -4069,8 +4069,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHLL8) then
@@ -4113,8 +4113,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHLR8) then
@@ -4157,8 +4157,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHLL16) then
@@ -4201,8 +4201,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSHLR16) then
@@ -4245,8 +4245,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBF) then
@@ -4289,8 +4289,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBFS) then
@@ -4333,8 +4333,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlot when SR(0)='0' else Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Offset8;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Offset8;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBT) then
@@ -4377,8 +4377,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBTS) then
@@ -4421,8 +4421,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlot when SR(0)='1' else Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Offset8;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Offset8;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBRA) then
@@ -4465,8 +4465,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlot;
 			UpdateIR <= '1';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Offset12;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Offset12;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBRAF) then
@@ -4509,8 +4509,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlot;
 			UpdateIR <= '1';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_RegB;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBSR) then
@@ -4553,8 +4553,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlot;
 			UpdateIR <= '1';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_Offset12;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_Offset12;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBSRF) then
@@ -4597,8 +4597,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlot;
 			UpdateIR <= '1';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_RegB;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpJMP) then
@@ -4641,8 +4641,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlotDirect;
 			UpdateIR <= '1';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_RegB;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpJSR) then
@@ -4685,8 +4685,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlotDirect;
 			UpdateIR <= '1';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_RegB;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpRTS) then
@@ -4729,8 +4729,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlotRet;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= TempRegSel_RegB;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= TempReg1Sel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpCLRT) then
@@ -4773,8 +4773,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_SR) then
@@ -4817,8 +4817,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= SRSel_Reg;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_GBR) then
@@ -4861,8 +4861,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_VBR) then
@@ -4905,8 +4905,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_SR) then
@@ -4949,8 +4949,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= SRSel_DB;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_GBR) then
@@ -4993,8 +4993,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_VBR) then
@@ -5037,8 +5037,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDS_Rm_To_PR) then
@@ -5081,8 +5081,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpLDSL_At_Rm_Inc_To_PR) then
@@ -5125,8 +5125,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSLEEP) then
@@ -5169,8 +5169,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Sleep;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpNOP) then
@@ -5213,8 +5213,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpRTE) then
@@ -5257,8 +5257,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch2_R_RTE;
 			UpdateIR <= '0';
-			UpdateTempReg <= '1';
-			TempRegSel <= TempRegSel_DataBus;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= TempReg1Sel_DataBus;
 			SRSel <= SRSel_Tmp2;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSETT) then
@@ -5301,8 +5301,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTC_SR_To_Rn) then
@@ -5345,8 +5345,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTC_GBR_To_Rn) then
@@ -5389,8 +5389,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTC_VBR_To_Rn) then
@@ -5433,8 +5433,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTCL_SR_To_At_Dec_Rn) then
@@ -5477,8 +5477,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTCL_GBR_To_At_Dec_Rn) then
@@ -5521,8 +5521,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTCL_VBR_To_At_Dec_Rn) then
@@ -5565,8 +5565,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTS_PR_To_Rn) then
@@ -5609,8 +5609,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpSTSL_PR_To_At_Dec_Rn) then
@@ -5653,8 +5653,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpTRAPA) then
@@ -5697,8 +5697,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= WaitForFetch3;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		elsif std_match(IR, OpBoot) then
@@ -5741,8 +5741,8 @@ begin
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= BootReadSP;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= 0;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= 0;
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 		end if;
@@ -5784,8 +5784,8 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = Sleep then
@@ -5824,18 +5824,18 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Sleep;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = BranchSlot then
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_TempReg;
+			PAU_OffsetSel <= PAU_TempReg1;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			NextState <= Normal;
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 1;
 			PAU_PrePostSel <= MemUnit_PRE;
 		elsif CurrentState = BranchSlotRet then
@@ -5844,18 +5844,18 @@ begin
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			NextState <= Normal;
-			UpdateTempReg <= '1';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = BranchSlotDirect then
 			PAU_SrcSel <= PAU_AddrZero;
-			PAU_OffsetSel <= PAU_TempReg;
+			PAU_OffsetSel <= PAU_TempReg1;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			NextState <= Normal;
-			UpdateTempReg <= '1';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '1';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = BootReadSP then
@@ -5875,8 +5875,8 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DataAccessMode <= DataAccessMode_Long;
 			NextState <= BootWaitForFetch;
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_PRE;
 		elsif CurrentState = BootWaitForFetch then
@@ -5915,12 +5915,12 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = WriteBack then
-			ALUOpASel <= ALUOpASel_TempReg;
+			ALUOpASel <= ALUOpASel_TempReg1;
 			FCmd <= FCmd_A;
 			ALUCmd <= ALUCmd_FBLOCK;
 			UpdateSR <= '0';
@@ -5938,8 +5938,8 @@ begin
 			DataAccessMode <= DataAccessMode_Byte;
 			NextState <= WaitForFetch;
 			UpdateIR <= '0';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = WaitForFetch_R_TRAPA then
@@ -5977,15 +5977,15 @@ begin
 		elsif CurrentState = BranchSlotRTE then
 			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrZero;
-			PAU_OffsetSel <= PAU_TempReg;
+			PAU_OffsetSel <= PAU_TempReg1;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			ABOutSel <= ABOutSel_Prog;
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= Normal;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			PAU_IncDecBit <= 1;
 			PAU_PrePostSel <= MemUnit_PRE;
 			UpdateTempReg2 <= '0';
@@ -6006,12 +6006,12 @@ begin
 			DataAccessMode <= DataAccessMode_Word;
 			NextState <= BranchSlotRTE;
 			UpdateIR <= '1';
-			UpdateTempReg <= '0';
+			UpdateTempReg1 <= '0';
 			UpdateTempReg2 <= '0';
 		elsif CurrentState = WaitForFetch2_R_RTE then
 			NextState <= WaitForFetch_R_RTE;
-			UpdateTempReg <= '0';
-			TempRegSel <= unused;
+			UpdateTempReg1 <= '0';
+			TempReg1Sel <= unused;
 			UpdateTempReg2 <= '1';
 		end if;
 

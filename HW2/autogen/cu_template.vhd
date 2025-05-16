@@ -66,12 +66,12 @@ package CUConstants is
     constant ABOutSel_Prog : integer range 1 downto 0 := 0;
     constant ABOutSel_Data : integer range 1 downto 0 := 1;
 
-    constant TempRegSel_CNT      : integer := 5;
-    constant TempRegSel_Offset8  : integer range TempRegSel_CNT-1 downto 0 := 0;
-    constant TempRegSel_Offset12 : integer range TempRegSel_CNT-1 downto 0 := 1;
-    constant TempRegSel_RegB     : integer range TempRegSel_CNT-1 downto 0 := 2;
-    constant TempRegSel_Result   : integer range TempRegSel_CNT-1 downto 0 := 3;
-    constant TempRegSel_DataBus  : integer range TempRegSel_CNT-1 downto 0 := 4;
+    constant TempReg1Sel_CNT      : integer := 5;
+    constant TempReg1Sel_Offset8  : integer range TempReg1Sel_CNT-1 downto 0 := 0;
+    constant TempReg1Sel_Offset12 : integer range TempReg1Sel_CNT-1 downto 0 := 1;
+    constant TempReg1Sel_RegB     : integer range TempReg1Sel_CNT-1 downto 0 := 2;
+    constant TempReg1Sel_Result   : integer range TempReg1Sel_CNT-1 downto 0 := 3;
+    constant TempReg1Sel_DataBus  : integer range TempReg1Sel_CNT-1 downto 0 := 4;
 
     constant StatusReg_Tbit     : integer := 0; -- T bit
     constant StatusReg_Sbit     : integer := 1; -- S bit
@@ -170,8 +170,8 @@ entity CU is
         WR     : out   std_logic;
         DataAccessMode : out integer range 2 downto 0;
 
-        TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-        TempRegSel : out integer range 4 downto 0;
+        TempReg1 : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+        TempReg1Sel : out integer range 4 downto 0;
 
         SR      : out std_logic_vector(REG_SIZE - 1 downto 0);
 
@@ -205,9 +205,9 @@ architecture behavioral of CU is
     signal UpdateIR : std_logic;
     signal UpdateSR : std_logic;
 
-    signal UpdateTempReg : std_logic;
+    signal UpdateTempReg1 : std_logic;
 
-    signal TempRegMuxOut : std_logic_vector(31 downto 0);
+    signal TempReg1MuxOut : std_logic_vector(31 downto 0);
 
     signal UpdateTempReg2 : std_logic;
 
@@ -224,11 +224,11 @@ architecture behavioral of CU is
 begin
 
     --
-    TempRegMuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempRegSel = TempRegSel_Offset8 else
-                    (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempRegSel = TempRegSel_Offset12 else
-                    RegB when TempRegSel = TempRegSel_RegB else
-                    Result when TempRegSel = TempRegSel_Result else
-                    DB when TempRegSel = TempRegSel_DataBus else
+    TempReg1MuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempReg1Sel = TempReg1Sel_Offset8 else
+                    (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempReg1Sel = TempReg1Sel_Offset12 else
+                    RegB when TempReg1Sel = TempReg1Sel_RegB else
+                    Result when TempReg1Sel = TempReg1Sel_Result else
+                    DB when TempReg1Sel = TempReg1Sel_DataBus else
                     (others => 'X');
 
     RegInSel <= to_integer(unsigned(IR(11 downto 8)))   when RegInSelCmd = RegInSelCmd_Rn else
@@ -269,7 +269,7 @@ begin
                 end if;
 
                 --
-                TempReg <= TempRegMuxOut when UpdateTempReg = '1' else TempReg;
+                TempReg1 <= TempReg1MuxOut when UpdateTempReg1 = '1' else TempReg1;
 
                 --
                 TempReg2 <= DB when UpdateTempReg2 = '1' else TempReg2;

@@ -86,7 +86,7 @@ architecture structural of SH2_CPU is
         -- Operand inputs
         RegA     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- RegArray RegA
         RegB     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- RegArray RegB
-        TempReg  : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- CU TempReg
+        TempReg1 : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- CU TempReg1
         Imm      : in       std_logic_vector(IMM_SIZE - 1 downto 0);   -- CU IR7..0
         DBIn     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- DataBusIn
         SR0      : in       std_logic;                                  -- StatusReg Bit0
@@ -145,7 +145,7 @@ architecture structural of SH2_CPU is
             Offset8     : in    std_logic_vector(7 downto 0);
             Offset12    : in    std_logic_vector(11 downto 0);
             OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-            TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+            TempReg1    : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
             UpdatePC    : in    std_logic;
             PRSel       : in    integer range PRSEL_CNT-1 downto 0;
             IncDecBit   : in    integer range 2 downto 0;
@@ -242,8 +242,8 @@ architecture structural of SH2_CPU is
             WR     : out   std_logic;
             DataAccessMode : out integer range 2 downto 0;
 
-            TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-            TempRegSel : out integer range 4 downto 0;
+            TempReg1 : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+            TempReg1Sel : out integer range 4 downto 0;
 
             SR      : out std_logic_vector(REG_SIZE - 1 downto 0);
             RegB : in std_logic_vector(REG_SIZE - 1 downto 0)
@@ -351,8 +351,8 @@ architecture structural of SH2_CPU is
     signal RD : std_logic;
 
 
-    signal TempReg : std_logic_vector(31 downto 0);
-    signal TempRegSel : integer range 4 downto 0;
+    signal TempReg1 : std_logic_vector(31 downto 0);
+    signal TempReg1Sel : integer range 4 downto 0;
 
 begin
 
@@ -375,7 +375,7 @@ begin
         port map (
             RegA        => RegA,
             RegB        => RegB,
-            TempReg     => TempReg,
+            TempReg1    => TempReg1,
             Imm         => IR(7 downto 0),
             DBIn        => DBIn,
             SR0         => SR(0),
@@ -424,7 +424,7 @@ begin
             Offset8    => IR(7 downto 0),
             Offset12   => IR(11 downto 0),
             OffsetReg  => RegA1,
-            TempReg    => TempReg,
+            TempReg1   => TempReg1,
             IncDecBit  => PAU_IncDecBit,
             IncDecSel => PAU_IncDecSel,
             PrePostSel => PAU_PrePostSel,
@@ -523,8 +523,8 @@ begin
             DataAccessMode => DataAccessMode,
             DBInMode => DBInMode,
 
-            TempReg => TempReg,
-            TempRegSel => TempRegSel,
+            TempReg1 => TempReg1,
+            TempReg1Sel => TempReg1Sel,
             RegB => RegB
         );
     

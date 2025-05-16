@@ -48,7 +48,7 @@ integer_signal_list = ['PAU_SrcSel', 'PAU_OffsetSel', 'DAU_SrcSel', 'DAU_OffsetS
                        'DAU_IncDecBit', 'RegInSel', 'RegASelCmd', 'RegBSelCmd',
                        'RegAxInDataSel', 'RegA1SelCmd', 'RegA2SelCmd', 'RegOpSel',
                        'DBOutSel', 'ABOutSel', 'DataAccessMode', 'DBInMode',
-                       'TempRegSel', 'PAU_IncDecBit', 'SRSel',
+                       'TempReg1Sel', 'PAU_IncDecBit', 'SRSel',
                        'DAU_GBRSel', 'DAU_VBRSel', 'RegAxInSelCmd']
 
 # Create normal instruction decoding

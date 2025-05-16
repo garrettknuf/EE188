@@ -36,7 +36,7 @@ package ALUConstants is
     constant ALUOpASel_RegA     : integer range ALUOPASEL_CNT-1 downto 0 := 0;
     constant ALUOpASel_DB       : integer range ALUOPASEL_CNT-1 downto 0 := 1; 
     constant ALUOpASel_Zero     : integer range ALUOPASEL_CNT-1 downto 0 := 2; 
-    constant ALUOpASel_TempReg  : integer range ALUOPASEL_CNT-1 downto 0 := 3; 
+    constant ALUOpASel_TempReg1 : integer range ALUOPASEL_CNT-1 downto 0 := 3; 
 
     -- ALUOpSelB - Operand B select
     constant ALUOPBSEL_CNT          : integer := 5;
@@ -97,7 +97,7 @@ entity ALU is
         -- Operand inputs
         RegA     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- RegArray RegA
         RegB     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- RegArray RegB
-        TempReg  : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- CU TempReg
+        TempReg1 : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- CU TempReg1
         Imm      : in       std_logic_vector(IMM_SIZE  - 1 downto 0);   -- CU IR7..0
         DBIn     : in       std_logic_vector(LONG_SIZE - 1 downto 0);   -- DataBusIn
         SR0      : in       std_logic;                                  -- StatusReg Bit0
@@ -167,7 +167,7 @@ begin
     -- Operand A mux
     OpA <= RegA              when ALUOpASel = ALUOpASel_RegA else
            DBIn              when ALUOpASel = ALUOpASel_DB else
-           TempReg           when ALUOpASel = ALUOpASel_TempReg else
+           TempReg1          when ALUOpASel = ALUOpASel_TempReg1 else
            (others => '0')   when ALUOpASel = ALUOpASel_Zero else
            (others => 'X');
 
