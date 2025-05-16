@@ -7,6 +7,8 @@
 --
 --  Revision History:
 --     28 Apr 25  Glen George       Initial revision.
+--     29 Apr 25  Garrett Knuf      Fix compilation bugs.
+--     30 Apr 25  Garrett Knuf      Add file read-in and memory dump.
 --     15 May 25  George Ore        Added 32 bit support with unsigned vals.
 --
 ----------------------------------------------------------------------------
@@ -112,7 +114,7 @@ architecture  behavioral  of  MEMORY32x32  is
 
 begin
 
-    -- compute the general read and write signals (active low signals)
+    -- Compute the read and write enable signals (active low signals)
     RE  <=  RE0  and  RE1  and  RE2  and  RE3;
     WE  <=  WE0  and  WE1  and  WE2  and  WE3;
 
@@ -130,7 +132,14 @@ begin
     dump_mem : process
 
         -- DumpMemToFile
-        -- This procedure dumps the contents of the specified RAM chunk to a file.
+        --
+        -- This procedure dumps the contents of a RAM array ('RAMtype') to a text
+        -- file. Each 32-bit word in the RAM is written as two lines of 16-character
+        -- binary strings, starting from the most significant byte.
+        --
+        --  @arg filename [in] string - name of output file to dump contents to
+        --  @arg rambits [in] Ramtype - memory array to be dumped
+        --
         procedure DumpMemToFile(filename : in string;
                                 rambits : in RAMtype) is
             file dump_file : text open write_mode is filename;
@@ -138,6 +147,7 @@ begin
             variable dump_word_str : string(1 to 16);
             variable addr : integer := 0;
         begin
+            -- Iterate by increasing addresses through RAM contents
             while addr < MEMSIZE loop
                 dump_word_str(1 to 8) := to_string(rambits(addr)(31 downto 24));
                 dump_word_str(9 to 16) := to_string(rambits(addr)(23 downto 16));

@@ -233,8 +233,8 @@ architecture behavioral of CU is
 
     signal UpdateTempReg : std_logic;                                   -- control signal to update TempReg or not
     signal TempRegMuxOut : std_logic_vector(REG_SIZE-1 downto 0);       -- select input to TempReg
-    signal UpdateTempReg2 : std_logic;
-    signal TempReg2     : std_logic_vector(REG_SIZE-1 downto 0);
+    signal UpdateTempReg2 : std_logic;                                  -- update secondary temporary register
+    signal TempReg2     : std_logic_vector(REG_SIZE-1 downto 0);        -- secondary temporary register
     
 begin
 

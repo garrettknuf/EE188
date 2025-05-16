@@ -4,16 +4,22 @@
 --
 --  This VHDL testbench instantiates the SH2_CPU core along with a 32-bit 
 --  addressable 32-bit word memory subsystem (MEMORY32x32). This test applies
---  a reset, generates a clock signal, and optionally loads initial memory 
---  contents from external files via generics.
+--  a reset, generates a clock signal, and loads initial memory 
+--  contents from external files via generics, and lets the CPU run, interfacing
+--  with memory. The memory files read in should have lines that begin with
+--  16-bit binary strings, and they will be stored in memory at sequentially
+--  increasing addresses.  After simulation, the memory should dump its contents
+--  that can be post-processed to check if testing succeeded.
 --
---  The testbench terminates the simulation after a fixed duration
+--  The testbench terminates the simulation after a fixed duration.
 --
 -- Generics:
---   mem0_filepath  -   Path for memory block 0 init file
---   mem1_filepath  -   Path for memory block 1 init file
+--   mem0_filepath  -   Path for memory block 0 init file (program memory)
+--   mem1_filepath  -   Path for memory block 1 init file (data memory)
+--
 --  Revision History:
 --     17 April 2025    Garrett Knuf    Initial revision.
+--     29 April 2025    Garrett Knuf    Add file read-in generics.
 ------------------------------------------------------------------------------
 
 library ieee;
@@ -107,13 +113,13 @@ architecture TB_ARCHITECTURE of tb_sh2_cpu is
     -- Signal used to stop clock signal generators
     signal END_SIM  : std_logic   := '0';
 
-    file romfile : text;
-
+    -- Read/Write enable signals (active-low)
     signal RE : std_logic_vector(3 downto 0);
     signal wE : std_logic_vector(3 downto 0);
 
 begin
 
+    -- Set RW enable signals
     RE <= RE3 & RE2 & RE1 & RE0;
     WE <= WE3 & WE2 & WE1 & WE0;
 
@@ -142,7 +148,8 @@ begin
             START_ADDR0     => 0,
             START_ADDR1     => 256,
             START_ADDR2     => 512,
-            START_ADDR3     => 1073741568,  -- ((2^32) / 4) - 256
+            START_ADDR3     => 1073741568, -- set to end of 4Gb memory space
+                                           -- ((2^32) / 4) - 256 
             MEM_FILEPATH0  => mem0_filepath,
             MEM_FILEPATH1  => mem1_filepath,
             MEM_FILEPATH2  => "memfile2.txt",
@@ -173,6 +180,7 @@ begin
         wait for 20 ns;
         reset <= '1';
 
+        -- Run for duration
         wait for 5000 ns;
 
         -- End of testbench reached
