@@ -6,11 +6,19 @@
 ;
 ;   This file is an assembly test suite exercising SH-2 system logic type
 ;   instructions to verify correct operation of the following instructions:
-;   - AND
-;   - OR
+;   - AND Rm,Rn
+;   - AND #imm,R0
+;   - AND.B #imm,@(R0,GBR) 
+;   - OR Rm,Rn
+;   - OR #imm,R0
+;   - OR #imm,@(R0,GBR)
 ;   - NOT
-;   - XOR
-;   - TST
+;   - XOR Rm,Rn
+;   - XOR #imm,R0
+;   - XOR #imm,@(R0,GBR)
+;   - TST Rm,Rn
+;   - TST #imm,R0
+;   - TST #imm,@(R0,GBR)
 ;   - TAS
 ;
 ;   Test results are written to memory via the GBR base register and records
