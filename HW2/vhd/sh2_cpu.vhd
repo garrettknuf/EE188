@@ -62,8 +62,6 @@ entity  SH2_CPU  is
 
     port (
         Reset   :  in     std_logic;                       -- reset signal (active low)
-        NMI     :  in     std_logic;                       -- non-maskable interrupt signal (falling edge)
-        INT     :  in     std_logic;                       -- maskable interrupt signal (active low)
         clock   :  in     std_logic;                       -- system clock
         AB      :  out    std_logic_vector(31 downto 0);   -- memory address bus
         RE0     :  out    std_logic;                       -- first byte active low read enable
@@ -75,6 +73,9 @@ entity  SH2_CPU  is
         WE2     :  out    std_logic;                       -- third byte active low write enable
         WE3     :  out    std_logic;                       -- fourth byte active low write enable
         DB      :  inout  std_logic_vector(31 downto 0)    -- memory data bus
+        -- Unused signals
+        --NMI     :  in     std_logic;                       -- non-maskable interrupt signal (falling edge)
+        --INT     :  in     std_logic;                       -- maskable interrupt signal (active low)
     );
 
 end  SH2_CPU;
@@ -189,7 +190,7 @@ architecture structural of SH2_CPU is
             CLK     : in    std_logic;
             RST     : in    std_logic;
             DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
-            AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+            AB      : in    std_logic_vector(CU_ADDR_LEN - 1 downto 0);
             Result      : in  std_logic_vector(LONG_SIZE - 1 downto 0);
             Tbit    : in    std_logic;
 
@@ -253,7 +254,7 @@ architecture structural of SH2_CPU is
     component DTU is
         port (
             DBOut           : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);
-            AB              : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+            AB              : in    std_logic_vector(DTU_ADDR_LEN-1 downto 0);
             RD              : in    std_logic;
             WR              : in    std_logic;
             DataAccessMode  : in    integer range DATAACCESSMODE_CNT-1 downto 0;
@@ -468,7 +469,7 @@ begin
             CLK         => clock,
             RST         => reset,
             DB          => DB,
-            AB          => AB,
+            AB          => AB(CU_ADDR_LEN-1 downto 0),
             SR          => SR,
             Result      => ALU_Result,
             IR          => IR,
@@ -531,7 +532,7 @@ begin
     SH2_DTU : DTU
         port map (
             DBOut           => DBOut,
-            AB              => AB,
+            AB              => AB(DTU_ADDR_LEN-1 downto 0),
             RD              => RD,
             WR              => WR,
             DataAccessMode  => DataAccessMode,

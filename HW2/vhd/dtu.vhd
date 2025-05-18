@@ -49,6 +49,9 @@ package DTUConstants is
     constant DBInMode_Signed    : integer range DBINMODE_CNT-1 downto 0 := 0;
     constant DBInMode_Unsigned  : integer range DBINMODE_CNT-1 downto 0 := 1;
 
+    -- Address data bus used length
+    constant DTU_ADDR_LEN       : integer := 2;
+
 end package;
 
 
@@ -112,7 +115,7 @@ entity DTU is
 
     port (
         DBOut           : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data to output to DB
-        AB              : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- address bus
+        AB              : in    std_logic_vector(DTU_ADDR_LEN-1 downto 0);     -- address bus
         RD              : in    std_logic;                                      -- read enable (active-low)
         WR              : in    std_logic;                                      -- write enable (active-low)
         DataAccessMode  : in    integer range DATAACCESSMODE_CNT-1 downto 0;    -- select byte, word, long access
@@ -204,30 +207,31 @@ begin
 
             -- Byte access mode
             when DataAccessMode_Byte =>
-                if (AB(1 downto 0) = "11") then
-                    DBOutAligned(7 downto 0) <= DBOut(7 downto 0);      -- least significant byte
+                if (AB(DTU_ADDR_LEN-1 downto 0) = "11") then
+                    DBOutAligned <= (DATA_BUS_SIZE-1 downto 8 => 'X') & DBOut(7 downto 0);      -- least significant byte
                     DBIn(7 downto 0) <= DB(7 downto 0);
                     DBSignExtBit <= DB(7);
                     MemAccessBits <= "1110";
-                elsif (AB(1 downto 0) = "10") then 
-                    DBOutAligned(15 downto 8) <= DBOut(7 downto 0);     -- 2nd least significant byte
+                elsif (AB(DTU_ADDR_LEN-1 downto 0) = "10") then 
+                    DBOutAligned <= (DATA_BUS_SIZE-1 downto 16 => 'X') & DBOut(7 downto 0) & (7 downto 0 => 'X');     -- 2nd least significant byte
                     DBIn(7 downto 0) <= DB(15 downto 8);
                     DBSignExtBit <= DB(15);
                     MemAccessBits <= "1101";
-                elsif (AB(1 downto 0) = "01") then
-                    DBOutAligned(23 downto 16) <= DBOut(7 downto 0);    -- 2nd most significant byte
+                elsif (AB(DTU_ADDR_LEN-1 downto 0) = "01") then
+                    DBOutAligned <= (DATA_BUS_SIZE-1 downto 24 => 'X') & DBOut(7 downto 0) & (15 downto 0 => 'X');    -- 2nd most significant byte
                     DBIn(7 downto 0) <= DB(23 downto 16);
                     DBSignExtBit <= DB(23);
                     MemAccessBits <= "1011";
-                elsif (AB(1 downto 0) = "00") then 
-                    DBOutAligned(31 downto 24) <= DBOut(7 downto 0);    -- most significant byte
+                elsif (AB(DTU_ADDR_LEN-1 downto 0) = "00") then 
+                    DBOutAligned <= DBOut(7 downto 0) & (23 downto 0 => 'X');    -- most significant byte
                     DBIn(7 downto 0) <= DB(31 downto 24);
                     DBSignExtBit <= DB(31);
                     MemAccessBits <= "0111";
                 else
-                    DBOutAligned(7 downto 0) <= (others => 'X');        -- invalid addr
+                    DBOutAligned <= (others => 'X');        -- invalid addr
                     DBIn(7 downto 0) <= (others => 'X');
                     MemAccessBits <= "1111";
+                    DBSignExtBit <= 'X';
                 end if;
 
                 -- Zero extend unsigned values and sign extend signed values
@@ -238,19 +242,21 @@ begin
             -- Word access mode
             when DataAccessMode_Word =>
                 -- Address must be word aligned (multiple of 2)
-                if AB(1 downto 0) = "10" then
-                    DBOutAligned(15 downto 0) <= DBOut(15 downto 0);        -- least significant word
+                if AB(DTU_ADDR_LEN-1 downto 0) = "10" then
+                    DBOutAligned <= (DATA_BUS_SIZE-1 downto 16 => 'X') & DBOut(15 downto 0);        -- least significant word
                     DBIn(15 downto 0) <= DB(15 downto 0);
                     DBSignExtBit <= DB(15);
                     MemAccessBits <= "1100";
-                elsif AB(1 downto 0) = "00" then
-                    DBOutAligned(31 downto 16) <= DBOut(15 downto 0);       -- most significant word
+                elsif AB(DTU_ADDR_LEN-1 downto 0) = "00" then
+                    DBOutAligned <= DBOut(15 downto 0) & (15 downto 0 => 'X');       -- most significant word
                     DBIn(15 downto 0) <= DB(31 downto 16);
                     DBSignExtBit <= DB(31);
                     MemAccessBits <= "0011";
                 else
                     DBOutAligned <= (others => 'X');                        -- invalid address
+                    DBIn <= (others => 'X');
                     MemAccessBits <= "1111";
+                    DBSignExtBit <= 'X';
                 end if;
 
                 -- Zero extend unsigned values and sign extend signed values
@@ -261,18 +267,24 @@ begin
             -- Long word access mode                                        
             when DataAccessMode_Long =>
                 -- Address must be longword aligned (multiple of 4)
-                if (AB(1 downto 0) = "00") then
+                if (AB(DTU_ADDR_LEN-1 downto 0) = "00") then
                     DBOutAligned <= DBOut;
                     DBIn <= DB(31 downto 0);
                     MemAccessBits <= "0000";
                 else
                     DBOutAligned <= (others => 'X');
+                    DBIn <= (others => 'X');
                     MemAccessBits <= "1111";
                 end if;
+
+                DBSignExtBit <= 'X';
 
             -- Invalid data access mode
             when others =>
                 DBOutAligned <= (others => 'X');
+                DBIn <= (others => 'X');
+                MemAccessBits <= "1111";
+                DBSignExtBit <= 'X';
 
         end case;
 

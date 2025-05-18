@@ -122,11 +122,11 @@ begin
     process(clock)
     begin
 
-        -- by default leave all registers with their current value
-        Registers  <=  Registers;
-
         -- if storing, update that register on the clock
         if  rising_edge(clock)  then
+
+            -- by default leave all registers with their current value
+            Registers  <=  Registers;
 
             -- handle double word stores
             if (RegDStore = '1')  then
