@@ -39,8 +39,6 @@ architecture TB_ARCHITECTURE of tb_sh2_cpu is
 
         port (
             Reset   :  in     std_logic;                       -- reset signal (active low)
-            NMI     :  in     std_logic;                       -- non-maskable interrupt signal (falling edge)
-            INT     :  in     std_logic;                       -- maskable interrupt signal (active low)
             clock   :  in     std_logic;                       -- system clock
             AB      :  out    std_logic_vector(31 downto 0);   -- memory address bus
             RE0     :  out    std_logic;                       -- first byte active low read enable
@@ -52,6 +50,9 @@ architecture TB_ARCHITECTURE of tb_sh2_cpu is
             WE2     :  out    std_logic;                       -- third byte active low write enable
             WE3     :  out    std_logic;                       -- fourth byte active low write enable
             DB      :  inout  std_logic_vector(31 downto 0)    -- memory data bus
+            -- Unused signals
+            --NMI     :  in     std_logic;                       -- non-maskable interrupt signal (falling edge)
+            --INT     :  in     std_logic;                       -- maskable interrupt signal (active low)
         );
 
     end component;
@@ -121,8 +122,6 @@ begin
     UUT : SH2_CPU
         port map (
             Reset => Reset,
-            NMI => NMI,
-            INT => INT,
             clock => clock,
             AB => AB,
             RE0 => RE0,
@@ -134,6 +133,8 @@ begin
             WE2 => WE2,
             WE3 => WE3,
             DB => DB
+            -- NMI => NMI,
+            -- INT => INT,
         );
 
     MUT : MEMORY32x32

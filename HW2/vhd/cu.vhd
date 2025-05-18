@@ -90,6 +90,9 @@ package CUConstants is
 
     constant unused : integer := 0;
 
+    -- Address data bus used length
+    constant CU_ADDR_LEN       : integer := 2;
+
 end package;
 
 
@@ -118,7 +121,7 @@ entity CU is
         CLK     : in    std_logic;
         RST     : in    std_logic;
         DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
-        AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);
+        AB      : in    std_logic_vector(CU_ADDR_LEN - 1 downto 0);
         Result      : in  std_logic_vector(LONG_SIZE - 1 downto 0);   -- ALU result
         Tbit    : in    std_logic;
         IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";
@@ -233,7 +236,8 @@ begin
 
     RegInSel <= to_integer(unsigned(IR(11 downto 8)))   when RegInSelCmd = RegInSelCmd_Rn else
                 R15                                     when RegInSelCmd = RegInSelCmd_R15 else
-                R0                                      when RegInSelCmd = RegInSelCmd_R0;
+                R0                                      when RegInSelCmd = RegInSelCmd_R0 else
+                0;
     RegASel <= to_integer(unsigned(IR(11 downto 8))) when RegASelCmd = RegASelCmd_Rn else 0;
     RegBSel <= to_integer(unsigned(IR(7 downto 4))) when RegBSelCmd = RegBSelCmd_Rm else
                to_integer(unsigned(IR(11 downto 8))) when RegBSelCmd = RegBSelCmd_Rn else 0;
@@ -256,8 +260,8 @@ begin
                 -- Since databus is 32-bits, the IR is the high 16 bits when the
                 -- program address when is at an address that is a multiple of 4.
                 -- When it's not a multiple of 4 them the IR is the low 16 bits.
-                IR <= DB(31 downto 16) when UpdateIR = '1' and AB(1 downto 0) = "00" else
-                      DB(15 downto 0) when UpdateIR = '1' and AB(1 downto 0) = "10" else
+                IR <= DB(31 downto 16) when UpdateIR = '1' and AB(CU_ADDR_LEN-1 downto 0) = "00" else
+                      DB(15 downto 0) when UpdateIR = '1' and AB(CU_ADDR_LEN-1 downto 0) = "10" else
                       IR;
 
                 if UpdateSR = '1' then
