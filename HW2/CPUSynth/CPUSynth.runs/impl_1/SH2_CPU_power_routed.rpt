@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2023.2 (win64) Build 4029153 Fri Oct 13 20:14:34 MDT 2023
-| Date             : Mon May 19 00:38:02 2025
+| Date             : Mon May 19 01:10:42 2025
 | Host             : Garretts-Surface-Book-3 running 64-bit major release  (build 9200)
 | Command          : report_power -file SH2_CPU_power_routed.rpt -pb SH2_CPU_power_summary_routed.pb -rpx SH2_CPU_power_routed.rpx
 | Design           : SH2_CPU
@@ -30,10 +30,10 @@ Table of Contents
 ----------
 
 +--------------------------+--------------+
-| Total On-Chip Power (W)  | 0.085        |
+| Total On-Chip Power (W)  | 0.076        |
 | Design Power Budget (W)  | Unspecified* |
 | Power Budget Margin (W)  | NA           |
-| Dynamic (W)              | 0.025        |
+| Dynamic (W)              | 0.016        |
 | Device Static (W)        | 0.060        |
 | Effective TJA (C/W)      | 6.2          |
 | Max Ambient (C)          | 84.5         |
@@ -52,16 +52,16 @@ Table of Contents
 +----------------+-----------+----------+-----------+-----------------+
 | On-Chip        | Power (W) | Used     | Available | Utilization (%) |
 +----------------+-----------+----------+-----------+-----------------+
-| Clocks         |     0.002 |        3 |       --- |             --- |
-| Slice Logic    |     0.004 |     3760 |       --- |             --- |
-|   LUT as Logic |     0.004 |     2300 |     14600 |           15.75 |
-|   F7/F8 Muxes  |    <0.001 |      301 |     14600 |            2.06 |
-|   Register     |    <0.001 |      811 |     29200 |            2.78 |
+| Clocks         |     0.001 |        3 |       --- |             --- |
+| Slice Logic    |     0.003 |     3776 |       --- |             --- |
+|   LUT as Logic |     0.003 |     2256 |     14600 |           15.45 |
+|   F7/F8 Muxes  |    <0.001 |      298 |     14600 |            2.04 |
+|   Register     |    <0.001 |      764 |     29200 |            2.62 |
 |   Others       |     0.000 |        7 |       --- |             --- |
-| Signals        |     0.006 |     2682 |       --- |             --- |
-| I/O            |     0.013 |       74 |       112 |           66.07 |
+| Signals        |     0.004 |     2736 |       --- |             --- |
+| I/O            |     0.008 |       74 |       112 |           66.07 |
 | Static Power   |     0.060 |          |           |                 |
-| Total          |     0.085 |          |           |                 |
+| Total          |     0.076 |          |           |                 |
 +----------------+-----------+----------+-----------+-----------------+
 
 
@@ -71,11 +71,11 @@ Table of Contents
 +-----------+-------------+-----------+-------------+------------+-------------+-------------+------------+
 | Source    | Voltage (V) | Total (A) | Dynamic (A) | Static (A) | Powerup (A) | Budget (A)  | Margin (A) |
 +-----------+-------------+-----------+-------------+------------+-------------+-------------+------------+
-| Vccint    |       1.000 |     0.017 |       0.013 |      0.005 |       NA    | Unspecified | NA         |
+| Vccint    |       1.000 |     0.013 |       0.009 |      0.005 |       NA    | Unspecified | NA         |
 | Vccaux    |       1.800 |     0.010 |       0.001 |      0.009 |       NA    | Unspecified | NA         |
 | Vcco33    |       3.300 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | Vcco25    |       2.500 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
-| Vcco18    |       1.800 |     0.007 |       0.006 |      0.001 |       NA    | Unspecified | NA         |
+| Vcco18    |       1.800 |     0.005 |       0.004 |      0.001 |       NA    | Unspecified | NA         |
 | Vcco15    |       1.500 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | Vcco135   |       1.350 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | Vcco12    |       1.200 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
@@ -127,7 +127,7 @@ Table of Contents
 +-------+--------+-----------------+
 | Clock | Domain | Constraint (ns) |
 +-------+--------+-----------------+
-| clock | clock  |            20.2 |
+| clock | clock  |            25.0 |
 +-------+--------+-----------------+
 
 
@@ -140,10 +140,10 @@ Table of Contents
 +----------------------+-----------+
 | Name                 | Power (W) |
 +----------------------+-----------+
-| SH2_CPU              |     0.025 |
-|   SH2_CU             |     0.010 |
-|   SH2_RegArray       |     0.002 |
-|     Generic_RegArray |     0.002 |
+| SH2_CPU              |     0.016 |
+|   SH2_CU             |     0.007 |
+|   SH2_RegArray       |     0.001 |
+|     Generic_RegArray |     0.001 |
 +----------------------+-----------+
 
 
