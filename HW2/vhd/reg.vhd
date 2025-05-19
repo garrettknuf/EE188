@@ -197,15 +197,6 @@ architecture behavioral of RegArray is
     -- RegB output prior to possible special register operation
     signal RegBRaw  : std_logic_vector(REG_SIZE - 1 downto 0);
 
-    -- Unused signals
-    signal RegA2      : std_logic_vector(REG_SIZE - 1 downto 0);
-    signal RegA2Sel   : integer  range REGARRAY_RegCnt - 1 downto 0; 
-    signal RegDIn     : std_logic_vector(2 * REG_SIZE - 1 downto 0);
-    signal RegDInSel  : integer  range REGARRAY_RegCnt/2 - 1 downto 0;
-    signal RegDStore  : std_logic;
-    signal RegDSel    : integer  range REGARRAY_RegCnt/2 - 1 downto 0;
-    signal RegD       : std_logic_vector(2 * REG_SIZE - 1 downto 0);
-
 begin
 
     -- First possible value to update is ALU result
@@ -288,17 +279,17 @@ begin
             RegAxInSel => RegAxInSel,
             RegAxStore => RegAxStore,
             RegA1Sel => RegA1Sel,
-            RegA2Sel => RegA2Sel,
-            RegDIn => RegDIn,
-            RegDInSel => RegDInSel,
-            RegDStore => RegDStore,
-            RegDSel => RegDSel,
+            RegA2Sel => 0,
+            RegDIn => (others => '0'),
+            RegDInSel => 0,
+            RegDStore => '0',
+            RegDSel => 0,
             clock => CLK,
             RegA => RegA,
             RegB => RegBRaw,
             RegA1 => RegA1,
-            RegA2 => RegA2,
-            RegD => RegD
+            RegA2 => open,
+            RegD => open
         );
 
 end behavioral;

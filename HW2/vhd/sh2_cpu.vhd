@@ -17,6 +17,7 @@
 --     16 Apr 2025      Garrett Knuf    Initial revision.
 --     22 Apr 2025      Garrett Knuf    Integrated all components together.
 --     13 May 2025      Garrett Knuf    Connect DTU.
+--     16 May 2025      George Ore      Make interface synthesizable.
 --
 ----------------------------------------------------------------------------
 
@@ -190,7 +191,7 @@ architecture structural of SH2_CPU is
             CLK     : in    std_logic;                                      -- system clock
             RST     : in    std_logic;                                      -- system reset
             DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- data bus
-            AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- address bus
+            AB      : in    std_logic_vector(1 downto 0);                   -- address bus (least 2 significant bits)
             Result  : in    std_logic_vector(LONG_SIZE - 1 downto 0);       -- ALU result
             Tbit    : in    std_logic;                                      -- Tbit from ALU
             RegB    : in    std_logic_vector(REG_SIZE - 1 downto 0);
@@ -252,7 +253,7 @@ architecture structural of SH2_CPU is
     component DTU is
         port (
             DBOut           : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data to output to DB
-            AB              : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- address bus
+            AB              : in    std_logic_vector(1 downto 0);                   -- address bus (least 2 significant bits)
             RD              : in    std_logic;                                      -- read enable (active-low)
             WR              : in    std_logic;                                      -- write enable (active-low)
             DataAccessMode  : in    integer range DATAACCESSMODE_CNT-1 downto 0;    -- select byte, word, long access
@@ -461,7 +462,7 @@ begin
     SH2_DTU : DTU
         port map (
             DBOut           => DBOut,
-            AB              => AB,
+            AB              => AB(1 downto 0),
             RD              => RD,
             WR              => WR,
             DataAccessMode  => DataAccessMode,
@@ -487,7 +488,7 @@ begin
             CLK         => clock,
             RST         => reset,
             DB          => DB,
-            AB          => AB,
+            AB          => AB(1 downto 0),
             RegB        => RegB,
             Result      => ALU_Result,
 

@@ -1,0 +1,105 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2023.2 (win64) Build 4029153 Fri Oct 13 20:14:34 MDT 2023
+| Date         : Sun May 18 23:58:40 2025
+| Host         : Garretts-Surface-Book-3 running 64-bit major release  (build 9200)
+| Command      : report_control_sets -verbose -file SH2_CPU_control_sets_placed.rpt
+| Design       : SH2_CPU
+| Device       : xc7a25t
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Control Set Information
+
+Table of Contents
+-----------------
+1. Summary
+2. Histogram
+3. Flip-Flop Distribution
+4. Detailed Control Set Information
+
+1. Summary
+----------
+
++----------------------------------------------------------+-------+
+|                          Status                          | Count |
++----------------------------------------------------------+-------+
+| Total control sets                                       |    27 |
+|    Minimum number of control sets                        |    27 |
+|    Addition due to synthesis replication                 |     0 |
+|    Addition due to physical synthesis replication        |     0 |
+| Unused register locations in slices containing registers |    12 |
++----------------------------------------------------------+-------+
+* Control sets can be merged at opt_design using control_set_merge or merge_equivalent_drivers
+** Run report_qor_suggestions for automated merging and remapping suggestions
+
+
+2. Histogram
+------------
+
++--------------------+-------+
+|       Fanout       | Count |
++--------------------+-------+
+| Total control sets |    27 |
+| >= 0 to < 4        |     0 |
+| >= 4 to < 6        |     1 |
+| >= 6 to < 8        |     1 |
+| >= 8 to < 10       |     1 |
+| >= 10 to < 12      |     1 |
+| >= 12 to < 14      |     0 |
+| >= 14 to < 16      |     0 |
+| >= 16              |    23 |
++--------------------+-------+
+* Control sets can be remapped at either synth_design or opt_design
+
+
+3. Flip-Flop Distribution
+-------------------------
+
++--------------+-----------------------+------------------------+-----------------+--------------+
+| Clock Enable | Synchronous Set/Reset | Asynchronous Set/Reset | Total Registers | Total Slices |
++--------------+-----------------------+------------------------+-----------------+--------------+
+| No           | No                    | No                     |               8 |            6 |
+| No           | No                    | Yes                    |               0 |            0 |
+| No           | Yes                   | No                     |               4 |            2 |
+| Yes          | No                    | No                     |             714 |          507 |
+| Yes          | No                    | Yes                    |               0 |            0 |
+| Yes          | Yes                   | No                     |              38 |           20 |
++--------------+-----------------------+------------------------+-----------------+--------------+
+
+
+4. Detailed Control Set Information
+-----------------------------------
+
++------------------+---------------------------------+------------------+------------------+----------------+--------------+
+|   Clock Signal   |          Enable Signal          | Set/Reset Signal | Slice Load Count | Bel Load Count | Bels / Slice |
++------------------+---------------------------------+------------------+------------------+----------------+--------------+
+|  clock_IBUF_BUFG |                                 | SH2_DAU/SR[0]    |                2 |              4 |         2.00 |
+|  clock_IBUF_BUFG | SH2_CU/IR[14]_i_1_n_0           | SH2_DAU/SR[0]    |                4 |              6 |         1.50 |
+| ~clock_IBUF_BUFG |                                 |                  |                6 |              8 |         1.33 |
+|  clock_IBUF_BUFG | SH2_CU/IR[14]_i_1_n_0           |                  |                8 |             10 |         1.25 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[3]_0[0]           | SH2_DAU/SR[0]    |               16 |             32 |         2.00 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[2]_0[0]           |                  |               26 |             32 |         1.23 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_0              |                  |               25 |             32 |         1.28 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_1              |                  |               22 |             32 |         1.45 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_3              |                  |               14 |             32 |         2.29 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_5              |                  |               22 |             32 |         1.45 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_6              |                  |               25 |             32 |         1.28 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[8]_0              |                  |               27 |             32 |         1.19 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_4              |                  |               17 |             32 |         1.88 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_2              |                  |               20 |             32 |         1.60 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[9]_0              |                  |               27 |             32 |         1.19 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[8]_1              |                  |               22 |             32 |         1.45 |
+|  clock_IBUF_BUFG | SH2_CU/Registers[15][30]_i_4_0  |                  |               13 |             32 |         2.46 |
+|  clock_IBUF_BUFG | SH2_CU/SR[31]_i_1_n_0           |                  |               23 |             32 |         1.39 |
+|  clock_IBUF_BUFG | SH2_CU/TempReg2[31]_i_1_n_0     |                  |               20 |             32 |         1.60 |
+|  clock_IBUF_BUFG | SH2_CU/TempReg[31]_i_1_n_0      |                  |               26 |             32 |         1.23 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_5[0] |                  |               29 |             32 |         1.10 |
+|  clock_IBUF_BUFG | SH2_CU/E[0]                     |                  |               25 |             32 |         1.28 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_4    |                  |               26 |             32 |         1.23 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_0    |                  |               20 |             32 |         1.60 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_1    |                  |               25 |             32 |         1.28 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_3    |                  |               22 |             32 |         1.45 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_2    |                  |               23 |             32 |         1.39 |
++------------------+---------------------------------+------------------+------------------+----------------+--------------+
+
+

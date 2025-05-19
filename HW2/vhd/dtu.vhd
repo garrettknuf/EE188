@@ -112,7 +112,7 @@ entity DTU is
 
     port (
         DBOut           : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data to output to DB
-        AB              : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- address bus
+        AB              : in    std_logic_vector(1 downto 0);                   -- address bus (least 2 significant bits)
         RD              : in    std_logic;                                      -- read enable (active-low)
         WR              : in    std_logic;                                      -- write enable (active-low)
         DataAccessMode  : in    integer range DATAACCESSMODE_CNT-1 downto 0;    -- select byte, word, long access
@@ -202,6 +202,13 @@ begin
     -- Align DBOut and DBIn based on DataAccessMode and the address bus (AB)
     process (all)
     begin
+    
+        -- Default values to avoid latches during synthesis
+        DBIn <= (others => 'X');
+        DBOutAligned <= (others => 'X');
+        MemAccessBits <= "1111";
+        DBSignExtBit <= '0';
+    
         case DataAccessMode is
 
             -- Byte access mode

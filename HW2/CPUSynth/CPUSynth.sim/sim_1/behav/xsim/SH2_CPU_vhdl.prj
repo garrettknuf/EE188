@@ -1,0 +1,17 @@
+# compile vhdl design source files
+vhdl xil_defaultlib  \
+"../../../../../vhd/generic/generic_const.vhd" \
+"../../../../../vhd/generic/generic_alu.vhd" \
+"../../../../../vhd/alu.vhd" \
+"../../../../../vhd/generic/generic_mau.vhd" \
+"../../../../../vhd/reg.vhd" \
+"../../../../../vhd/dtu.vhd" \
+"../../../../../vhd/dau.vhd" \
+"../../../../../vhd/pau.vhd" \
+"../../../../../vhd/opcode.vhd" \
+"../../../../../vhd/cu.vhd" \
+"../../../../../vhd/generic/generic_reg.vhd" \
+"../../../../../vhd/sh2_cpu.vhd" \
+
+# Do not sort compile order
+nosort

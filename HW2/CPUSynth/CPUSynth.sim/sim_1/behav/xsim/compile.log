@@ -1,0 +1,13 @@
+INFO: [VRFC 10-163] Analyzing VHDL file "C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_const.vhd" into library xil_defaultlib
+INFO: [VRFC 10-163] Analyzing VHDL file "C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd" into library xil_defaultlib
+INFO: [VRFC 10-3107] analyzing entity 'FBlockBit'
+INFO: [VRFC 10-3107] analyzing entity 'AdderBit'
+INFO: [VRFC 10-3107] analyzing entity 'FBlock'
+INFO: [VRFC 10-3107] analyzing entity 'Adder'
+INFO: [VRFC 10-3107] analyzing entity 'Shifter'
+INFO: [VRFC 10-3107] analyzing entity 'GenericALU'
+INFO: [VRFC 10-163] Analyzing VHDL file "C:/Users/garre/Desktop/EE 188/HW2/vhd/alu.vhd" into library xil_defaultlib
+INFO: [VRFC 10-3107] analyzing entity 'ALU'
+ERROR: [VRFC 10-8350] formal port 'result' of mode 'buffer' cannot be associated with actual port 'result' of mode 'out' [C:/Users/garre/Desktop/EE 188/HW2/vhd/alu.vhd:221]
+ERROR: [VRFC 10-9458] unit 'behavioral' is ignored due to previous errors [C:/Users/garre/Desktop/EE 188/HW2/vhd/alu.vhd:122]
+INFO: [VRFC 10-8704] VHDL file 'C:/Users/garre/Desktop/EE 188/HW2/vhd/alu.vhd' is ignored due to errors

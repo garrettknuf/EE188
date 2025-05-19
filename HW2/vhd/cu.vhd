@@ -106,6 +106,8 @@ package CUConstants is
     constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;  -- Set to register
     constant SRSel_Tmp2 : integer range SRSEL_CNT-1 downto 0 := 3;  -- Set to temporary reg 2
 
+    constant unused : integer := 0;
+
 end package;
 
 
@@ -141,7 +143,7 @@ entity CU is
         CLK     : in    std_logic;                                      -- system clock
         RST     : in    std_logic;                                      -- system reset
         DB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- data bus
-        AB      : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- address bus
+        AB      : in    std_logic_vector(1 downto 0);                   -- address bus (least 2 significant bits)
         Result  : in    std_logic_vector(LONG_SIZE - 1 downto 0);       -- ALU result
         Tbit    : in    std_logic;                                      -- Tbit from ALU
         RegB    : in    std_logic_vector(REG_SIZE - 1 downto 0);
@@ -259,7 +261,7 @@ begin
     -- Select registers to access in register array
     RegInSel <= to_integer(unsigned(IR(11 downto 8)))   when RegInSelCmd = RegInSelCmd_Rn else
                 R15                                     when RegInSelCmd = RegInSelCmd_R15 else
-                R0                                      when RegInSelCmd = RegInSelCmd_R0;
+                R0;
 
     RegASel <= to_integer(unsigned(IR(11 downto 8)))    when RegASelCmd = RegASelCmd_Rn else R0;
 
@@ -319,6 +321,52 @@ begin
     
     process (all)
     begin
+
+        -- Add default values to prevent inferred latches during synthesis
+        ALUOpASel <= unused;
+        ALUOpBSel <= unused;
+        FCmd <= (others => '-');
+        CinCmd <= (others => '-');
+        SCmd <= (others => '-');
+        ALUCmd <= (others => '-');
+        TbitOp <= (others => '-');
+        UpdateSR <= '0';
+        PAU_SrcSel <= PAU_AddrPC;
+        PAU_OffsetSel <= PAU_OffsetWord;
+        PAU_UpdatePC <= '1';
+        PAU_PRSel <= PRSel_None;
+        PAU_IncDecBit <= unused;
+        PAU_PrePostSel <= MemUnit_POST;
+        PAU_IncDecSel <= '1';
+        DAU_SrcSel <= unused;
+        DAU_OffsetSel <= unused;
+        DAU_IncDecSel <= '-';
+        DAU_IncDecBit <= unused;
+        DAU_PrePostSel <= '-';
+        DAU_GBRSel <= GBRSel_None;
+        DAU_VBRSel <= VBRSel_None;
+        RegInSelCmd <= RegInSelCmd_Rn;
+        RegStore <= '0';
+        RegASelCmd <= 0;
+        RegBSelCmd <= 0;
+        RegAxInSelCmd <= 0;
+        RegAxStore <= '0';
+        RegA1SelCmd <= 0;
+        RegOpSel <= RegOpSel_None;
+        RegAxInDataSel <= RegAxInDataSel_AddrIDOut;
+        RD <= '0';
+        WR <= '1';
+        ABOutSel <= ABOutSel_Prog;
+        DBInMode <= 0;
+        DBOutSel <= 0;
+        DataAccessMode <= DataAccessMode_Word;
+        NextState <= Normal;
+        UpdateIR <= '1';
+        UpdateTempReg <= '0';
+        TempRegSel <= 0;
+        TempReg2Sel <= 0;
+        SRSel <= 0;
+        UpdateTempReg2 <= '0';
 
     -- Instruction decoding (auto-generated)
     if std_match(IR, OpMOV_Imm_To_Rn) then
