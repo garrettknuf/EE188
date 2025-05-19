@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2023.2 (win64) Build 4029153 Fri Oct 13 20:14:34 MDT 2023
-| Date         : Sun May 18 23:58:40 2025
+| Date         : Mon May 19 00:35:09 2025
 | Host         : Garretts-Surface-Book-3 running 64-bit major release  (build 9200)
 | Command      : report_control_sets -verbose -file SH2_CPU_control_sets_placed.rpt
 | Design       : SH2_CPU
@@ -77,29 +77,29 @@ Table of Contents
 |  clock_IBUF_BUFG | SH2_CU/IR[14]_i_1_n_0           | SH2_DAU/SR[0]    |                4 |              6 |         1.50 |
 | ~clock_IBUF_BUFG |                                 |                  |                6 |              8 |         1.33 |
 |  clock_IBUF_BUFG | SH2_CU/IR[14]_i_1_n_0           |                  |                8 |             10 |         1.25 |
-|  clock_IBUF_BUFG | SH2_CU/IR_reg[3]_0[0]           | SH2_DAU/SR[0]    |               16 |             32 |         2.00 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_5[0] |                  |               29 |             32 |         1.10 |
 |  clock_IBUF_BUFG | SH2_CU/IR_reg[2]_0[0]           |                  |               26 |             32 |         1.23 |
-|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_0              |                  |               25 |             32 |         1.28 |
-|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_1              |                  |               22 |             32 |         1.45 |
-|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_3              |                  |               14 |             32 |         2.29 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[3]_0[0]           | SH2_DAU/SR[0]    |               16 |             32 |         2.00 |
+|  clock_IBUF_BUFG | SH2_CU/E[0]                     |                  |               25 |             32 |         1.28 |
 |  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_5              |                  |               22 |             32 |         1.45 |
 |  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_6              |                  |               25 |             32 |         1.28 |
-|  clock_IBUF_BUFG | SH2_CU/IR_reg[8]_0              |                  |               27 |             32 |         1.19 |
-|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_4              |                  |               17 |             32 |         1.88 |
-|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_2              |                  |               20 |             32 |         1.60 |
-|  clock_IBUF_BUFG | SH2_CU/IR_reg[9]_0              |                  |               27 |             32 |         1.19 |
 |  clock_IBUF_BUFG | SH2_CU/IR_reg[8]_1              |                  |               22 |             32 |         1.45 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[8]_0              |                  |               27 |             32 |         1.19 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_0              |                  |               25 |             32 |         1.28 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_4              |                  |               17 |             32 |         1.88 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_3              |                  |               14 |             32 |         2.29 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_2              |                  |               20 |             32 |         1.60 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[7]_1              |                  |               22 |             32 |         1.45 |
+|  clock_IBUF_BUFG | SH2_CU/IR_reg[9]_0              |                  |               27 |             32 |         1.19 |
 |  clock_IBUF_BUFG | SH2_CU/Registers[15][30]_i_4_0  |                  |               13 |             32 |         2.46 |
 |  clock_IBUF_BUFG | SH2_CU/SR[31]_i_1_n_0           |                  |               23 |             32 |         1.39 |
-|  clock_IBUF_BUFG | SH2_CU/TempReg2[31]_i_1_n_0     |                  |               20 |             32 |         1.60 |
 |  clock_IBUF_BUFG | SH2_CU/TempReg[31]_i_1_n_0      |                  |               26 |             32 |         1.23 |
-|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_5[0] |                  |               29 |             32 |         1.10 |
-|  clock_IBUF_BUFG | SH2_CU/E[0]                     |                  |               25 |             32 |         1.28 |
-|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_4    |                  |               26 |             32 |         1.23 |
-|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_0    |                  |               20 |             32 |         1.60 |
+|  clock_IBUF_BUFG | SH2_CU/TempReg2[31]_i_1_n_0     |                  |               20 |             32 |         1.60 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_2    |                  |               23 |             32 |         1.39 |
 |  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_1    |                  |               25 |             32 |         1.28 |
 |  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_3    |                  |               22 |             32 |         1.45 |
-|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_2    |                  |               23 |             32 |         1.39 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_0    |                  |               20 |             32 |         1.60 |
+|  clock_IBUF_BUFG | SH2_CU/CurrentState_reg[1]_4    |                  |               26 |             32 |         1.23 |
 +------------------+---------------------------------+------------------+------------------+----------------+--------------+
 
 

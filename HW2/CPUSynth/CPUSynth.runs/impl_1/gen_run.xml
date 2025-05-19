@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<GenRun Id="impl_1" LaunchPart="xc7a25tcpg238-1" LaunchTime="1747637384">
+<GenRun Id="impl_1" LaunchPart="xc7a25tcpg238-1" LaunchTime="1747639855">
   <File Type="ROUTE-PWR" Name="SH2_CPU_power_routed.rpt"/>
   <File Type="PA-TCL" Name="SH2_CPU.tcl"/>
   <File Type="ROUTE-PWR-SUM" Name="SH2_CPU_power_summary_routed.pb"/>
