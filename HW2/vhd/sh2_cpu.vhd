@@ -199,7 +199,7 @@ architecture structural of SH2_CPU is
             IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";    -- instruction register
             SR      : out std_logic_vector(REG_SIZE - 1 downto 0);                  -- status register
             TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);             -- temporary register
-            TempRegSel : out integer range 4 downto 0;                              -- select temporary register
+            TempReg2 : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);            -- secondary temp register
             
             -- ALU Control Signals
             ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
@@ -344,7 +344,7 @@ architecture structural of SH2_CPU is
     signal IR : std_logic_vector(INST_SIZE-1 downto 0);
     signal SR : std_logic_vector(REG_SIZE-1 downto 0);
     signal TempReg : std_logic_vector(31 downto 0);
-    signal TempRegSel : integer range 4 downto 0;
+    signal TempReg2 : std_logic_vector(31 downto 0);
 
     -- Top-level mux signals
     signal DBOutSel : integer range DBOUTSEL_CNT-1 downto 0;    -- select data bus output
@@ -371,7 +371,7 @@ begin
         port map (
             RegA        => RegA,
             RegB        => RegB,
-            TempReg     => TempReg,
+            TempReg     => TempReg2,
             Imm         => IR(7 downto 0),
             DBIn        => DBIn,
             SR0         => SR(0),
@@ -496,7 +496,7 @@ begin
             IR          => IR,
             Tbit        => ALU_Tbit,
             TempReg     => TempReg,
-            TempRegSel  => TempRegSel,
+            TempReg2    => TempReg2,
 
             -- ALU Signals
             ALUOpASel   => ALUOpASel,

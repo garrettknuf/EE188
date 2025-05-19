@@ -149,6 +149,24 @@ XORTest:
     ;BRA    TestSuccess
 
 ;;--------------------------------------------------------------------------
+;; RMWBranchSlotTest: Test read, modify, write instruction in branch slot
+;;--------------------------------------------------------------------------
+RMWBranchSlotTest1:
+    MOV     #6, R0
+    BRA     RMWBranchSlotTest2  ; test a RMW instruction in the branch slot
+    AND.B   #38,@(R0,GBR)       ; read 0x55, AND 0x26, write 0x04
+    NOP
+    BRA     TestFail
+
+RMWBranchSlotTest2:
+    MOVA    @(3, PC), R0
+    MOV     R0, R1
+    MOV     #7, R0
+    JMP     @R1              ; jump to TestSuccess
+    OR.B    #93,@(R0,GBR)    ; read 0x55, OR 0x5D, write 0x5D
+    BRA     TestFail
+
+;;--------------------------------------------------------------------------
 ;; TestSuccess/Fail: Write final pass/fail code and halt
 ;;--------------------------------------------------------------------------
 TestSuccess:
@@ -177,4 +195,4 @@ Num0:   .byte   0x39        ; 0b00111001
 Num1:   .byte   0x53        ; 0b01010011
 Num2:   .byte   0x95        ; 0b10010101
 Num3:   .byte   0xC3        ; 0b11000011
-Num4:   .long   0x70007777  ; alignment/padding
+Num4:   .long   0x70005555  ; alignment/padding

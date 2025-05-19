@@ -149,7 +149,7 @@ TestPR:
     LDS.L   @R11+,PR   ; Read 432
     ADD     #4, R10    ; Counteract pre-dec
     STS.L   PR,@-R10   ; WRITE 432
-    ADD     #4, R10    
+    ADD     #4, R10
 
 ;;--------------------------------------------------------------------------
 ;; Test Trapa: GOTO TRAPA test
@@ -159,7 +159,7 @@ TestPR:
 ;;--------------------------------------------------------------------------
 ;; Test NOP (Trapa vector address)
 ;;--------------------------------------------------------------------------
-; NOPTests:
+NOPTests:
     NOP             ; TRAPA #16 will point here
     MOV     #3,R8   ; Put a test value to prove it got here
     MOV.L   R8,@R10 ; WRITE 3
@@ -168,7 +168,7 @@ TestPR:
 ;;--------------------------------------------------------------------------
 ;; Test RTE: Verify RTE instruction returns with branch slot
 ;;--------------------------------------------------------------------------
-; RTETests:
+RTETests:
     SETT    ; Change SR to test SR restore
     RTE
     NOP     ; Branch slot NOP
@@ -180,7 +180,7 @@ TestPR:
 ;;--------------------------------------------------------------------------
 TrapaTests:
     NOP     ; Trapa Test
-    NOP
+    CLRT
     TRAPA   #16
     STC     SR,R8   ; Put SR into R8 and put into memory to verify SR restore
     MOV.L   R8,@R10 ; WRITE 80

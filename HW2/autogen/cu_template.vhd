@@ -84,6 +84,11 @@ package CUConstants is
     constant TempRegSel_Result   : integer range TempRegSel_CNT-1 downto 0 := 3;
     constant TempRegSel_DataBus  : integer range TempRegSel_CNT-1 downto 0 := 4;
 
+    -- TempReg2Sel - select value to put into temporary register 2
+    constant TempReg2Sel_CNT      : integer := 2;
+    constant TempReg2Sel_Result   : integer range TempRegSel_CNT-1 downto 0 := 0;
+    constant TempReg2Sel_DB       : integer range TempRegSel_CNT-1 downto 0 := 1;
+
     -- Bit indices of SR
     constant StatusReg_Tbit     : integer := 0; -- T bit
     constant StatusReg_Sbit     : integer := 1; -- S bit
@@ -96,10 +101,10 @@ package CUConstants is
 
     -- SRSel - select value to load into SR
     constant SRSEL_CNT  : integer := 4;
-    constant SRSel_Tbit : integer range SRSEL_CNT-1 downto 0 := 0;
-    constant SRSel_DB   : integer range SRSEL_CNT-1 downto 0 := 1;
-    constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;
-    constant SRSel_Tmp2 : integer range SRSEL_CNT-1 downto 0 := 3;
+    constant SRSel_Tbit : integer range SRSEL_CNT-1 downto 0 := 0;  -- Set Tbit
+    constant SRSel_DB   : integer range SRSEL_CNT-1 downto 0 := 1;  -- Set to DB
+    constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;  -- Set to register
+    constant SRSel_Tmp2 : integer range SRSEL_CNT-1 downto 0 := 3;  -- Set to temporary reg 2
 
 end package;
 
@@ -145,7 +150,7 @@ entity CU is
         IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";    -- instruction register
         SR      : out std_logic_vector(REG_SIZE - 1 downto 0);                  -- status register
         TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);             -- temporary register
-        TempRegSel : out integer range 4 downto 0;                              -- select temporary register
+        TempReg2 : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);            -- secondary temp register
         
         -- ALU Control Signals
         ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
@@ -212,8 +217,8 @@ architecture behavioral of CU is
     constant TRAPA_ReadVector   : integer := 9; -- read vector address
     constant RTE_PopSR          : integer := 10; -- pop SR from stack
     constant RTE_Slot           : integer := 11; -- RTE branch slot
-    constant Sleep              : integer := 12;   -- idle (no code executing)
-    constant STATE_CNT          : integer := 13;   -- total number of states
+    constant Sleep              : integer := 12; -- idle (no code executing)
+    constant STATE_CNT          : integer := 13; -- total number of states
 
     signal NextState : integer range STATE_CNT-1 downto 0;      -- state to transition to on next clock
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
@@ -230,19 +235,26 @@ architecture behavioral of CU is
     signal RegA1SelCmd : integer range REGARRAY_RegCnt-1 downto 0;      -- select register for RegArray RegA1
 
     signal UpdateTempReg : std_logic;                                   -- control signal to update TempReg or not
-    signal TempRegMuxOut : std_logic_vector(REG_SIZE-1 downto 0);       -- select input to TempReg
+    signal TempRegSel : integer range TempRegSel_CNT-1 downto 0;        -- select temporary register input
+    signal TempRegMuxOut : std_logic_vector(REG_SIZE-1 downto 0);       -- mux input to TempReg
+    signal TempReg2MuxOut : std_logic_vector(REG_SIZE-1 downto 0);      -- mux input to TempReg2
     signal UpdateTempReg2 : std_logic;                                  -- update secondary temporary register
-    signal TempReg2     : std_logic_vector(REG_SIZE-1 downto 0);        -- secondary temporary register
+    signal TempReg2Sel  : integer range TempReg2Sel_CNT-1 downto 0;     -- secondary temporary register select
     
 begin
 
     -- Signal to set temporary register 1 to
     TempRegMuxOut <= (31 downto 9 => IR(7)) & IR(7 downto 0) & '0' when TempRegSel = TempRegSel_Offset8 else
-                    (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempRegSel = TempRegSel_Offset12 else
-                    RegB when TempRegSel = TempRegSel_RegB else
-                    Result when TempRegSel = TempRegSel_Result else
-                    DB when TempRegSel = TempRegSel_DataBus else
-                    (others => 'X');
+                     (31 downto 13 => IR(11)) & IR(11 downto 0) & '0' when TempRegSel = TempRegSel_Offset12 else
+                     RegB when TempRegSel = TempRegSel_RegB else
+                     Result when TempRegSel = TempRegSel_Result else
+                     DB when TempRegSel = TempRegSel_DataBus else
+                     (others => 'X');
+
+    -- Signal to set temporary register 2 to
+    TempReg2MuxOut <= DB     when TempReg2Sel = TempReg2Sel_DB else
+                      Result when TempReg2Sel = TempReg2Sel_Result else
+                      (others => 'X');
 
     -- Select registers to access in register array
     RegInSel <= to_integer(unsigned(IR(11 downto 8)))   when RegInSelCmd = RegInSelCmd_Rn else
@@ -269,6 +281,7 @@ begin
     begin
 
         if rising_edge(CLK) then
+
             if RST = '1' then
                 -- Since databus is 32-bits, the IR is the high 16 bits when the
                 -- program address when is at an address that is a multiple of 4.
@@ -280,9 +293,9 @@ begin
                 -- Update status register accordingly
                 if UpdateSR = '1' then
                     SR <= (31 downto 1 => '0') & Tbit  when SRSel = SRSel_Tbit else
-                          DB    when SRSel = SRSel_DB   else
-                          RegB   when SRSel = SRSel_Reg  else
-                          TempReg2 when SRSel = SRSel_Tmp2  else
+                          DB                           when SRSel = SRSel_DB   else
+                          RegB                         when SRSel = SRSel_Reg  else
+                          TempReg2                     when SRSel = SRSel_Tmp2 else
                           (others => 'X');
                 end if;
 
@@ -290,7 +303,7 @@ begin
                 TempReg <= TempRegMuxOut when UpdateTempReg = '1' else TempReg;
 
                 -- Update temporary register 2
-                TempReg2 <= DB when UpdateTempReg2 = '1' else TempReg2;
+                TempReg2 <= TempReg2MuxOut when UpdateTempReg2 = '1' else TempReg2;
 
                 -- Set state of FSM
                 CurrentState <= NextState;
