@@ -1,0 +1,17 @@
+StartAddr: 0x0400
+L.0     ; fibonacci terms...
+L.1
+L.1
+L.2
+L.3
+L.5
+L.8
+L.13
+L.21
+L.34
+L.55
+L.89
+L.0
+L.0
+L.0
+L.0

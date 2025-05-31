@@ -1,0 +1,14 @@
+#-----------------------------------------------------------
+# Vivado v2023.2 (64-bit)
+# SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+# IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+# SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+# Start of session at: Mon May 19 01:03:40 2025
+# Process ID: 9736
+# Current directory: C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.runs/synth_1
+# Command line: vivado.exe -log SH2_CPU.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source SH2_CPU.tcl
+# Log file: C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.runs/synth_1/SH2_CPU.vds
+# Journal file: C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.runs/synth_1\vivado.jou
+# Running On: Garretts-Surface-Book-3, OS: Windows, CPU Frequency: 1498 MHz, CPU Physical cores: 4, Host memory: 33925 MB
+#-----------------------------------------------------------
+source SH2_CPU.tcl -notrace

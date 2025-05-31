@@ -1,0 +1,689 @@
+
+*** Running vivado
+    with args -log SH2_CPU.vds -m64 -product Vivado -mode batch -messageDb vivado.pb -notrace -source SH2_CPU.tcl
+
+
+ECHO is off.
+ECHO is off.
+
+****** Vivado v2023.2 (64-bit)
+  **** SW Build 4029153 on Fri Oct 13 20:14:34 MDT 2023
+  **** IP Build 4028589 on Sat Oct 14 00:45:43 MDT 2023
+  **** SharedData Build 4025554 on Tue Oct 10 17:18:54 MDT 2023
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source SH2_CPU.tcl -notrace
+create_project: Time (s): cpu = 00:00:07 ; elapsed = 00:00:09 . Memory (MB): peak = 473.902 ; gain = 177.941
+Command: read_checkpoint -auto_incremental -incremental {C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.srcs/utils_1/imports/synth_1/SH2_CPU.dcp}
+INFO: [Vivado 12-5825] Read reference checkpoint from C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.srcs/utils_1/imports/synth_1/SH2_CPU.dcp for incremental synthesis
+INFO: [Vivado 12-7989] Please ensure there are no constraint changes
+Command: synth_design -top SH2_CPU -part xc7a25tcpg238-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7a25t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7a25t'
+INFO: [Device 21-403] Loading part xc7a25tcpg238-1
+INFO: [Designutils 20-5440] No compile time benefit to using incremental synthesis; A full resynthesis will be run
+INFO: [Designutils 20-4379] Flow is switching to default flow due to incremental criteria not met. If you would like to alter this behaviour and have the flow terminate instead, please set the following parameter config_implementation {autoIncr.Synth.RejectBehavior Terminate}
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 14264
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:08 ; elapsed = 00:00:09 . Memory (MB): peak = 1296.328 ; gain = 440.902
+---------------------------------------------------------------------------------
+INFO: [Synth 8-638] synthesizing module 'SH2_CPU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/sh2_cpu.vhd:84]
+INFO: [Synth 8-3491] module 'ALU' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/alu.vhd:105' bound to instance 'SH2_ALU' of component 'ALU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/sh2_cpu.vhd:371]
+INFO: [Synth 8-638] synthesizing module 'ALU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/alu.vhd:134]
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'GenericALU' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:479' bound to instance 'Generic_ALU' of component 'GenericALU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/alu.vhd:220]
+INFO: [Synth 8-638] synthesizing module 'GenericALU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:504]
+	Parameter wordsize bound to: 32 - type: integer 
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'FBlock' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:229' bound to instance 'FB1' of component 'FBlock' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:557]
+INFO: [Synth 8-638] synthesizing module 'FBlock' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:246]
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-638] synthesizing module 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:137]
+INFO: [Synth 8-256] done synthesizing module 'FBlockBit' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:137]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-3491] module 'FBlockBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:125' bound to instance 'FBx' of component 'FBlockBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:261]
+INFO: [Synth 8-256] done synthesizing module 'FBlock' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:246]
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'Adder' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:293' bound to instance 'Add1' of component 'Adder' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:559]
+INFO: [Synth 8-638] synthesizing module 'Adder' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:313]
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-638] synthesizing module 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:181]
+INFO: [Synth 8-256] done synthesizing module 'AdderBit' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:181]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'ABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:338]
+INFO: [Synth 8-256] done synthesizing module 'Adder' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:313]
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'Shifter' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:378' bound to instance 'Sh1' of component 'Shifter' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:562]
+INFO: [Synth 8-638] synthesizing module 'Shifter' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:395]
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-256] done synthesizing module 'Shifter' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:395]
+INFO: [Synth 8-256] done synthesizing module 'GenericALU' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:504]
+INFO: [Synth 8-256] done synthesizing module 'ALU' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/alu.vhd:134]
+INFO: [Synth 8-3491] module 'RegArray' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/reg.vhd:125' bound to instance 'SH2_RegArray' of component 'RegArray' [C:/Users/garre/Desktop/EE 188/HW2/vhd/sh2_cpu.vhd:392]
+INFO: [Synth 8-638] synthesizing module 'RegArray' [C:/Users/garre/Desktop/EE 188/HW2/vhd/reg.vhd:160]
+	Parameter regcnt bound to: 16 - type: integer 
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'GenericRegArray' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_reg.vhd:65' bound to instance 'Generic_RegArray' of component 'GenericRegArray' [C:/Users/garre/Desktop/EE 188/HW2/vhd/reg.vhd:266]
+INFO: [Synth 8-638] synthesizing module 'GenericRegArray' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_reg.vhd:98]
+	Parameter regcnt bound to: 16 - type: integer 
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-256] done synthesizing module 'GenericRegArray' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_reg.vhd:98]
+INFO: [Synth 8-256] done synthesizing module 'RegArray' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/reg.vhd:160]
+INFO: [Synth 8-3491] module 'PAU' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/pau.vhd:97' bound to instance 'SH2_PAU' of component 'PAU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/sh2_cpu.vhd:417]
+INFO: [Synth 8-638] synthesizing module 'PAU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/pau.vhd:121]
+	Parameter srcCnt bound to: 4 - type: integer 
+	Parameter offsetCnt bound to: 7 - type: integer 
+	Parameter maxIncDecBit bound to: 2 - type: integer 
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'MemUnit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:142' bound to instance 'Generic_PAU' of component 'MemUnit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/pau.vhd:187]
+INFO: [Synth 8-638] synthesizing module 'MemUnit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:166]
+	Parameter srcCnt bound to: 4 - type: integer 
+	Parameter offsetCnt bound to: 7 - type: integer 
+	Parameter maxIncDecBit bound to: 2 - type: integer 
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Synth 8-3491] module 'AdderBit' declared at 'C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_alu.vhd:168' bound to instance 'IDABx' of component 'AdderBit' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:241]
+INFO: [Common 17-14] Message 'Synth 8-3491' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+INFO: [Synth 8-256] done synthesizing module 'MemUnit' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:166]
+INFO: [Synth 8-256] done synthesizing module 'PAU' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/pau.vhd:121]
+INFO: [Synth 8-638] synthesizing module 'DAU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/dau.vhd:140]
+	Parameter srcCnt bound to: 6 - type: integer 
+	Parameter offsetCnt bound to: 9 - type: integer 
+	Parameter maxIncDecBit bound to: 2 - type: integer 
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-638] synthesizing module 'MemUnit__parameterized1' [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:166]
+	Parameter srcCnt bound to: 6 - type: integer 
+	Parameter offsetCnt bound to: 9 - type: integer 
+	Parameter maxIncDecBit bound to: 2 - type: integer 
+	Parameter wordsize bound to: 32 - type: integer 
+INFO: [Synth 8-256] done synthesizing module 'MemUnit__parameterized1' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/generic/generic_mau.vhd:166]
+INFO: [Synth 8-256] done synthesizing module 'DAU' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/dau.vhd:140]
+INFO: [Synth 8-638] synthesizing module 'DTU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/dtu.vhd:136]
+INFO: [Synth 8-256] done synthesizing module 'DTU' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/dtu.vhd:136]
+INFO: [Synth 8-638] synthesizing module 'CU' [C:/Users/garre/Desktop/EE 188/HW2/vhd/cu.vhd:207]
+INFO: [Synth 8-256] done synthesizing module 'CU' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/cu.vhd:207]
+INFO: [Synth 8-256] done synthesizing module 'SH2_CPU' (0#1) [C:/Users/garre/Desktop/EE 188/HW2/vhd/sh2_cpu.vhd:84]
+WARNING: [Synth 8-7129] Port NMI in module SH2_CPU is either unconnected or has no load
+WARNING: [Synth 8-7129] Port INT in module SH2_CPU is either unconnected or has no load
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:14 ; elapsed = 00:00:15 . Memory (MB): peak = 1515.133 ; gain = 659.707
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:14 ; elapsed = 00:00:16 . Memory (MB): peak = 1515.133 ; gain = 659.707
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:14 ; elapsed = 00:00:16 . Memory (MB): peak = 1515.133 ; gain = 659.707
+---------------------------------------------------------------------------------
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.133 . Memory (MB): peak = 1515.133 ; gain = 0.000
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.srcs/constrs_1/new/timing2.xdc]
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clock' matched to 'port' objects. [C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.srcs/constrs_1/new/timing2.xdc:1]
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+Finished Parsing XDC File [C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.srcs/constrs_1/new/timing2.xdc]
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.004 . Memory (MB): peak = 1547.348 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+The system cannot find the path specified.
+Constraint Validation Runtime : Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.196 . Memory (MB): peak = 1547.348 ; gain = 0.000
+INFO: [Designutils 20-5440] No compile time benefit to using incremental synthesis; A full resynthesis will be run
+INFO: [Designutils 20-4379] Flow is switching to default flow due to incremental criteria not met. If you would like to alter this behaviour and have the flow terminate instead, please set the following parameter config_implementation {autoIncr.Synth.RejectBehavior Terminate}
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:31 ; elapsed = 00:00:34 . Memory (MB): peak = 1547.348 ; gain = 691.922
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7a25tcpg238-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:31 ; elapsed = 00:00:34 . Memory (MB): peak = 1547.348 ; gain = 691.922
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:31 ; elapsed = 00:00:34 . Memory (MB): peak = 1547.348 ; gain = 691.922
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:44 ; elapsed = 00:00:48 . Memory (MB): peak = 1547.348 ; gain = 691.922
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---XORs : 
+	   3 Input      1 Bit         XORs := 160   
+	   2 Input      1 Bit         XORs := 2     
++---Registers : 
+	               32 Bit    Registers := 22    
+	               16 Bit    Registers := 1     
+	                4 Bit    Registers := 1     
+	                1 Bit    Registers := 8     
++---Muxes : 
+	   2 Input   32 Bit        Muxes := 79    
+	   4 Input   32 Bit        Muxes := 9     
+	   3 Input   32 Bit        Muxes := 1     
+	   2 Input   30 Bit        Muxes := 2     
+	   2 Input   24 Bit        Muxes := 1     
+	   2 Input   16 Bit        Muxes := 3     
+	  10 Input    4 Bit        Muxes := 1     
+	   2 Input    4 Bit        Muxes := 8     
+	 123 Input    4 Bit        Muxes := 1     
+	  13 Input    4 Bit        Muxes := 1     
+	  84 Input    4 Bit        Muxes := 1     
+	   9 Input    4 Bit        Muxes := 1     
+	  28 Input    4 Bit        Muxes := 1     
+	   3 Input    4 Bit        Muxes := 3     
+	   4 Input    4 Bit        Muxes := 2     
+	  90 Input    4 Bit        Muxes := 1     
+	   8 Input    4 Bit        Muxes := 1     
+	 114 Input    3 Bit        Muxes := 1     
+	  71 Input    3 Bit        Muxes := 1     
+	   8 Input    3 Bit        Muxes := 2     
+	  13 Input    3 Bit        Muxes := 1     
+	 123 Input    3 Bit        Muxes := 1     
+	  12 Input    3 Bit        Muxes := 2     
+	  35 Input    3 Bit        Muxes := 1     
+	   6 Input    3 Bit        Muxes := 1     
+	 121 Input    3 Bit        Muxes := 1     
+	 122 Input    3 Bit        Muxes := 1     
+	  10 Input    3 Bit        Muxes := 1     
+	 103 Input    2 Bit        Muxes := 1     
+	  13 Input    2 Bit        Muxes := 5     
+	   2 Input    2 Bit        Muxes := 2     
+	  60 Input    2 Bit        Muxes := 1     
+	   9 Input    2 Bit        Muxes := 2     
+	   6 Input    2 Bit        Muxes := 1     
+	  19 Input    2 Bit        Muxes := 1     
+	  84 Input    2 Bit        Muxes := 1     
+	 124 Input    2 Bit        Muxes := 2     
+	 109 Input    2 Bit        Muxes := 1     
+	   7 Input    2 Bit        Muxes := 2     
+	 123 Input    2 Bit        Muxes := 1     
+	  12 Input    2 Bit        Muxes := 4     
+	 107 Input    2 Bit        Muxes := 1     
+	 108 Input    2 Bit        Muxes := 1     
+	  71 Input    2 Bit        Muxes := 1     
+	 114 Input    2 Bit        Muxes := 1     
+	  46 Input    2 Bit        Muxes := 1     
+	  76 Input    2 Bit        Muxes := 2     
+	 125 Input    2 Bit        Muxes := 1     
+	   2 Input    1 Bit        Muxes := 314   
+	   4 Input    1 Bit        Muxes := 5     
+	   3 Input    1 Bit        Muxes := 1     
+	   5 Input    1 Bit        Muxes := 5     
+	  30 Input    1 Bit        Muxes := 1     
+	  31 Input    1 Bit        Muxes := 2     
+	   9 Input    1 Bit        Muxes := 3     
+	  13 Input    1 Bit        Muxes := 10    
+	  12 Input    1 Bit        Muxes := 6     
+	   8 Input    1 Bit        Muxes := 2     
+	  10 Input    1 Bit        Muxes := 1     
+	 113 Input    1 Bit        Muxes := 1     
+	   7 Input    1 Bit        Muxes := 5     
+	  33 Input    1 Bit        Muxes := 1     
+	  14 Input    1 Bit        Muxes := 1     
+	  11 Input    1 Bit        Muxes := 1     
+	  83 Input    1 Bit        Muxes := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 80 (col length:40)
+BRAMs: 90 (col length: RAMB18 40 RAMB36 20)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-7080] Parallel synthesis criteria is not met
+WARNING: [Synth 8-7129] Port NMI in module SH2_CPU is either unconnected or has no load
+WARNING: [Synth 8-7129] Port INT in module SH2_CPU is either unconnected or has no load
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:01:59 ; elapsed = 00:02:07 . Memory (MB): peak = 1637.445 ; gain = 782.020
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:02:11 ; elapsed = 00:02:19 . Memory (MB): peak = 1637.445 ; gain = 782.020
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+      : SH2_PAU/i_0/DB[0]
+      : SH2_PAU/DB[0]
+      : SH2_DTU/i_0/p_0_in[1]
+      : SH2_DTU/AB[1]
+      : AB_inferred/AB[1]
+      : AB_inferred/ProgAddr[1]
+      : SH2_PAU/ProgAddr[1]
+      : SH2_PAU/i_0/ProgAddr[1]
+      : SH2_PAU/i_0/DB[1]
+      : SH2_PAU/DB[1]
+      : SH2_DTU/i_0/p_0_in[0]
+      : SH2_DTU/AB[0]
+      : AB_inferred/AB[0]
+      : AB_inferred/ProgAddr[0]
+      : SH2_PAU/ProgAddr[0]
+      : SH2_PAU/i_0/ProgAddr[0]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_12(tricell)"
+      : SH2_DTU/i_0/p_0_in[0]
+      : SH2_DTU/AB[0]
+      : AB_inferred/AB[0]
+      : AB_inferred/ProgAddr[0]
+      : SH2_PAU/ProgAddr[0]
+      : SH2_PAU/i_0/ProgAddr[0]
+      : SH2_DTU/i_0/p_0_in[1]
+      : SH2_DTU/AB[1]
+      : AB_inferred/AB[1]
+      : AB_inferred/ProgAddr[1]
+      : SH2_PAU/ProgAddr[1]
+      : SH2_PAU/i_0/ProgAddr[1]
+      : SH2_PAU/i_0/DB[1]
+      : SH2_PAU/DB[1]
+      : SH2_DTU/i_0/p_0_in[1]
+      : SH2_DTU/AB[1]
+      : AB_inferred/AB[1]
+      : AB_inferred/ProgAddr[1]
+      : SH2_PAU/ProgAddr[1]
+      : SH2_PAU/i_0/ProgAddr[1]
+      : SH2_PAU/i_0/DB[1]
+      : SH2_PAU/DB[1]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_36(tricell)"
+      : AB_inferred/ProgAddr[0]
+      : SH2_PAU/ProgAddr[0]
+      : SH2_PAU/i_0/ProgAddr[0]
+      : AB_inferred/ProgAddr[1]
+      : SH2_PAU/ProgAddr[1]
+      : SH2_PAU/i_0/ProgAddr[1]
+      : SH2_PAU/i_0/DB[1]
+      : SH2_PAU/DB[1]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_28(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_18(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_42(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_26(tricell)"
+      : i_0/Result[7]
+      : SH2_ALU/Result[7]
+      : SH2_ALU/i_0/Result[7]
+      : SH2_ALU/i_0/DBIn[23]
+      : SH2_ALU/DBIn[23]
+      : SH2_DTU/DBIn[23]
+      : SH2_DTU/i_0/DBIn[23]
+      : SH2_DTU/i_0/DB[31]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_11(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_35(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_27(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_20(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_19(tricell)"
+      : SH2_ALU/i_0/DBIn[0]
+      : SH2_ALU/DBIn[0]
+      : SH2_DTU/DBIn[0]
+      : SH2_DTU/i_0/DBIn[0]
+      : SH2_DTU/i_0/DB[8]
+      : SH2_DTU/i_0/DB[7]
+      : SH2_ALU/i_0/DBIn[25]
+      : SH2_ALU/DBIn[25]
+      : SH2_DTU/DBIn[25]
+      : SH2_DTU/i_0/DBIn[25]
+      : SH2_DTU/i_0/DB[25]
+      : SH2_ALU/i_0/DBIn[23]
+      : SH2_ALU/DBIn[23]
+      : SH2_DTU/DBIn[23]
+      : SH2_DTU/i_0/DBIn[23]
+      : SH2_DTU/i_0/DB[31]
+      : SH2_ALU/i_0/DBIn[24]
+      : SH2_ALU/DBIn[24]
+      : SH2_DTU/DBIn[24]
+      : SH2_DTU/i_0/DBIn[24]
+      : SH2_DTU/i_0/DB[24]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_33(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_34(tricell)"
+      : SH2_ALU/i_0/DBIn[22]
+      : SH2_ALU/DBIn[22]
+      : SH2_DTU/DBIn[22]
+      : SH2_DTU/i_0/DBIn[22]
+      : SH2_DTU/i_0/DB[22]
+      : SH2_DTU/i_0/DB[31]
+      : SH2_ALU/i_0/DBIn[5]
+      : SH2_ALU/DBIn[5]
+      : SH2_DTU/DBIn[5]
+      : SH2_DTU/i_0/DBIn[5]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_31(tricell)"
+      : SH2_ALU/i_0/DBIn[3]
+      : SH2_ALU/DBIn[3]
+      : SH2_DTU/DBIn[3]
+      : SH2_DTU/i_0/DBIn[3]
+      : SH2_ALU/i_0/DBIn[20]
+      : SH2_ALU/DBIn[20]
+      : SH2_DTU/DBIn[20]
+      : SH2_DTU/i_0/DBIn[20]
+      : SH2_DTU/i_0/DB[20]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_29(tricell)"
+      : SH2_ALU/i_0/DBIn[1]
+      : SH2_ALU/DBIn[1]
+      : SH2_DTU/DBIn[1]
+      : SH2_DTU/i_0/DBIn[1]
+      : SH2_DTU/i_0/DB[9]
+      : SH2_ALU/i_0/DBIn[2]
+      : SH2_ALU/DBIn[2]
+      : SH2_DTU/DBIn[2]
+      : SH2_DTU/i_0/DBIn[2]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_37(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_21(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_38(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_39(tricell)"
+      : SH2_DTU/i_0/DB[7]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_40(tricell)"
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_41(tricell)"
+      : SH2_ALU/i_0/DBIn[15]
+      : SH2_ALU/DBIn[15]
+      : SH2_DTU/DBIn[15]
+      : SH2_DTU/i_0/DBIn[15]
+      : SH2_ALU/i_0/DBIn[13]
+      : SH2_ALU/DBIn[13]
+      : SH2_DTU/DBIn[13]
+      : SH2_DTU/i_0/DBIn[13]
+      : SH2_DTU/i_0/DB[29]
+      : SH2_ALU/i_0/DBIn[14]
+      : SH2_ALU/DBIn[14]
+      : SH2_DTU/DBIn[14]
+      : SH2_DTU/i_0/DBIn[14]
+      : SH2_DTU/i_0/DB[30]
+      : SH2_ALU/i_0/DBIn[12]
+      : SH2_ALU/DBIn[12]
+      : SH2_DTU/DBIn[12]
+      : SH2_DTU/i_0/DBIn[12]
+      : SH2_DTU/i_0/DB[28]
+      : i_0/Result[11]
+      : SH2_ALU/Result[11]
+      : SH2_ALU/i_0/Result[11]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_30(tricell)"
+      : SH2_ALU/i_0/DBIn[9]
+      : SH2_ALU/DBIn[9]
+      : SH2_DTU/DBIn[9]
+      : SH2_DTU/i_0/DBIn[9]
+      : SH2_ALU/i_0/DBIn[6]
+      : SH2_ALU/DBIn[6]
+      : SH2_DTU/DBIn[6]
+      : SH2_DTU/i_0/DBIn[6]
+      : SH2_ALU/i_0/DBIn[4]
+      : SH2_ALU/DBIn[4]
+      : SH2_DTU/DBIn[4]
+      : SH2_DTU/i_0/DBIn[4]
+      : i_0/Result[6]
+      : SH2_ALU/Result[6]
+      : SH2_ALU/i_0/Result[6]
+      : SH2_ALU/i_0/DBIn[27]
+      : SH2_ALU/DBIn[27]
+      : SH2_DTU/DBIn[27]
+      : SH2_DTU/i_0/DBIn[27]
+      : SH2_DTU/i_0/DB[27]
+      : SH2_ALU/i_0/DBIn[26]
+      : SH2_ALU/DBIn[26]
+      : SH2_DTU/DBIn[26]
+      : SH2_DTU/i_0/DBIn[26]
+      : SH2_DTU/i_0/DB[26]
+Inferred a: "set_disable_timing -from a -to z SH2_DTU/i_32(tricell)"
+      : i_0/Result[5]
+      : SH2_ALU/Result[5]
+      : SH2_ALU/i_0/Result[5]
+      : SH2_ALU/i_0/DBIn[21]
+      : SH2_ALU/DBIn[21]
+      : SH2_DTU/DBIn[21]
+      : SH2_DTU/i_0/DBIn[21]
+      : SH2_DTU/i_0/DB[21]
+      : i_0/Result[4]
+      : SH2_ALU/Result[4]
+      : SH2_ALU/i_0/Result[4]
+      : i_0/Result[3]
+      : SH2_ALU/Result[3]
+      : SH2_ALU/i_0/Result[3]
+      : SH2_ALU/i_0/DBIn[19]
+      : SH2_ALU/DBIn[19]
+      : SH2_DTU/DBIn[19]
+      : SH2_DTU/i_0/DBIn[19]
+      : SH2_DTU/i_0/DB[19]
+      : SH2_ALU/i_0/DBIn[19]
+      : SH2_ALU/DBIn[19]
+      : SH2_DTU/DBIn[19]
+      : SH2_DTU/i_0/DBIn[19]
+      : SH2_DTU/i_0/DB[19]
+      : SH2_ALU/i_0/DBIn[17]
+      : SH2_ALU/DBIn[17]
+      : SH2_DTU/DBIn[17]
+      : SH2_DTU/i_0/DBIn[17]
+      : SH2_DTU/i_0/DB[17]
+      : SH2_ALU/i_0/DBIn[18]
+      : SH2_ALU/DBIn[18]
+      : SH2_DTU/DBIn[18]
+      : SH2_DTU/i_0/DBIn[18]
+      : SH2_DTU/i_0/DB[18]
+      : SH2_ALU/i_0/DBIn[16]
+      : SH2_ALU/DBIn[16]
+      : SH2_DTU/DBIn[16]
+      : SH2_DTU/i_0/DBIn[16]
+      : SH2_DTU/i_0/DB[16]
+      : SH2_ALU/i_0/DBIn[21]
+      : SH2_ALU/DBIn[21]
+      : SH2_DTU/DBIn[21]
+      : SH2_DTU/i_0/DBIn[21]
+      : SH2_DTU/i_0/DB[21]
+      : i_0/Result[1]
+      : SH2_ALU/Result[1]
+      : SH2_ALU/i_0/Result[1]
+      : SH2_PAU/i_0/DB[0]
+      : SH2_PAU/DB[0]
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:02:48 ; elapsed = 00:02:58 . Memory (MB): peak = 1637.445 ; gain = 782.020
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:03:00 ; elapsed = 00:03:10 . Memory (MB): peak = 1658.875 ; gain = 803.449
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:03:09 ; elapsed = 00:03:20 . Memory (MB): peak = 1673.688 ; gain = 818.262
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:03:09 ; elapsed = 00:03:20 . Memory (MB): peak = 1673.688 ; gain = 818.262
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:03:10 ; elapsed = 00:03:21 . Memory (MB): peak = 1673.688 ; gain = 818.262
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:03:10 ; elapsed = 00:03:21 . Memory (MB): peak = 1673.688 ; gain = 818.262
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:03:10 ; elapsed = 00:03:21 . Memory (MB): peak = 1673.688 ; gain = 818.262
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:03:10 ; elapsed = 00:03:21 . Memory (MB): peak = 1673.688 ; gain = 818.262
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+------+------+
+|      |Cell  |Count |
++------+------+------+
+|1     |BUFG  |     1|
+|2     |LUT1  |     2|
+|3     |LUT2  |   152|
+|4     |LUT3  |   711|
+|5     |LUT4  |   179|
+|6     |LUT5  |   552|
+|7     |LUT6  |  1112|
+|8     |MUXF7 |   209|
+|9     |MUXF8 |    89|
+|10    |FDRE  |   764|
+|11    |IBUF  |     2|
+|12    |IOBUF |    32|
+|13    |OBUF  |    40|
++------+------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:03:10 ; elapsed = 00:03:21 . Memory (MB): peak = 1673.688 ; gain = 818.262
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 3 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:02:52 ; elapsed = 00:03:18 . Memory (MB): peak = 1673.688 ; gain = 786.047
+Synthesis Optimization Complete : Time (s): cpu = 00:03:10 ; elapsed = 00:03:21 . Memory (MB): peak = 1673.688 ; gain = 818.262
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.097 . Memory (MB): peak = 1685.770 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 330 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.002 . Memory (MB): peak = 1689.492 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 32 instances were transformed.
+  IOBUF => IOBUF (IBUF, OBUFT): 32 instances
+
+The system cannot find the path specified.
+Synth Design complete | Checksum: ff19699d
+INFO: [Common 17-83] Releasing license: Synthesis
+154 Infos, 5 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:03:19 ; elapsed = 00:03:32 . Memory (MB): peak = 1689.492 ; gain = 1211.602
+Write ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1689.492 ; gain = 0.000
+INFO: [Common 17-1381] The checkpoint 'C:/Users/garre/Desktop/EE 188/HW2/CPUSynth/CPUSynth.runs/synth_1/SH2_CPU.dcp' has been generated.
+INFO: [runtcl-4] Executing : report_utilization -file SH2_CPU_utilization_synth.rpt -pb SH2_CPU_utilization_synth.pb
+INFO: [Common 17-206] Exiting Vivado at Mon May 19 01:07:25 2025...
