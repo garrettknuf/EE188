@@ -414,7 +414,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -448,7 +448,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -513,7 +513,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -549,7 +549,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -585,7 +585,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -620,7 +620,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -654,7 +654,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -688,7 +688,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -723,7 +723,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -762,7 +762,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -801,7 +801,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -839,7 +839,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -876,7 +876,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -913,7 +913,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -951,7 +951,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -987,7 +987,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1023,7 +1023,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1058,7 +1058,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1092,7 +1092,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1126,7 +1126,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1161,7 +1161,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1197,7 +1197,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1233,7 +1233,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1268,7 +1268,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1302,7 +1302,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1336,7 +1336,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1371,7 +1371,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1407,7 +1407,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1443,7 +1443,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1478,7 +1478,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1512,7 +1512,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -1546,7 +1546,7 @@ begin
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4449,8 +4449,8 @@ begin
 			ALUOpBSel <= ALUOpBSel_RegB;
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_OffsetZero;
-			PAU_UpdatePC <= '0';
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
 			DAU_GBRSel <= 0;
 			DAU_VBRSel <= 0;

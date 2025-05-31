@@ -490,17 +490,6 @@ begin
                     RegA1Sel_EX <= RegA1Sel_ID;
                     RegOpSel_EX <= RegOpSel_ID;
 
-                    -- PAU control signals
-                    PAU_SrcSel_EX <= PAU_SrcSel_ID;
-                    PAU_OffsetSel_EX <= PAU_OffsetSel_ID;
-                    PAU_Offset8_EX <= PAU_Offset8_ID;
-                    PAU_Offset12_EX <= PAU_Offset12_ID;
-                    PAU_UpdatePC_EX <= PAU_UpdatePC_ID;
-                    PAU_PRSel_EX <= PAU_PRSel_ID;
-                    PAU_IncDecSel_EX <= PAU_IncDecSel_ID;
-                    PAU_IncDecBit_EX <= PAU_IncDecBit_ID;
-                    PAU_PrePostSel_EX <= PAU_PrePostSel_ID;
-
                     -- DAU control signals
                     DAU_SrcSel_EX <= DAU_SrcSel_ID;
                     DAU_OffsetSel_EX <= DAU_OffsetSel_ID;
@@ -511,15 +500,25 @@ begin
                     DAU_PrePostSel_EX <= DAU_PrePostSel_ID;
                     DAU_GBRSel_EX <= DAU_GBRSel_ID;
                     DAU_VBRSel_EX <= DAU_VBRSel_ID;
+
+                    IR_EX <= IR_ID(11 downto 0);
                 end if;
 
                 if UpdateIR_MA = '1' then
-                    IR_EX <= IR_ID(11 downto 0);
                     IR_MA <= IR_EX(11 downto 0);
 
                     UpdateIR_EX <= UpdateIR_ID;
 
-                    
+                        
+                    PAU_SrcSel_EX <= PAU_SrcSel_ID;
+                    PAU_OffsetSel_EX <= PAU_OffsetSel_ID;
+                    PAU_Offset8_EX <= PAU_Offset8_ID;
+                    PAU_Offset12_EX <= PAU_Offset12_ID;
+                    PAU_UpdatePC_EX <= PAU_UpdatePC_ID;
+                    PAU_PRSel_EX <= PAU_PRSel_ID;
+                    PAU_IncDecSel_EX <= PAU_IncDecSel_ID;
+                    PAU_IncDecBit_EX <= PAU_IncDecBit_ID;
+                    PAU_PrePostSel_EX <= PAU_PrePostSel_ID;
 
                     DAU_SrcSel_MA <= DAU_SrcSel_EX;
                     DAU_OffsetSel_MA <= DAU_OffsetSel_EX;
