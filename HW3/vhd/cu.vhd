@@ -154,6 +154,9 @@ entity CU is
         TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);             -- temporary register
         TempReg2 : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);            -- secondary temp register
         
+        -- CU Output Signals
+        UpdateIR  : out   std_logic;    -- update instruction register (used to delay pipeline during data access)
+
         -- ALU Control Signals
         ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
         ALUOpBSel   : out     integer range ALUOPBSEL_CNT-1 downto 0 := 0;  -- select operand B
@@ -226,7 +229,6 @@ architecture behavioral of CU is
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
 
     -- CU internal control signals
-    signal UpdateIR : std_logic;                                        -- control signal to update IR or not
     signal UpdateSR : std_logic;                                        -- control signal to update SR or not
     signal SRSel : integer range SRSEL_CNT-1 downto 0;                  -- select input to status register
 
@@ -312,7 +314,8 @@ begin
 
             else
                 -- Reset to idle instruction (rising edge after reset)
-                IR <= OpBoot;
+                -- IR <= OpBoot;
+                IR <= OpNOP;
                 CurrentState <= Normal;
             end if;
 

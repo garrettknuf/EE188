@@ -111,7 +111,7 @@ entity PAU is
         DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data bus
         CLK         : in    std_logic;                                      -- clock
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
-        PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
+        PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := x"FFFFFFFE";   -- program counter
         PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)    -- procedure register
     );
 
