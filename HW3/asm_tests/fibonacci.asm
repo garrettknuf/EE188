@@ -41,7 +41,7 @@
 ;;--------------------------------------------------------------------------
 InitDataSegAddr:
     MOV     #4, R0      ; Load the start of the data segment into R0 (1024)
-    SHLL8   R0          ; Multiply 4 by 258 to arrive at 1024 (8 shifts left)
+    SHLL8   R0          ; Multiply 4 by 256 to arrive at 1024 (8 shifts left)
     ADD     #4, R10     ; Skip header word in buffer
     MOV     R0, R10     ; R10 = 0x00000400 (base of data buffer)
 
@@ -54,7 +54,10 @@ FibInit:
     MOV     #10, R3 ; N = 10
     MOV.L   R1, @R10    ; store initial two numbers (0 and 1)
     ADD     #4, R10
-    ; MOV.L   R2, @R10
+    NOP
+    NOP
+    NOP
+    MOV.L   R2, @R10
     ADD     #4, R10
 
 ;;--------------------------------------------------------------------------
@@ -66,7 +69,7 @@ FibInit:
 FibLoop:
     MOV     R1, R4  ; temp = F(n-2)
     ADD     R2, R4  ; F(n) = F(n-1) + F(n-2)
-    ; MOV.L   R4, @R10    ; store result
+    MOV.L   R4, @R10    ; store result
     ADD     #4, R10
     MOV     R2, R1  ; Shift: R1 = R2
     MOV     R4, R2  ; R2 = F(n)

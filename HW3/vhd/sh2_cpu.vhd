@@ -249,7 +249,10 @@ architecture structural of SH2_CPU is
             DBInMode : out integer range 1 downto 0;                -- select sign/unsigned databus read
             RD     : out   std_logic;                               -- read (active-low)
             WR     : out   std_logic;                               -- write (active-low)
-            DataAccessMode : out integer range 2 downto 0           -- align bytes, words, long
+            DataAccessMode : out integer range 2 downto 0;          -- align bytes, words, long
+
+            -- Pipeline control signals
+            UpdateIR_MA : in std_logic     -- pipelined signal to update IR
         );
     end component;
 
@@ -415,8 +418,8 @@ architecture structural of SH2_CPU is
 
     -- CU Signals
     signal IR_ID : std_logic_vector(INST_SIZE-1 downto 0);
-    signal IR_EX : std_logic_vector(INST_SIZE-1 downto 0);
-    signal IR_MA : std_logic_vector(INST_SIZE-1 downto 0);
+    signal IR_EX : std_logic_vector(11 downto 0);
+    signal IR_MA : std_logic_vector(11 downto 0);
     signal UpdateIR_ID : std_logic;
     signal UpdateIR_EX : std_logic;
     signal UpdateIR_MA : std_logic;
@@ -464,12 +467,9 @@ begin
 
             else
 
-                if UpdateIR_MA = '1' then
-                    IR_EX <= IR_ID;
-                    IR_MA <= IR_EX;
+                UpdateIR_MA <= UpdateIR_EX;
 
-                    UpdateIR_EX <= UpdateIR_ID;
-
+                if UpdateIR_EX = '1' then
                     -- ALU control signals
                     ALUOpASel_EX <= ALUOpASel_ID;
                     ALUOpBSel_EX <= ALUOpBSel_ID;
@@ -511,6 +511,15 @@ begin
                     DAU_PrePostSel_EX <= DAU_PrePostSel_ID;
                     DAU_GBRSel_EX <= DAU_GBRSel_ID;
                     DAU_VBRSel_EX <= DAU_VBRSel_ID;
+                end if;
+
+                if UpdateIR_MA = '1' then
+                    IR_EX <= IR_ID(11 downto 0);
+                    IR_MA <= IR_EX(11 downto 0);
+
+                    UpdateIR_EX <= UpdateIR_ID;
+
+                    
 
                     DAU_SrcSel_MA <= DAU_SrcSel_EX;
                     DAU_OffsetSel_MA <= DAU_OffsetSel_EX;
@@ -741,7 +750,10 @@ begin
 
             -- IO signals
             DBOutSel    => DBOutSel_ID,
-            ABOutSel    => ABOutSel_ID
+            ABOutSel    => ABOutSel_ID,
+
+            -- Pipeline signals
+            UpdateIR_MA => UpdateIR_MA
 
         );
 

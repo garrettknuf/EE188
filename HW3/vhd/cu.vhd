@@ -201,7 +201,10 @@ entity CU is
         DBInMode : out integer range 1 downto 0;                -- select sign/unsigned databus read
         RD     : out   std_logic;                               -- read (active-low)
         WR     : out   std_logic;                               -- write (active-low)
-        DataAccessMode : out integer range 2 downto 0           -- align bytes, words, long
+        DataAccessMode : out integer range 2 downto 0;          -- align bytes, words, long
+
+        -- Pipeline control signals
+        UpdateIR_MA : in std_logic     -- pipelined signal to update IR
     );
 
 
@@ -290,8 +293,8 @@ begin
                 -- Since databus is 32-bits, the IR is the high 16 bits when the
                 -- program address when is at an address that is a multiple of 4.
                 -- When it's not a multiple of 4 them the IR is the low 16 bits.
-                IR <= DB(31 downto 16) when UpdateIR = '1' and AB(1 downto 0) = "00" else
-                      DB(15 downto 0) when UpdateIR = '1' and AB(1 downto 0) = "10" else
+                IR <= DB(31 downto 16) when UpdateIR_MA = '1' and AB(1 downto 0) = "00" else
+                      DB(15 downto 0) when UpdateIR_MA = '1' and AB(1 downto 0) = "10" else
                       IR;
 
                 -- Update status register accordingly

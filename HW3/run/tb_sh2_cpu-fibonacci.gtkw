@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Sat May 31 04:09:55 2025
+[*] Sat May 31 23:08:07 2025
 [*]
 [dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-fibonacci.vcd"
-[dumpfile_mtime] "Sat May 31 04:06:38 2025"
-[dumpfile_size] 474882
+[dumpfile_mtime] "Sat May 31 22:58:11 2025"
+[dumpfile_size] 202499
 [savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-fibonacci.gtkw"
-[timestart] 159500000
+[timestart] 117400000
 [size] 1620 1009
-[pos] -1 -1
-*-25.000000 281300000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] 1885 -522
+*-25.000000 239200000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
 [sst_width] 197
@@ -60,7 +60,8 @@ tb_sh2_cpu.db[31:0]
 @22
 tb_sh2_cpu.uut.dbout[31:0]
 tb_sh2_cpu.uut.ir_id[15:0]
-tb_sh2_cpu.uut.ir_ex[15:0]
+tb_sh2_cpu.uut.ir_ex[11:0]
+tb_sh2_cpu.uut.ir_ma[11:0]
 @28
 tb_sh2_cpu.re[3:0]
 tb_sh2_cpu.we[3:0]
@@ -73,7 +74,16 @@ tb_sh2_cpu.uut.sh2_regarray.regasel
 tb_sh2_cpu.uut.sh2_regarray.regbsel
 @22
 tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
+@420
+tb_sh2_cpu.uut.regasel_id
+tb_sh2_cpu.uut.regasel_ex
+@22
 tb_sh2_cpu.uut.sh2_regarray.regb[31:0]
+@420
+tb_sh2_cpu.uut.regbsel_id
+@421
+tb_sh2_cpu.uut.regbsel_ex
+@22
 tb_sh2_cpu.uut.sh2_regarray.regaxin[31:0]
 tb_sh2_cpu.uut.sh2_regarray.rega1[31:0]
 @c00022
@@ -114,6 +124,8 @@ tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
 @1401200
 -group_end
 @22
+tb_sh2_cpu.uut.sh2_alu.opa[31:0]
+tb_sh2_cpu.uut.sh2_alu.opb[31:0]
 tb_sh2_cpu.uut.alu_result[31:0]
 tb_sh2_cpu.uut.pau_progaddr[31:0]
 tb_sh2_cpu.uut.dau_dataaddr[31:0]
@@ -135,9 +147,11 @@ tb_sh2_cpu.uut.sh2_cu.currentstate
 @28
 tb_sh2_cpu.uut.pau_updatepc_id
 tb_sh2_cpu.uut.pau_updatepc_ex
+tb_sh2_cpu.uut.updateir_ma
 @420
 tb_sh2_cpu.uut.aboutsel_ma
-@23
+@22
 tb_sh2_cpu.uut.pau_progaddr[31:0]
+tb_sh2_cpu.uut.sh2_cu.ir[15:0]
 [pattern_trace] 1
 [pattern_trace] 0
