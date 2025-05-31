@@ -1,0 +1,178 @@
+[*]
+[*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
+[*] Wed May 14 10:11:09 2025
+[*]
+[dumpfile] "C:\Users\garre\Desktop\EE 188\HW2\run\tb_sh2_cpu-fibonacci.vcd"
+[dumpfile_mtime] "Wed May 14 10:08:43 2025"
+[dumpfile_size] 191784
+[savefile] "C:\Users\garre\Desktop\EE 188\HW2\run\tb_sh2_cpu-fibonacci.gtkw"
+[timestart] 0
+[size] 1620 1009
+[pos] 1677 -628
+*-25.000000 4600000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_sh2_cpu.
+[treeopen] tb_sh2_cpu.uut.
+[treeopen] tb_sh2_cpu.uut.sh2_alu.
+[sst_width] 197
+[signals_width] 286
+[sst_expanded] 1
+[sst_vpaned_height] 299
+@28
+tb_sh2_cpu.clock
+@22
+tb_sh2_cpu.ab[31:0]
+@c00022
+tb_sh2_cpu.db[31:0]
+@28
+(0)tb_sh2_cpu.db[31:0]
+(1)tb_sh2_cpu.db[31:0]
+(2)tb_sh2_cpu.db[31:0]
+(3)tb_sh2_cpu.db[31:0]
+(4)tb_sh2_cpu.db[31:0]
+(5)tb_sh2_cpu.db[31:0]
+(6)tb_sh2_cpu.db[31:0]
+(7)tb_sh2_cpu.db[31:0]
+(8)tb_sh2_cpu.db[31:0]
+(9)tb_sh2_cpu.db[31:0]
+(10)tb_sh2_cpu.db[31:0]
+(11)tb_sh2_cpu.db[31:0]
+(12)tb_sh2_cpu.db[31:0]
+(13)tb_sh2_cpu.db[31:0]
+(14)tb_sh2_cpu.db[31:0]
+(15)tb_sh2_cpu.db[31:0]
+(16)tb_sh2_cpu.db[31:0]
+(17)tb_sh2_cpu.db[31:0]
+(18)tb_sh2_cpu.db[31:0]
+(19)tb_sh2_cpu.db[31:0]
+(20)tb_sh2_cpu.db[31:0]
+(21)tb_sh2_cpu.db[31:0]
+(22)tb_sh2_cpu.db[31:0]
+(23)tb_sh2_cpu.db[31:0]
+(24)tb_sh2_cpu.db[31:0]
+(25)tb_sh2_cpu.db[31:0]
+(26)tb_sh2_cpu.db[31:0]
+(27)tb_sh2_cpu.db[31:0]
+(28)tb_sh2_cpu.db[31:0]
+(29)tb_sh2_cpu.db[31:0]
+(30)tb_sh2_cpu.db[31:0]
+(31)tb_sh2_cpu.db[31:0]
+@1401200
+-group_end
+@22
+tb_sh2_cpu.uut.dbout[31:0]
+@28
+tb_sh2_cpu.re[3:0]
+tb_sh2_cpu.we[3:0]
+@22
+tb_sh2_cpu.uut.ir[15:0]
+tb_sh2_cpu.uut.sh2_pau.pc[31:0]
+tb_sh2_cpu.uut.sh2_pau.pr[31:0]
+@420
+tb_sh2_cpu.uut.sh2_regarray.regdinsel
+@22
+tb_sh2_cpu.uut.sh2_regarray.regin[31:0]
+@420
+tb_sh2_cpu.uut.sh2_regarray.regasel
+tb_sh2_cpu.uut.sh2_regarray.regbsel
+@22
+tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
+tb_sh2_cpu.uut.sh2_regarray.regb[31:0]
+tb_sh2_cpu.uut.sh2_regarray.regaxin[31:0]
+tb_sh2_cpu.uut.sh2_regarray.rega1[31:0]
+@c00022
+tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+@28
+(0)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(1)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(2)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(3)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(4)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(5)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(6)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(7)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(8)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(9)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(10)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(11)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(12)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(13)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(14)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(15)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(16)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(17)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(18)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(19)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(20)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(21)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(22)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(23)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(24)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(25)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(26)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(27)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(28)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(29)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(30)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+(31)tb_sh2_cpu.uut.sh2_regarray.rega2[31:0]
+@1401200
+-group_end
+@c00022
+tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+@28
+(0)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(1)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(2)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(3)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(4)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(5)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(6)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(7)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(8)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(9)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(10)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(11)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(12)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(13)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(14)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(15)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(16)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(17)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(18)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(19)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(20)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(21)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(22)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(23)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(24)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(25)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(26)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(27)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(28)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(29)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(30)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+(31)tb_sh2_cpu.uut.sh2_alu.generic_alu.fbres[31:0]
+@1401200
+-group_end
+@c00200
+-tb_sh2_cpu.uut.sh2_alu.aluopb
+@1401200
+-group_end
+@24
+tb_sh2_cpu.uut.alu_result[31:0]
+@22
+tb_sh2_cpu.uut.pau_progaddr[31:0]
+tb_sh2_cpu.uut.dau_dataaddr[31:0]
+@420
+tb_sh2_cpu.uut.aboutsel
+@28
+tb_sh2_cpu.uut.sh2_cu.updateir
+@22
+tb_sh2_cpu.mut.memdb[31:0]
+tb_sh2_cpu.uut.sh2_dtu.dbout[31:0]
+tb_sh2_cpu.uut.sh2_dtu.dbin[31:0]
+@420
+tb_sh2_cpu.uut.sh2_dtu.dbinmode
+@22
+tb_sh2_cpu.uut.sh2_dtu.db[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,91 @@
+[*]
+[*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
+[*] Fri May 16 08:59:24 2025
+[*]
+[dumpfile] "C:\Users\garre\Desktop\EE 188\HW2\run\tb_sh2_cpu-data_xfer.vcd"
+[dumpfile_mtime] "Fri May 16 08:58:12 2025"
+[dumpfile_size] 1226641
+[savefile] "C:\Users\garre\Desktop\EE 188\HW2\run\tb_sh2_cpu-data_xfer.gtkw"
+[timestart] 3082700000
+[size] 1620 1009
+[pos] 1885 -522
+*-25.000000 3223900000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_sh2_cpu.
+[treeopen] tb_sh2_cpu.uut.
+[sst_width] 197
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 295
+@28
+tb_sh2_cpu.clock
+@22
+tb_sh2_cpu.ab[31:0]
+@420
+tb_sh2_cpu.uut.aboutsel
+@22
+tb_sh2_cpu.db[31:0]
+tb_sh2_cpu.uut.dbout[31:0]
+tb_sh2_cpu.uut.ir[15:0]
+@28
+tb_sh2_cpu.re[3:0]
+@c00028
+tb_sh2_cpu.we[3:0]
+@28
+(0)tb_sh2_cpu.we[3:0]
+(1)tb_sh2_cpu.we[3:0]
+(2)tb_sh2_cpu.we[3:0]
+(3)tb_sh2_cpu.we[3:0]
+@1401200
+-group_end
+@420
+tb_sh2_cpu.uut.aluopasel
+tb_sh2_cpu.uut.aluopbsel
+@24
+tb_sh2_cpu.uut.alu_result[31:0]
+@420
+tb_sh2_cpu.uut.sh2_cu.currentstate
+tb_sh2_cpu.uut.dataaccessmode
+@22
+tb_sh2_cpu.uut.dau_dataaddr[31:0]
+@420
+tb_sh2_cpu.uut.dau_srcsel
+@22
+tb_sh2_cpu.uut.sh2_dau.rn[31:0]
+@420
+tb_sh2_cpu.uut.sh2_cu.rega1selcmd
+@22
+tb_sh2_cpu.uut.sh2_regarray.rega1[31:0]
+@420
+tb_sh2_cpu.uut.sh2_regarray.rega1sel
+@22
+tb_sh2_cpu.uut.sh2_regarray.regin[31:0]
+@420
+tb_sh2_cpu.uut.sh2_regarray.reginsel
+@28
+tb_sh2_cpu.uut.sh2_regarray.regstore
+@420
+tb_sh2_cpu.uut.sh2_regarray.regbsel
+@22
+tb_sh2_cpu.uut.sh2_regarray.regb[31:0]
+@420
+tb_sh2_cpu.uut.sh2_regarray.regasel
+@22
+tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
+tb_sh2_cpu.uut.sh2_pau.offsetreg[31:0]
+tb_sh2_cpu.uut.dbin[31:0]
+tb_sh2_cpu.uut.sh2_dau.rn[31:0]
+tb_sh2_cpu.uut.sh2_dau.offset4[3:0]
+@420
+tb_sh2_cpu.uut.sh2_cu.currentstate
+@22
+tb_sh2_cpu.uut.sh2_pau.pc[31:0]
+tb_sh2_cpu.uut.sh2_dau.offset8[7:0]
+tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
+tb_sh2_cpu.uut.sh2_regarray.regbraw[31:0]
+tb_sh2_cpu.uut.sh2_regarray.regb[31:0]
+@28
+tb_sh2_cpu.uut.sh2_cu.rd
+@29
+tb_sh2_cpu.uut.sh2_dtu.memaccessbits[3:0]
+[pattern_trace] 1
+[pattern_trace] 0
