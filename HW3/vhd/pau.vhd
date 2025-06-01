@@ -32,7 +32,7 @@ use ieee.std_logic_1164.all;
 
 package PAUConstants is
 
-    constant PAU_SRC_CNT    : integer := 4;     -- number of PAU address sources
+    constant PAU_SRC_CNT    : integer := 5;     -- number of PAU address sources
     constant PAU_OFFSET_CNT : integer := 7;     -- number of PAU offset sources
 
     -- Address source mux select
@@ -40,6 +40,7 @@ package PAUConstants is
     constant PAU_AddrPC     : integer := 1;     -- PC
     constant PAU_AddrPR     : integer := 2;     -- PR
     constant PAU_AddrDB     : integer := 3;     -- DB
+    constant PAU_AddrPC_EX  : integer := 4;     -- pipelined PC (delayed)
 
     -- Offset source mux select
     constant PAU_OffsetZero : integer := 0;     -- zero
@@ -109,6 +110,7 @@ entity PAU is
         IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
         PrePostSel  : in    std_logic;                                      -- select decrement by 4
         DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data bus
+        PC_EX       : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- pipelined PC (delayed by two clocks)
         CLK         : in    std_logic;                                      -- clock
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
         PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := x"FFFFFFFE";   -- program counter
@@ -156,6 +158,7 @@ begin
     AddrSrc(PAU_AddrPC) <= PC;                  -- PC
     AddrSrc(PAU_AddrPR) <= PR;                  -- PR
     AddrSrc(PAU_AddrDB) <= DB;                  -- DB
+    AddrSrc(PAU_AddrPC_EX) <= PC_EX;
 
     -- Inputs to offset mux
     AddrOff(PAU_OffsetZero) <= (others => '0');                                 -- Zero

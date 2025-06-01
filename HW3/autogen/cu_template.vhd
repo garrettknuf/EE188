@@ -156,6 +156,7 @@ entity CU is
         
         -- CU Output Signals
         UpdateIR  : out   std_logic;    -- update instruction register (used to delay pipeline during data access)
+        UpdateSR  : out   std_logic;
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
@@ -204,7 +205,8 @@ entity CU is
         DataAccessMode : out integer range 2 downto 0;          -- align bytes, words, long
 
         -- Pipeline control signals
-        UpdateIR_MA : in std_logic     -- pipelined signal to update IR
+        UpdateIR_EX : in std_logic;    -- pipelined signal to update IR
+        UpdateSR_EX : in std_logic     -- pipelined control signal to update SR or not
     );
 
 
@@ -232,7 +234,6 @@ architecture behavioral of CU is
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
 
     -- CU internal control signals
-    signal UpdateSR : std_logic;                                        -- control signal to update SR or not
     signal SRSel : integer range SRSEL_CNT-1 downto 0;                  -- select input to status register
 
     signal RegInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;      -- select register for RegArray input
@@ -293,12 +294,12 @@ begin
                 -- Since databus is 32-bits, the IR is the high 16 bits when the
                 -- program address when is at an address that is a multiple of 4.
                 -- When it's not a multiple of 4 them the IR is the low 16 bits.
-                IR <= DB(31 downto 16) when UpdateIR_MA = '1' and AB(1 downto 0) = "00" else
-                      DB(15 downto 0) when UpdateIR_MA = '1' and AB(1 downto 0) = "10" else
+                IR <= DB(31 downto 16) when UpdateIR_EX = '1' and AB(1 downto 0) = "00" else
+                      DB(15 downto 0) when UpdateIR_EX = '1' and AB(1 downto 0) = "10" else
                       IR;
 
                 -- Update status register accordingly
-                if UpdateSR = '1' then
+                if UpdateSR_EX = '1' then
                     SR <= (31 downto 1 => '0') & Tbit  when SRSel = SRSel_Tbit else
                           DB                           when SRSel = SRSel_DB   else
                           RegB                         when SRSel = SRSel_Reg  else
