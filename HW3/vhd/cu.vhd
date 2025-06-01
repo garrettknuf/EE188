@@ -3421,7 +3421,7 @@ begin
 			ABOutSel <= ABOutSel_Prog;
 			DBOutSel <= 0;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= BranchSlot when SR(0)='0' else Normal;
+			NextState <= Normal;
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_Offset8;
@@ -3472,7 +3472,7 @@ begin
 			ABOutSel <= ABOutSel_Prog;
 			DBOutSel <= 0;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= BranchSlot when SR(0)='1' else Normal;
+			NextState <= Normal;
 			UpdateIR <= '1';
 			UpdateTempReg <= '1';
 			TempRegSel <= TempRegSel_Offset8;

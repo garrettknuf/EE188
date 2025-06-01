@@ -41,8 +41,8 @@
 ;; Exception Vector Table
 ;;------------------------------------------------------------------------------
 .vectable
-    PowerResetPC:           0x00000008  ; PC for power reset (0)
-    PowerResetSP:           0xFFFFFFFC  ; SP for power reset (1)
+;     PowerResetPC:           0x00000008  ; PC for power reset (0)
+;     PowerResetSP:           0xFFFFFFFC  ; SP for power reset (1)
 
 ;;------------------------------------------------------------------------------
 ;; Code Section

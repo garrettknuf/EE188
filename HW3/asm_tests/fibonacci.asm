@@ -72,10 +72,10 @@ FibLoop:
     MOV     R4, R2  ; R2 = F(n)
     DT      R3      ; counter -= 1
     BF      FibLoop
-    NOP
 
 ;;--------------------------------------------------------------------------
 ;; TestEnd: Halt CPU when sequence generation complete
 ;;--------------------------------------------------------------------------
 TestEnd:
+    NOP
     SLEEP

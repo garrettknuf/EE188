@@ -458,6 +458,7 @@ architecture structural of SH2_CPU is
 
     -- Signal that indicates if the a conditional branch should be taken
     signal TakeBranch : std_logic;
+    signal CBRSlot : std_logic;
 
     signal LastInstBranched : std_logic;
 
@@ -498,6 +499,8 @@ begin
         else
             TakeBranch <= '0';
         end if;
+
+        CBRSlot <= '1' when IR_EX(IR_CBR_SLOT_BIT) = IR_CBR_SLOT_T else '0';
 
         -- PAU source should be pipelined PC if a conditional branch is taken
         PAU_OffsetSel_EX <= PAU_Offset8 when TakeBranch = '1' else PAU_OffsetWord;
@@ -582,12 +585,12 @@ begin
 
                     -- RegArray control signals
                     RegInSel_EX <= RegInSel_ID;
-                    RegStore_EX <= RegStore_ID when TakeBranch = '0' else '0';
+                    RegStore_EX <= RegStore_ID when TakeBranch = '0' or CBRSlot = '1' else '0';
                     RegASel_EX <= RegASel_ID;
                     RegBSel_EX <= RegBSel_ID;
                     RegAxInSel_EX <= RegAxInSel_ID;
                     RegAxInDataSel_EX <= RegAxInDataSel_ID;
-                    RegAxStore_EX <= RegAxStore_ID when TakeBranch = '0' else '0';
+                    RegAxStore_EX <= RegAxStore_ID when TakeBranch = '0' or CBRSlot = '1' else '0';
                     RegA1Sel_EX <= RegA1Sel_ID;
                     RegOpSel_EX <= RegOpSel_ID;
 
@@ -599,11 +602,11 @@ begin
                     DAU_IncDecSel_EX <= DAU_IncDecSel_ID;
                     DAU_IncDecBit_EX <= DAU_IncDecBit_ID;
                     DAU_PrePostSel_EX <= DAU_PrePostSel_ID;
-                    DAU_GBRSel_EX <= DAU_GBRSel_ID when TakeBranch = '0' else GBRSel_None;
-                    DAU_VBRSel_EX <= DAU_VBRSel_ID when TakeBranch = '0' else VBRSel_None;
+                    DAU_GBRSel_EX <= DAU_GBRSel_ID when TakeBranch = '0' or CBRSlot = '1' else GBRSel_None;
+                    DAU_VBRSel_EX <= DAU_VBRSel_ID when TakeBranch = '0' or CBRSlot = '1' else VBRSel_None;
 
                     -- Update status register signal
-                    UpdateSR_EX <= UpdateSR_ID when TakeBranch = '0' else '0';
+                    UpdateSR_EX <= UpdateSR_ID when TakeBranch = '0' or CBRSlot = '1' else '0';
 
                     -- Instruction register data
                     IR_EX <= IR_ID;
@@ -639,7 +642,7 @@ begin
 
                     -- PAU control signals
                     PAU_UpdatePC_EX <= PAU_UpdatePC_ID;
-                    PAU_PRSel_EX <= PAU_PRSel_ID when TakeBranch = '0' else PRSel_None;
+                    PAU_PRSel_EX <= PAU_PRSel_ID when TakeBranch = '0' or CBRSlot = '1' else PRSel_None;
                     PAU_IncDecSel_EX <= PAU_IncDecSel_ID;
                     PAU_IncDecBit_EX <= PAU_IncDecBit_ID;
                     PAU_PrePostSel_EX <= PAU_PrePostSel_ID;
@@ -672,8 +675,8 @@ begin
                 -- DTU control signals
                 DBInMode_EX <= DBInMode_ID;
                 DataAccessMode_EX <= DataAccessMode_ID;
-                WR_EX <= WR_ID when TakeBranch = '0' else '1';
-                RD_EX <= RD_ID when TakeBranch = '0' else '0';
+                WR_EX <= WR_ID when TakeBranch = '0' or CBRSlot = '1' else '1';
+                RD_EX <= RD_ID when TakeBranch = '0' or CBRSlot = '1' else '0';
                 
                 DBInMode_MA <= DBInMode_EX;
                 DataAccessMode_MA <= DataAccessMode_EX;
