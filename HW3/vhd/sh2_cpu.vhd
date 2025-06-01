@@ -496,6 +496,7 @@ begin
 
         -- PAU source should be pipelined PC if a conditional branch is taken
         PAU_OffsetSel_EX <= PAU_Offset8 when TakeBranch = '1' else PAU_OffsetWord;
+        PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC_EX;
         
 
     end process;
@@ -626,7 +627,7 @@ begin
                     UpdateIR_EX <= UpdateIR_ID;
 
                                     -- PAU source select should be pipelined PC if a conditional branch is taken
-                    PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC_EX;
+                    -- PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC_EX;
 
                     -- PAU control signals
                     PAU_UpdatePC_EX <= PAU_UpdatePC_ID;
