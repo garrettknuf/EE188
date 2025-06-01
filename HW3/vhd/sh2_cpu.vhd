@@ -256,7 +256,8 @@ architecture structural of SH2_CPU is
             -- Pipeline control signals
             UpdateIR_EX : in std_logic;    -- pipelined signal to update IR (used to detect memory access)
             UpdateSR_EX : in std_logic;    -- pipelined signal to update SR (used to determine conditional branching)
-            ForceNormalStateNext : in std_logic
+            ForceNormalStateNext : in std_logic;
+            BranchSel : out integer range BRANCHSEL_CNT-1 downto 0
         );
     end component;
 
@@ -349,7 +350,6 @@ architecture structural of SH2_CPU is
     signal PAU_PrePostSel_EX  : std_logic;
 
     signal PC_ID              : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-    -- signal PC_Inter              : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal PC_EX           : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
 
     signal PAU_ProgAddr    : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -421,7 +421,7 @@ architecture structural of SH2_CPU is
 
     -- CU Signals
     signal IR_ID : std_logic_vector(INST_SIZE-1 downto 0);
-    signal IR_EX : std_logic_vector(INST_SIZE-1 downto 0);
+    signal IR_EX : std_logic_vector(11 downto 0);
     signal IR_MA : std_logic_vector(11 downto 0);   -- reduce to 12 bits since we don't need the rest
     signal UpdateIR_ID : std_logic;
     signal UpdateIR_EX : std_logic;
@@ -443,6 +443,9 @@ architecture structural of SH2_CPU is
     signal DBOutSel_MA : integer range DBOUTSEL_CNT-1 downto 0;    -- select data bus output
     signal ABOutSel_MA : integer range 1 downto 0;                 -- select address bus output
 
+    signal PAU_SrcSel_Mux   : integer range PAU_SRC_CNT - 1 downto 0;
+    signal PAU_OffsetSel_Mux   : integer range PAU_OFFSET_CNT - 1 downto 0;
+
   -- The following four signals are used to delay the insruction fetch information in
   -- case of memory access.
 
@@ -458,24 +461,12 @@ architecture structural of SH2_CPU is
 
     -- Signal that indicates if the a conditional branch should be taken
     signal TakeBranch : std_logic;
-    signal CBRSlot : std_logic;
 
-    signal LastInstBranched : std_logic;
+    signal FlushPL : std_logic;
 
     signal ForceNormalStateNext : std_logic;
-
-    -- Conditional branch (CBR) IR detection mask
-    constant IR_CBR_PATTERN : std_logic_vector(15 downto 8) := "10001--1";
-
-    -- CBR condition bit decoding
-    constant IR_CBR_COND_BIT : integer := 9;
-    constant IR_CBR_COND_T : std_logic := '0';
-    constant IR_CBR_COND_F : std_logic := '1';
-
-    -- CBR slot bit decoding
-    constant IR_CBR_SLOT_BIT : integer := 10;
-    constant IR_CBR_SLOT_T : std_logic := '1';
-    constant IR_CBR_SLOT_F : std_logic := '0';
+    signal BranchSel_ID : integer range BRANCHSEL_CNT-1 downto 0;
+    signal BranchSel_EX : integer range BRANCHSEL_CNT-1 downto 0;
 
 begin
 
@@ -483,28 +474,64 @@ begin
     DBMux <= DB_PL when UpdateIR_MA = '0' else DB;
     ABMux <= AB_PL when UpdateIR_MA = '0' else AB(1 downto 0);
 
-    CondBranching  : process (all)
+    Branching  : process (all)
     begin
-        -- Check if execution pipeline stage IR is conditional branch
-        if std_match(IR_EX(15 downto 8), IR_CBR_PATTERN) then
-            
-            -- Check if conditional branch should be taken or not
-            if IR_EX(IR_CBR_COND_BIT) = IR_CBR_COND_T then
-                -- Branch if true (T=1)
-                TakeBranch <= '1' when SR(0) = '1' and LastInstBranched = '0' else '0';
-            else
-                -- Branch if false (t=0)
-                TakeBranch <= '1' when SR(0) = '0' and LastInstBranched = '0' else '0';
-            end if;
+
+        -- Check if branch
+        if BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BFS then
+            TakeBranch <= '1' when SR(0) = '0' else '0';
+        elsif BranchSel_EX = BranchSel_BT or BranchSel_EX = BranchSel_BTS then
+            TakeBranch <= '1' when SR(0) = '1' else '0';
+        elsif BranchSel_EX /= BranchSel_None then
+            TakeBranch <= '1';
         else
             TakeBranch <= '0';
         end if;
 
-        CBRSlot <= '1' when IR_EX(IR_CBR_SLOT_BIT) = IR_CBR_SLOT_T else '0';
+        -- Flush pipeline if not using the slot instruction
+        if TakeBranch = '1' and (BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BT) then
+            FlushPL <= '1';
+        else
+            FlushPL <= '0';
+        end if;
 
         -- PAU source should be pipelined PC if a conditional branch is taken
-        PAU_OffsetSel_EX <= PAU_Offset8 when TakeBranch = '1' else PAU_OffsetWord;
-        PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC_EX;
+        
+        if (BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BT or BranchSel_EX = BranchSel_BFS or
+            BranchSel_EX = BranchSel_BTS) then
+            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX when TakeBranch = '1' else PAU_OffsetWord;
+        elsif (BranchSel_EX = BranchSel_Always) then
+            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX;
+        elsif (BranchSel_EX = BranchSel_JUMP) then
+            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX;
+            -- PAU_OffsetSel_Mux <= PAU_OffsetReg;
+        else
+            PAU_OffsetSel_Mux <= PAU_OffsetWord;
+        end if;
+
+        if TakeBranch = '1' then
+            if (BranchSel_EX = BranchSel_Always) then
+                PAU_SrcSel_Mux <= PAU_AddrPC_EX;
+            elsif (BranchSel_EX = BranchSel_RET) then
+                PAU_SrcSel_Mux <= PAU_AddrPR;
+            elsif (BranchSel_EX = BranchSel_JUMP) then
+                PAU_SrcSel_Mux <= PAU_AddrZero;
+            else
+                PAU_SrcSel_Mux <= PAU_AddrPC_EX;
+            end if;
+        else
+            PAU_SrcSel_Mux <= PAU_SrcSel_EX;
+        end if;
+
+        
+        -- PAU_SrcSel_Mux <= PAU_SrcSel_ID when FlushPL = '0' else PAU_AddrPC_EX;
+        -- -- if (BranchSel_EX = BranchSel_RTS)
+        -- if TakeBranch = '1' then
+        --     PAU_SrcSel_Mux <= PAU_AddrPC_EX;
+        -- else
+        --     PAU_SrcSel_Mux <= PAU_SrcSel_EX;
+        -- end if;
+        -- PAU_SrcSel_Mux <= PAU_SrcSel_EX when TakeBranch = '0' else PAU_AddrPC_EX;
 
         ForceNormalStateNext <= '1' when TakeBranch = '1' else '0';
         
@@ -560,9 +587,6 @@ begin
         --  The Memory Access stage 
 
 
-                -- -- PAU source select should be pipelined PC if a conditional branch is taken
-                -- PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC_EX;
-
                 -- Always move update IR signal from execution to memory access stage
                 UpdateIR_MA <= UpdateIR_EX;
 
@@ -585,33 +609,32 @@ begin
 
                     -- RegArray control signals
                     RegInSel_EX <= RegInSel_ID;
-                    RegStore_EX <= RegStore_ID when TakeBranch = '0' or CBRSlot = '1' else '0';
+                    RegStore_EX <= RegStore_ID when FlushPL = '0' else '0';
                     RegASel_EX <= RegASel_ID;
                     RegBSel_EX <= RegBSel_ID;
                     RegAxInSel_EX <= RegAxInSel_ID;
                     RegAxInDataSel_EX <= RegAxInDataSel_ID;
-                    RegAxStore_EX <= RegAxStore_ID when TakeBranch = '0' or CBRSlot = '1' else '0';
+                    RegAxStore_EX <= RegAxStore_ID when FlushPL = '0' else '0';
                     RegA1Sel_EX <= RegA1Sel_ID;
                     RegOpSel_EX <= RegOpSel_ID;
 
                     -- DAU control signals
-                    DAU_SrcSel_EX <= DAU_SrcSel_ID;
-                    DAU_OffsetSel_EX <= DAU_OffsetSel_ID;
-                    DAU_Offset4_EX <= DAU_Offset4_ID;
-                    DAU_Offset8_EX <= DAU_Offset8_ID;
-                    DAU_IncDecSel_EX <= DAU_IncDecSel_ID;
-                    DAU_IncDecBit_EX <= DAU_IncDecBit_ID;
-                    DAU_PrePostSel_EX <= DAU_PrePostSel_ID;
-                    DAU_GBRSel_EX <= DAU_GBRSel_ID when TakeBranch = '0' or CBRSlot = '1' else GBRSel_None;
-                    DAU_VBRSel_EX <= DAU_VBRSel_ID when TakeBranch = '0' or CBRSlot = '1' else VBRSel_None;
+                    DAU_SrcSel_EX <= DAU_SrcSel_ID when FlushPL = '0' else DAU_SrcSel_EX;
+                    DAU_OffsetSel_EX <= DAU_OffsetSel_ID when FlushPL = '0' else DAU_OffsetSel_EX;                    
+                    DAU_Offset4_EX <= DAU_Offset4_ID when FlushPL = '0' else DAU_Offset4_EX;
+                    DAU_Offset8_EX <= DAU_Offset8_ID when FlushPL = '0' else DAU_Offset8_EX;                    
+                    DAU_IncDecSel_EX <= DAU_IncDecSel_ID when FlushPL = '0' else DAU_IncDecSel_EX;
+                    DAU_IncDecBit_EX <= DAU_IncDecBit_ID when FlushPL = '0' else DAU_IncDecBit_EX;
+                    DAU_PrePostSel_EX <= DAU_PrePostSel_ID when FlushPL = '0' else DAU_PrePostSel_EX;
+                    DAU_GBRSel_EX <= DAU_GBRSel_ID when FlushPL = '0' else GBRSel_None;
+                    DAU_VBRSel_EX <= DAU_VBRSel_ID when FlushPL = '0' else VBRSel_None;
 
                     -- Update status register signal
-                    UpdateSR_EX <= UpdateSR_ID when TakeBranch = '0' or CBRSlot = '1' else '0';
+                    UpdateSR_EX <= UpdateSR_ID when FlushPL = '0' else '0';
 
                     -- Instruction register data
-                    IR_EX <= IR_ID;
+                    IR_EX <= IR_ID(11 downto 0);
 
-                    LastInstBranched <= TakeBranch;
                 else 
                     -- Save the data bus input to pipeline register in case of memory access
                     DB_PL <= DB when UpdateIR_EX = '0';
@@ -632,23 +655,33 @@ begin
                 --      Signals passed from Execution to Memory Access stage:
                 --          - Instruction register data
                 --          - DAU control signals
+
+                -- TODO: possible bug
+                UpdateIR_EX <= UpdateIR_ID when FlushPL = '0' else '1';
+
+
+
                 if UpdateIR_MA = '1' then
 
-                    -- Update IR signal
-                    UpdateIR_EX <= UpdateIR_ID;
+                                    -- Update IR signal
+                    BranchSel_EX <= BranchSel_ID when FlushPL = '0' else BranchSel_None;
+
+                    PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
+                    PAU_OffsetSel_EX <= PAU_OffsetSel_ID when TakeBranch = '0' else PAU_OffsetWord;    
+                   -- Pipelined PC signal
+                    PC_EX <= PC_ID when FlushPL = '0' else AB;
 
                                     -- PAU source select should be pipelined PC if a conditional branch is taken
-                    -- PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC_EX;
 
                     -- PAU control signals
+
                     PAU_UpdatePC_EX <= PAU_UpdatePC_ID;
-                    PAU_PRSel_EX <= PAU_PRSel_ID when TakeBranch = '0' or CBRSlot = '1' else PRSel_None;
+                    PAU_PRSel_EX <= PAU_PRSel_ID when FlushPL = '0' else PRSel_None;
                     PAU_IncDecSel_EX <= PAU_IncDecSel_ID;
                     PAU_IncDecBit_EX <= PAU_IncDecBit_ID;
                     PAU_PrePostSel_EX <= PAU_PrePostSel_ID;
                     
-                    -- Pipelined PC signal
-                    PC_EX <= PC_ID;
+ 
 
                     -- Instruction register data
                     IR_MA <= IR_EX(11 downto 0);
@@ -675,8 +708,8 @@ begin
                 -- DTU control signals
                 DBInMode_EX <= DBInMode_ID;
                 DataAccessMode_EX <= DataAccessMode_ID;
-                WR_EX <= WR_ID when TakeBranch = '0' or CBRSlot = '1' else '1';
-                RD_EX <= RD_ID when TakeBranch = '0' or CBRSlot = '1' else '0';
+                WR_EX <= WR_ID when FlushPL = '0' else '1';
+                RD_EX <= RD_ID when FlushPL = '0' else '0';
                 
                 DBInMode_MA <= DBInMode_EX;
                 DataAccessMode_MA <= DataAccessMode_EX;
@@ -751,8 +784,8 @@ begin
     -- Create Program Memory Access Unit (PAU)
     SH2_PAU : PAU
         port map (
-            SrcSel     => PAU_SrcSel_EX,
-            OffsetSel  => PAU_OffsetSel_EX,
+            SrcSel     => PAU_SrcSel_Mux,
+            OffsetSel  => PAU_OffsetSel_Mux,
             Offset8    => IR_EX(7 downto 0),
             Offset12   => IR_EX(11 downto 0),
             OffsetReg  => RegA1,
@@ -773,19 +806,19 @@ begin
     -- Create Data Memory Access Unit (DAU)
     SH2_DAU : DAU
         port map (
-            SrcSel     => DAU_SrcSel_MA,
-            OffsetSel  => DAU_OffsetSel_MA,
-            Offset4    => IR_MA(3 downto 0),
-            Offset8    => IR_MA(7 downto 0),
+            SrcSel     => DAU_SrcSel_EX,
+            OffsetSel  => DAU_OffsetSel_EX,
+            Offset4    => IR_EX(3 downto 0),
+            Offset8    => IR_EX(7 downto 0),
             Rn         => RegA1,
             R0         => RegA,
             PC         => PC_ID,
             DB         => DB,
-            IncDecSel  => DAU_IncDecSel_MA,
-            IncDecBit  => DAU_IncDecBit_MA,
-            PrePostSel => DAU_PrePostSel_MA,
-            GBRSel     => DAU_GBRSel_MA,
-            VBRSel     => DAU_VBRSel_MA,
+            IncDecSel  => DAU_IncDecSel_EX,
+            IncDecBit  => DAU_IncDecBit_EX,
+            PrePostSel => DAU_PrePostSel_EX,
+            GBRSel     => DAU_GBRSel_EX,
+            VBRSel     => DAU_VBRSel_EX,
             CLK        => clock,
             RST        => Reset,
             AddrIDOut  => DAU_AddrIDOut,
@@ -877,6 +910,7 @@ begin
             RegA1Sel        => RegA1Sel_ID,
             RegOpSel        => RegOpSel_ID,
 
+
             -- DTU signals
             RD => RD_ID,
             WR => WR_ID,
@@ -890,8 +924,8 @@ begin
             -- Pipeline signals
             UpdateIR_EX => UpdateIR_EX,
             UpdateSR_EX => UpdateSR_EX,
-            ForceNormalStateNext => ForceNormalStateNext
-
+            ForceNormalStateNext => ForceNormalStateNext,
+            BranchSel => BranchSel_ID
         );
 
 end structural;

@@ -90,7 +90,7 @@ BFSTest:
     BT/S    TestFail
     MOV     #0, R0
     BF/S    BTTest      ; take this branch (fail otherwise)
-    MOV     #1, R0      ; this instruction should execute
+    MOV     #72, R0      ; this instruction should execute
     BRA     TestFail
     NOP
 

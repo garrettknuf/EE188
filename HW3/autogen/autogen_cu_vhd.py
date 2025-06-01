@@ -56,7 +56,7 @@ integer_signal_list = ['PAU_SrcSel', 'PAU_OffsetSel', 'DAU_SrcSel', 'DAU_OffsetS
                        'RegAxInDataSel', 'RegA1SelCmd', 'RegA2SelCmd', 'RegOpSel',
                        'DBOutSel', 'ABOutSel', 'DataAccessMode', 'DBInMode',
                        'TempRegSel', 'PAU_IncDecBit', 'SRSel',
-                       'DAU_GBRSel', 'DAU_VBRSel', 'RegAxInSelCmd']
+                       'DAU_GBRSel', 'DAU_VBRSel', 'RegAxInSelCmd', 'BranchSel']
 
 # Create normal instruction decoding
 for instruction, normal_control_signals in instruction_decoding.items():

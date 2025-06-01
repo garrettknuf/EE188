@@ -106,6 +106,16 @@ package CUConstants is
     constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;  -- Set to register
     constant SRSel_Tmp2 : integer range SRSEL_CNT-1 downto 0 := 3;  -- Set to temporary reg 2
 
+    constant BRANCHSEL_CNT  : integer := 8;
+    constant BranchSel_None : integer := 0;
+    constant BranchSel_BF   : integer := 1;
+    constant BranchSel_BFS  : integer := 2;
+    constant BranchSel_BT   : integer := 3;
+    constant BranchSel_BTS  : integer := 4;
+    constant BranchSel_Always : integer := 5;
+    constant BranchSel_JUMP : integer := 6;
+    constant BranchSel_RET  : integer := 7;
+
     constant unused : integer := 0;
 
 end package;
@@ -207,7 +217,8 @@ entity CU is
         -- Pipeline control signals
         UpdateIR_EX : in std_logic;    -- pipelined signal to update IR
         UpdateSR_EX : in std_logic;    -- pipelined control signal to update SR or not
-        ForceNormalStateNext : in std_logic
+        ForceNormalStateNext : in std_logic;
+        BranchSel : out integer range BRANCHSEL_CNT-1 downto 0
     );
 
 

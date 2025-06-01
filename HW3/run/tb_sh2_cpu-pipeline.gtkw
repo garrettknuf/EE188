@@ -1,0 +1,39 @@
+[*]
+[*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
+[*] Sun Jun 01 16:19:03 2025
+[*]
+[dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-pipeline.vcd"
+[dumpfile_mtime] "Sun Jun 01 16:15:43 2025"
+[dumpfile_size] 204603
+[savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-pipeline.gtkw"
+[timestart] 227400000
+[size] 1620 1009
+[pos] 1885 -522
+*-25.000000 365800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_sh2_cpu.
+[sst_width] 197
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 297
+@28
+tb_sh2_cpu.clock
+tb_sh2_cpu.reset
+@22
+tb_sh2_cpu.uut.ab[31:0]
+tb_sh2_cpu.db[31:0]
+@28
+tb_sh2_cpu.re[3:0]
+tb_sh2_cpu.we[3:0]
+@22
+tb_sh2_cpu.uut.pc_id[31:0]
+tb_sh2_cpu.uut.pc_ex[31:0]
+tb_sh2_cpu.uut.pau_progaddr[31:0]
+@420
+tb_sh2_cpu.uut.aboutsel_ma
+@28
+tb_sh2_cpu.uut.updateir_id
+tb_sh2_cpu.uut.updateir_ex
+@29
+tb_sh2_cpu.uut.updateir_ma
+[pattern_trace] 1
+[pattern_trace] 0

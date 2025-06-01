@@ -10,7 +10,7 @@
 1000110101000110	; 0x00000012 : BT/S    TestFail
 1110000000000000	; 0x00000014 : MOV     #0, R0
 1000111100000100	; 0x00000016 : BF/S    BTTest      ; take this branch (fail otherwise)
-1110000000000001	; 0x00000018 : MOV     #1, R0      ; this instruction should execute
+1110000001001000	; 0x00000018 : MOV     #72, R0      ; this instruction should execute
 1010000001000010	; 0x0000001A : BRA     TestFail
 0000000000001001	; 0x0000001C : NOP
 0010101000000010	; 0x0000001E : MOV.L   R0, @R10    ; WRITE 1

@@ -77,5 +77,4 @@ FibLoop:
 ;; TestEnd: Halt CPU when sequence generation complete
 ;;--------------------------------------------------------------------------
 TestEnd:
-    NOP
     SLEEP
