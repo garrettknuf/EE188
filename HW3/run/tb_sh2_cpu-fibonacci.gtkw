@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Sun Jun 01 05:46:46 2025
+[*] Sun Jun 01 06:30:36 2025
 [*]
 [dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-fibonacci.vcd"
-[dumpfile_mtime] "Sun Jun 01 05:46:13 2025"
-[dumpfile_size] 224125
+[dumpfile_mtime] "Sun Jun 01 06:30:18 2025"
+[dumpfile_size] 611408
 [savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-fibonacci.gtkw"
-[timestart] 386800000
+[timestart] 605300000
 [size] 1620 1009
-[pos] -1 -1
-*-25.000000 506700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] 1807 -522
+*-25.000000 724100000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
 [sst_width] 197
@@ -18,7 +18,6 @@
 [sst_vpaned_height] 299
 @28
 tb_sh2_cpu.clock
-@29
 tb_sh2_cpu.reset
 @22
 tb_sh2_cpu.ab[31:0]
@@ -88,6 +87,8 @@ tb_sh2_cpu.uut.sh2_cu.updateir
 tb_sh2_cpu.uut.updateir_id
 tb_sh2_cpu.uut.updateir_ex
 @420
+tb_sh2_cpu.uut.sh2_cu.nextstate
+@421
 tb_sh2_cpu.uut.sh2_cu.currentstate
 @28
 tb_sh2_cpu.uut.pau_updatepc_id
@@ -97,6 +98,7 @@ tb_sh2_cpu.uut.updateir_ma
 tb_sh2_cpu.uut.aboutsel_ma
 @28
 tb_sh2_cpu.uut.takebranch
+tb_sh2_cpu.uut.sh2_cu.forcenormalstatenext
 @c00022
 tb_sh2_cpu.uut.sr[31:0]
 @28

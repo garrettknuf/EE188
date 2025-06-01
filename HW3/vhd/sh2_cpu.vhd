@@ -255,7 +255,8 @@ architecture structural of SH2_CPU is
 
             -- Pipeline control signals
             UpdateIR_EX : in std_logic;    -- pipelined signal to update IR (used to detect memory access)
-            UpdateSR_EX : in std_logic     -- pipelined signal to update SR (used to determine conditional branching)
+            UpdateSR_EX : in std_logic;    -- pipelined signal to update SR (used to determine conditional branching)
+            ForceNormalStateNext : in std_logic
         );
     end component;
 
@@ -458,6 +459,10 @@ architecture structural of SH2_CPU is
     -- Signal that indicates if the a conditional branch should be taken
     signal TakeBranch : std_logic;
 
+    signal LastInstBranched : std_logic;
+
+    signal ForceNormalStateNext : std_logic;
+
     -- Conditional branch (CBR) IR detection mask
     constant IR_CBR_PATTERN : std_logic_vector(15 downto 8) := "10001--1";
 
@@ -485,10 +490,10 @@ begin
             -- Check if conditional branch should be taken or not
             if IR_EX(IR_CBR_COND_BIT) = IR_CBR_COND_T then
                 -- Branch if true (T=1)
-                TakeBranch <= '1' when SR(0) = '1' else '0';
+                TakeBranch <= '1' when SR(0) = '1' and LastInstBranched = '0' else '0';
             else
                 -- Branch if false (t=0)
-                TakeBranch <= '1' when SR(0) = '0' else '0';
+                TakeBranch <= '1' when SR(0) = '0' and LastInstBranched = '0' else '0';
             end if;
         else
             TakeBranch <= '0';
@@ -497,8 +502,9 @@ begin
         -- PAU source should be pipelined PC if a conditional branch is taken
         PAU_OffsetSel_EX <= PAU_Offset8 when TakeBranch = '1' else PAU_OffsetWord;
         PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC_EX;
-        
 
+        ForceNormalStateNext <= '1' when TakeBranch = '1' else '0';
+        
     end process;
 
     -- Instruction decoding to Execution Pipeline
@@ -576,12 +582,12 @@ begin
 
                     -- RegArray control signals
                     RegInSel_EX <= RegInSel_ID;
-                    RegStore_EX <= RegStore_ID;
+                    RegStore_EX <= RegStore_ID when TakeBranch = '0' else '0';
                     RegASel_EX <= RegASel_ID;
                     RegBSel_EX <= RegBSel_ID;
                     RegAxInSel_EX <= RegAxInSel_ID;
                     RegAxInDataSel_EX <= RegAxInDataSel_ID;
-                    RegAxStore_EX <= RegAxStore_ID;
+                    RegAxStore_EX <= RegAxStore_ID when TakeBranch = '0' else '0';
                     RegA1Sel_EX <= RegA1Sel_ID;
                     RegOpSel_EX <= RegOpSel_ID;
 
@@ -593,14 +599,16 @@ begin
                     DAU_IncDecSel_EX <= DAU_IncDecSel_ID;
                     DAU_IncDecBit_EX <= DAU_IncDecBit_ID;
                     DAU_PrePostSel_EX <= DAU_PrePostSel_ID;
-                    DAU_GBRSel_EX <= DAU_GBRSel_ID;
-                    DAU_VBRSel_EX <= DAU_VBRSel_ID;
+                    DAU_GBRSel_EX <= DAU_GBRSel_ID when TakeBranch = '0' else GBRSel_None;
+                    DAU_VBRSel_EX <= DAU_VBRSel_ID when TakeBranch = '0' else VBRSel_None;
 
                     -- Update status register signal
-                    UpdateSR_EX <= UpdateSR_ID;
+                    UpdateSR_EX <= UpdateSR_ID when TakeBranch = '0' else '0';
 
                     -- Instruction register data
                     IR_EX <= IR_ID;
+
+                    LastInstBranched <= TakeBranch;
                 else 
                     -- Save the data bus input to pipeline register in case of memory access
                     DB_PL <= DB when UpdateIR_EX = '0';
@@ -631,11 +639,10 @@ begin
 
                     -- PAU control signals
                     PAU_UpdatePC_EX <= PAU_UpdatePC_ID;
-                    PAU_PRSel_EX <= PAU_PRSel_ID;
+                    PAU_PRSel_EX <= PAU_PRSel_ID when TakeBranch = '0' else PRSel_None;
                     PAU_IncDecSel_EX <= PAU_IncDecSel_ID;
                     PAU_IncDecBit_EX <= PAU_IncDecBit_ID;
                     PAU_PrePostSel_EX <= PAU_PrePostSel_ID;
-                    
                     
                     -- Pipelined PC signal
                     PC_EX <= PC_ID;
@@ -665,8 +672,8 @@ begin
                 -- DTU control signals
                 DBInMode_EX <= DBInMode_ID;
                 DataAccessMode_EX <= DataAccessMode_ID;
-                WR_EX <= WR_ID;
-                RD_EX <= RD_ID;
+                WR_EX <= WR_ID when TakeBranch = '0' else '1';
+                RD_EX <= RD_ID when TakeBranch = '0' else '0';
                 
                 DBInMode_MA <= DBInMode_EX;
                 DataAccessMode_MA <= DataAccessMode_EX;
@@ -879,7 +886,8 @@ begin
 
             -- Pipeline signals
             UpdateIR_EX => UpdateIR_EX,
-            UpdateSR_EX => UpdateSR_EX
+            UpdateSR_EX => UpdateSR_EX,
+            ForceNormalStateNext => ForceNormalStateNext
 
         );
 

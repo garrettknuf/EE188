@@ -206,7 +206,8 @@ entity CU is
 
         -- Pipeline control signals
         UpdateIR_EX : in std_logic;    -- pipelined signal to update IR
-        UpdateSR_EX : in std_logic     -- pipelined control signal to update SR or not
+        UpdateSR_EX : in std_logic;    -- pipelined control signal to update SR or not
+        ForceNormalStateNext : in std_logic
     );
 
 
@@ -314,7 +315,7 @@ begin
                 TempReg2 <= TempReg2MuxOut when UpdateTempReg2 = '1' else TempReg2;
 
                 -- Set state of FSM
-                CurrentState <= NextState;
+                CurrentState <= NextState when ForceNormalStateNext = '0' else Normal;
 
             else
                 -- Reset to idle instruction (rising edge after reset)

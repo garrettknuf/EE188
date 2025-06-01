@@ -73,7 +73,6 @@ FibLoop:
     DT      R3      ; counter -= 1
     BF      FibLoop
     NOP
-    NOP
 
 ;;--------------------------------------------------------------------------
 ;; TestEnd: Halt CPU when sequence generation complete
