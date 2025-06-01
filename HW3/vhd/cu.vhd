@@ -1633,7 +1633,9 @@ begin
 			PAU_IncDecSel <= '1';
 			DAU_SrcSel <= DAU_AddrPC;
 			DAU_OffsetSel <= DAU_Offset8x4;
-			DAU_PrePostSel <= MemUnit_POST;
+			DAU_IncDecSel <= MemUnit_DEC;
+			DAU_IncDecBit <= 1;
+			DAU_PrePostSel <= MemUnit_PRE;
 			DAU_GBRSel <= GBRSel_None;
 			DAU_VBRSel <= VBRSel_None;
 			RegInSelCmd <= RegInSelCmd_R0;
