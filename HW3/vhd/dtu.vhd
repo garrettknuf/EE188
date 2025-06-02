@@ -111,13 +111,18 @@ use work.DTUConstants.all;
 entity DTU is
 
     port (
+        -- Data input
         DBOut           : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data to output to DB
+        
+        -- Control inputs
         AB              : in    std_logic_vector(1 downto 0);                   -- address bus (least 2 significant bits)
         RD              : in    std_logic;                                      -- read enable (active-low)
         WR              : in    std_logic;                                      -- write enable (active-low)
         DataAccessMode  : in    integer range DATAACCESSMODE_CNT-1 downto 0;    -- select byte, word, long access
         DBInMode        : in    integer range DBINMODE_CNT-1 downto 0;          -- select signed or unsigned read
         CLK             : in    std_logic;                                      -- system clock
+        
+        -- Control outputs
         DBIn            : out   std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data read from DB
         WE0             : out   std_logic;                                      -- write enable byte0
         WE1             : out   std_logic;                                      -- write enable byte1
@@ -127,6 +132,8 @@ entity DTU is
         RE1             : out   std_logic;                                      -- read enable byte1
         RE2             : out   std_logic;                                      -- read enable byte2
         RE3             : out   std_logic;                                      -- read enable byte3
+
+        -- In/Out data bus
         DB              : inout std_logic_vector(DATA_BUS_SIZE-1 downto 0)      -- data bus
     );
 

@@ -113,14 +113,21 @@ use work.DAUConstants.all;
 entity DAU is
 
     port (
-        SrcSel      : in    integer range DAU_SRC_CNT - 1 downto 0;         -- source select
-        OffsetSel   : in    integer range DAU_OFFSET_CNT - 1 downto 0;      -- offset select
+        -- Source inputs
+        PC          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
+        Rn          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- generic register
+        
+        -- Offset inputs
         Offset4     : in    std_logic_vector(3 downto 0);                   -- 4-bit offset
         Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
-        Rn          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- generic register
         R0          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register R0
-        PC          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
+
+        -- Data inputs
         DB          : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- databus
+        
+        -- Control signals
+        SrcSel      : in    integer range DAU_SRC_CNT - 1 downto 0;         -- source select
+        OffsetSel   : in    integer range DAU_OFFSET_CNT - 1 downto 0;      -- offset select
         IncDecSel   : in    std_logic;                                      -- select inc/dec
         IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
         PrePostSel  : in    std_logic;                                      -- select pre/post
@@ -128,6 +135,8 @@ entity DAU is
         VBRSel      : in    integer range VBRSel_CNT-1 downto 0;            -- select VBR
         CLK         : in    std_logic;                                      -- system clock
         RST         : in    std_logic;                                      -- system reset
+
+        -- Output signals
         AddrIDOut   : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- inc/dec address output
         DataAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data address
         GBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- global base register

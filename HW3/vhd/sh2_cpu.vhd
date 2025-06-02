@@ -124,7 +124,7 @@ architecture structural of SH2_CPU is
 
     component RegArray is
         port (
-            -- RegIn inputs
+            -- RegIn input
             Result      : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- ALU Result
 
             -- RegAxIn inputs
@@ -156,20 +156,29 @@ architecture structural of SH2_CPU is
 
     component PAU is
         port (
+            -- Control signals
             SrcSel      : in    integer range PAU_SRC_CNT - 1 downto 0;         -- source select
             OffsetSel   : in    integer range PAU_OFFSET_CNT - 1 downto 0;      -- offset select
-            Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
-            Offset12    : in    std_logic_vector(11 downto 0);                  -- 12-bit offset
-            OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register offest
-            TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- temporary register offset
             UpdatePC    : in    std_logic;                                      -- update PC or hold
             PRSel       : in    integer range PRSEL_CNT-1 downto 0;             -- select modify PR
             IncDecSel   : in    std_logic;                                      -- select inc/dec
             IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
             PrePostSel  : in    std_logic;                                      -- select decrement by 4
+
+            -- Source inputs
             DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data bus
             PC_EX       : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- pipelined PC (delayed by two clocks)
+
+            -- Offset inputs
+            Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
+            Offset12    : in    std_logic_vector(11 downto 0);                  -- 12-bit offset
+            OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register offest
+            TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- temporary register offset
+
+            -- System signal
             CLK         : in    std_logic;                                      -- clock
+
+            -- Output signals
             ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
             PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
             PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)    -- procedure register
@@ -178,14 +187,21 @@ architecture structural of SH2_CPU is
 
     component DAU is
         port (
-            SrcSel      : in    integer range DAU_SRC_CNT - 1 downto 0;         -- source select
-            OffsetSel   : in    integer range DAU_OFFSET_CNT - 1 downto 0;      -- offset select
+            -- Source inputs
+            PC          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
+            Rn          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- generic register
+
+            -- Offset inputs
             Offset4     : in    std_logic_vector(3 downto 0);                   -- 4-bit offset
             Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
-            Rn          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- generic register
             R0          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register R0
-            PC          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
+
+            -- Data bus input
             DB          : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- databus
+
+            -- Control signals
+            SrcSel      : in    integer range DAU_SRC_CNT - 1 downto 0;         -- source select
+            OffsetSel   : in    integer range DAU_OFFSET_CNT - 1 downto 0;      -- offset select
             IncDecSel   : in    std_logic;                                      -- select inc/dec
             IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
             PrePostSel  : in    std_logic;                                      -- select pre/post
@@ -193,6 +209,8 @@ architecture structural of SH2_CPU is
             VBRSel      : in    integer range VBRSel_CNT-1 downto 0;            -- select VBR
             CLK         : in    std_logic;                                      -- system clock
             RST         : in    std_logic;                                      -- system reset
+
+            -- Output signals
             AddrIDOut   : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- inc/dec address output
             DataAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data address
             GBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- global base register
@@ -278,13 +296,18 @@ architecture structural of SH2_CPU is
 
     component DTU is
         port (
+            -- Data input
             DBOut           : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data to output to DB
+
+            -- Control inputs
             AB              : in    std_logic_vector(1 downto 0);                   -- address bus (least 2 significant bits)
             RD              : in    std_logic;                                      -- read enable (active-low)
             WR              : in    std_logic;                                      -- write enable (active-low)
             DataAccessMode  : in    integer range DATAACCESSMODE_CNT-1 downto 0;    -- select byte, word, long access
             DBInMode        : in    integer range DBINMODE_CNT-1 downto 0;          -- select signed or unsigned read
             CLK             : in    std_logic;                                      -- system clock
+
+            -- Control outputs
             DBIn            : out   std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data read from DB
             WE0             : out   std_logic;                                      -- write enable byte0
             WE1             : out   std_logic;                                      -- write enable byte1
@@ -294,6 +317,8 @@ architecture structural of SH2_CPU is
             RE1             : out   std_logic;                                      -- read enable byte1
             RE2             : out   std_logic;                                      -- read enable byte2
             RE3             : out   std_logic;                                      -- read enable byte3
+
+            -- In/Out data bus
             DB              : inout std_logic_vector(DATA_BUS_SIZE-1 downto 0)      -- data bus
         );
     end component;
@@ -779,9 +804,13 @@ begin
     end process;
 
 
+-- SH2 CPU Component Implementation and Port Mapping
+--  Create the all SH2 CPU component and map the ports to the internal signals.
+
     -- Create 32-bit ALU for standard logic and arithmetic operations
     SH2_ALU : ALU
         port map (
+            -- Operand signals (inputs)
             RegA        => RegA,
             RegB        => RegB,
             TempReg     => TempReg2,
@@ -789,13 +818,15 @@ begin
             DBIn        => DBIn,
             SR0         => SR(0),
 
+            -- Control signals (inputs)
             ALUOpASel   => ALUOpASel_EX,
             ALUOpBSel   => ALUOpBSel_EX,
             FCmd        => ALU_FCmd_EX,
             CinCmd      => ALU_CinCmd_EX,
             SCmd        => ALU_SCmd_EX,
             ALUCmd      => ALU_ALUCmd_EX,
-            
+
+            -- Output signals            
             TbitOp      => ALU_TbitOp_EX,
             Result      => ALU_Result,
             Tbit        => ALU_Tbit
@@ -804,23 +835,30 @@ begin
     -- Create 32-bit register array with general purpose registers R0-R15
     SH2_RegArray : RegArray
         port map (
+            -- RegIn input
             Result          => ALU_Result,
+
+            -- RegAxIn inputs
             DataAddrID      => DAU_AddrIDOut,
             DataAddr        => DAU_DataAddr,
             SR              => SR,
             GBR             => GBR,
             VBR             => VBR,
             PR              => PR,
+
+            -- Control signals (inputs)
             RegInSel        => RegInSel_EX,
-            RegStore        => RegStore_MUX,
+            RegStore        => RegStore_EX,
             RegASel         => RegASel_EX,
             RegBSel         => RegBSel_EX,
             RegAxInSel      => RegAxInSel_EX,
             RegAxInDataSel  => RegAxInDataSel_EX,
-            RegAxStore      => RegAxStore_Mux,
+            RegAxStore      => RegAxStore_EX,
             RegA1Sel        => RegA1Sel_EX,
             RegOpSel        => RegOpSel_EX,
             CLK             => clock,
+
+            -- Register outputs
             RegA            => RegA,
             RegB            => RegB,
             RegA1           => RegA1
@@ -829,20 +867,29 @@ begin
     -- Create Program Memory Access Unit (PAU)
     SH2_PAU : PAU
         port map (
+            -- Control signals
             SrcSel     => PAU_SrcSel_Mux,
             OffsetSel  => PAU_OffsetSel_Mux,
+            UpdatePC   => PAU_UpdatePC_EX,
+            PRSel      => PAU_PRSel_EX,
+            IncDecSel  => PAU_IncDecSel_EX,
+            IncDecBit  => PAU_IncDecBit_EX,
+            PrePostSel => PAU_PrePostSel_EX,
+
+            -- Source inputs
+            DB         => DB,
+            PC_EX      => PC_EX,
+
+            -- Offset inputs
             Offset8    => IR_EX(7 downto 0),
             Offset12   => IR_EX(11 downto 0),
             OffsetReg  => RegA1,
             TempReg    => TempReg,
-            IncDecSel  => PAU_IncDecSel_EX,
-            IncDecBit  => PAU_IncDecBit_EX,
-            PrePostSel => PAU_PrePostSel_EX,
-            DB         => DB,
-            PC_EX      => PC_EX,
-            UpdatePC   => PAU_UpdatePC_EX,
-            PRSel      => PAU_PRSel_EX,
+
+            -- System signal
             CLK        => clock,
+
+            -- Output signals
             ProgAddr   => PAU_ProgAddr,
             PC         => PC_ID,
             PR         => PR
@@ -851,14 +898,21 @@ begin
     -- Create Data Memory Access Unit (DAU)
     SH2_DAU : DAU
         port map (
-            SrcSel     => DAU_SrcSel_EX,
-            OffsetSel  => DAU_OffsetSel_EX,
+            -- Source inputs
+            PC         => PC_ID,
+            Rn         => RegA1,
+
+            -- Offset inputs
             Offset4    => IR_EX(3 downto 0),
             Offset8    => IR_EX(7 downto 0),
-            Rn         => RegA1,
             R0         => RegA,
-            PC         => PC_ID,
+
+            -- Data inputs
             DB         => DB,
+
+            -- Control signals
+            SrcSel     => DAU_SrcSel_EX,
+            OffsetSel  => DAU_OffsetSel_EX,
             IncDecSel  => DAU_IncDecSel_EX,
             IncDecBit  => DAU_IncDecBit_EX,
             PrePostSel => DAU_PrePostSel_EX,
@@ -866,6 +920,8 @@ begin
             VBRSel     => DAU_VBRSel_EX,
             CLK        => clock,
             RST        => Reset,
+
+            -- Output signals
             AddrIDOut  => DAU_AddrIDOut,
             DataAddr   => DAU_DataAddr,
             GBR        => GBR,
@@ -875,13 +931,18 @@ begin
     -- Create Data Transfer Unit (DTU) to interface with memory
     SH2_DTU : DTU
         port map (
+            -- Data input
             DBOut           => DBOut,
+
+            -- Control inputs
             AB              => AB(1 downto 0),
             RD              => RD_MA,
             WR              => WR_MA,
             DataAccessMode  => DataAccessMode_MA,
             DBInMode        => DBInMode_MA,
             CLK             => clock,
+
+            -- Control outputs
             DBIn            => DBIn,
             WE0             => WE0,
             WE1             => WE1,
@@ -891,6 +952,8 @@ begin
             RE1             => RE1,
             RE2             => RE2,
             RE3             => RE3,
+
+            -- In/Out data bus
             DB              => DB
         );
 

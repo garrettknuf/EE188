@@ -99,20 +99,29 @@ use work.PAUConstants.all;
 entity PAU is
 
     port (
+        -- Control signals
         SrcSel      : in    integer range PAU_SRC_CNT - 1 downto 0;         -- source select
         OffsetSel   : in    integer range PAU_OFFSET_CNT - 1 downto 0;      -- offset select
-        Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
-        Offset12    : in    std_logic_vector(11 downto 0);                  -- 12-bit offset
-        OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register offest
-        TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- temporary register offset
         UpdatePC    : in    std_logic;                                      -- update PC or hold
         PRSel       : in    integer range PRSEL_CNT-1 downto 0;             -- select modify PR
         IncDecSel   : in    std_logic;                                      -- select inc/dec
         IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
         PrePostSel  : in    std_logic;                                      -- select decrement by 4
+
+        -- Source inputs
         DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data bus
         PC_EX       : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- pipelined PC (delayed by 1 clock)
+
+        -- Offset inputs
+        Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
+        Offset12    : in    std_logic_vector(11 downto 0);                  -- 12-bit offset
+        OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register offest
+        TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- temporary register offset
+
+        -- System signal
         CLK         : in    std_logic;                                      -- clock
+
+        -- Output signals
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
         PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := x"FFFFFFFE";   -- program counter
         PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)    -- procedure register
