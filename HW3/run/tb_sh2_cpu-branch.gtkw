@@ -1,19 +1,19 @@
 [*]
 [*] GTKWave Analyzer v3.3.123 (w)1999-2025 BSI
-[*] Mon Jun  2 03:18:07 2025
+[*] Mon Jun  2 08:09:37 2025
 [*]
 [dumpfile] "/home/gore/Projects/EE188/HW3/run/tb_sh2_cpu-branch.vcd"
-[dumpfile_mtime] "Mon Jun  2 03:17:50 2025"
+[dumpfile_mtime] "Mon Jun  2 08:00:51 2025"
 [dumpfile_size] 496592
 [savefile] "/home/gore/Projects/EE188/HW3/run/tb_sh2_cpu-branch.gtkw"
-[timestart] 1284000000
+[timestart] 0
 [size] 1446 987
 [pos] 2172 23
-*-25.000000 1364500000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-25.000000 12400000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
 [sst_width] 290
-[signals_width] 302
+[signals_width] 318
 [sst_expanded] 1
 [sst_vpaned_height] 279
 @28
@@ -24,6 +24,24 @@ tb_sh2_cpu.ab[31:0]
 tb_sh2_cpu.db[31:0]
 @28
 tb_sh2_cpu.re[3:0]
+tb_sh2_cpu.uut.rd_id
+tb_sh2_cpu.uut.rd_ex
+tb_sh2_cpu.uut.rd_ma
+@22
+tb_sh2_cpu.uut.sh2_dtu.memaccessbits[3:0]
+@420
+tb_sh2_cpu.uut.sh2_dtu.dataaccessmode
+@28
+tb_sh2_cpu.uut.sh2_dtu.ab[1:0]
+tb_sh2_cpu.uut.sh2_dtu.rd
+tb_sh2_cpu.uut.sh2_dtu.re0
+tb_sh2_cpu.uut.sh2_dtu.re1
+tb_sh2_cpu.uut.sh2_dtu.re2
+@29
+tb_sh2_cpu.uut.sh2_dtu.re3
+@200
+-
+@28
 tb_sh2_cpu.we[3:0]
 @22
 [color] 2
@@ -126,7 +144,6 @@ tb_sh2_cpu.uut.sh2_regarray.regaxin[31:0]
 tb_sh2_cpu.uut.sh2_dau.dataaddr[31:0]
 @420
 tb_sh2_cpu.uut.sh2_dau.srcsel
-@421
 tb_sh2_cpu.uut.sh2_dau.offsetsel
 @22
 tb_sh2_cpu.uut.sh2_dau.offset8[7:0]

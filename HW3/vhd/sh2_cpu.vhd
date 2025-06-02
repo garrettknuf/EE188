@@ -728,12 +728,12 @@ begin
                 UpdateIR_EX <= UpdateIR_ID when FlushPL = '0' else '1';
                 UpdateIR_MA <= UpdateIR_EX;
 
-                -- SH2 CPU bus control signal pipelines
-                DBOutSel_EX <= DBOutSel_ID;
-                ABOutSel_EX <= ABOutSel_ID;
+                -- SH2 CPU bus output control signals (ID -> MA)
+                DBOutSel_EX <= DBOutSel_ID; -- select databus output
+                DBOutSel_MA <= DBOutSel_EX; -- (ALUresult, PC, SR, PR, GBR, VBR)
 
-                DBOutSel_MA <= DBOutSel_EX;
-                ABOutSel_MA <= ABOutSel_EX;
+                ABOutSel_EX <= ABOutSel_ID; -- select addressbus output
+                ABOutSel_MA <= ABOutSel_EX; -- (PAU or DAU)
 
                 -- DTU control signals
                 DBInMode_EX <= DBInMode_ID;
