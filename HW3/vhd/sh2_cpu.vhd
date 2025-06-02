@@ -2,13 +2,14 @@
 --
 --  Hitachi SH-2 RISC Processor
 --
---  This file contains the complete top-level structural implementation of the
---  Hitachi SH-2 RISC Processor. It includes instantations of all major components:
---  ALU, RegArray, CU, PAU, DAU, and DTU. THE SH2_CPU entity defines the interface
---  of the processor and connects its internal subsystems in a structural
---  architecture. It is used for integration and testing of the full processor
---  design. The main resource for design is the SuperH RISC Engine SH-1/SH-2
---  Progamming Manual by Hitachi September 3, 1996.
+--  This file contains the complete top-level structural implementation of 
+--  the Hitachi SH-2 RISC Processor. It includes instantations of all major
+--  components: ALU, RegArray, CU, PAU, DAU, and DTU. It also implements a
+--  five stage pipeline. The SH2_CPU entity defines the interface of the
+--  processor and connects its internal subsystems in a structural
+--  architecture. It is used for integration and testing of the full
+--  processor design. The main resource for design is the SuperH RISC 
+--  Engine SH-1/SH-2 Progamming Manual by Hitachi September 3, 1996.
 --
 --  Entities included are:
 --    SH2_CPU - top level structural of CPU
@@ -110,7 +111,7 @@ architecture structural of SH2_CPU is
 
     component RegArray is
         port (
-            -- RegIn inputs
+            -- RegIn input
             Result      : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- ALU Result
 
             -- RegAxIn inputs
@@ -142,20 +143,29 @@ architecture structural of SH2_CPU is
 
     component PAU is
         port (
+            -- Control signals
             SrcSel      : in    integer range PAU_SRC_CNT - 1 downto 0;         -- source select
             OffsetSel   : in    integer range PAU_OFFSET_CNT - 1 downto 0;      -- offset select
-            Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
-            Offset12    : in    std_logic_vector(11 downto 0);                  -- 12-bit offset
-            OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register offest
-            TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- temporary register offset
             UpdatePC    : in    std_logic;                                      -- update PC or hold
             PRSel       : in    integer range PRSEL_CNT-1 downto 0;             -- select modify PR
             IncDecSel   : in    std_logic;                                      -- select inc/dec
             IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
             PrePostSel  : in    std_logic;                                      -- select decrement by 4
+
+            -- Source inputs
             DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data bus
             PC_EX       : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- pipelined PC (delayed by two clocks)
+
+            -- Offset inputs
+            Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
+            Offset12    : in    std_logic_vector(11 downto 0);                  -- 12-bit offset
+            OffsetReg   : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register offest
+            TempReg     : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- temporary register offset
+
+            -- System signal
             CLK         : in    std_logic;                                      -- clock
+
+            -- Output signals
             ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
             PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
             PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)    -- procedure register
@@ -164,14 +174,21 @@ architecture structural of SH2_CPU is
 
     component DAU is
         port (
-            SrcSel      : in    integer range DAU_SRC_CNT - 1 downto 0;         -- source select
-            OffsetSel   : in    integer range DAU_OFFSET_CNT - 1 downto 0;      -- offset select
+            -- Source inputs
+            PC          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
+            Rn          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- generic register
+
+            -- Offset inputs
             Offset4     : in    std_logic_vector(3 downto 0);                   -- 4-bit offset
             Offset8     : in    std_logic_vector(7 downto 0);                   -- 8-bit offset
-            Rn          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- generic register
             R0          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- register R0
-            PC          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
+
+            -- Data bus input
             DB          : in    std_logic_vector(DATA_BUS_SIZE - 1 downto 0);   -- databus
+
+            -- Control signals
+            SrcSel      : in    integer range DAU_SRC_CNT - 1 downto 0;         -- source select
+            OffsetSel   : in    integer range DAU_OFFSET_CNT - 1 downto 0;      -- offset select
             IncDecSel   : in    std_logic;                                      -- select inc/dec
             IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
             PrePostSel  : in    std_logic;                                      -- select pre/post
@@ -179,6 +196,8 @@ architecture structural of SH2_CPU is
             VBRSel      : in    integer range VBRSel_CNT-1 downto 0;            -- select VBR
             CLK         : in    std_logic;                                      -- system clock
             RST         : in    std_logic;                                      -- system reset
+
+            -- Output signals
             AddrIDOut   : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- inc/dec address output
             DataAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data address
             GBR         : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- global base register
@@ -197,7 +216,7 @@ architecture structural of SH2_CPU is
             Tbit    : in    std_logic;                                      -- Tbit from ALU
             RegB    : in    std_logic_vector(REG_SIZE - 1 downto 0);
 
-            -- CU Registers
+            -- CU Registers TODO: IS IT VALID TO SET AN INITIAL VALUE?
             IR      : out   std_logic_vector(INST_SIZE - 1 downto 0) := x"DEAD";    -- instruction register
             SR      : out std_logic_vector(REG_SIZE - 1 downto 0);                  -- status register
             TempReg : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);             -- temporary register
@@ -263,13 +282,18 @@ architecture structural of SH2_CPU is
 
     component DTU is
         port (
+            -- Data input
             DBOut           : in    std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data to output to DB
+
+            -- Control inputs
             AB              : in    std_logic_vector(1 downto 0);                   -- address bus (least 2 significant bits)
             RD              : in    std_logic;                                      -- read enable (active-low)
             WR              : in    std_logic;                                      -- write enable (active-low)
             DataAccessMode  : in    integer range DATAACCESSMODE_CNT-1 downto 0;    -- select byte, word, long access
             DBInMode        : in    integer range DBINMODE_CNT-1 downto 0;          -- select signed or unsigned read
             CLK             : in    std_logic;                                      -- system clock
+
+            -- Control outputs
             DBIn            : out   std_logic_vector(DATA_BUS_SIZE-1 downto 0);     -- data read from DB
             WE0             : out   std_logic;                                      -- write enable byte0
             WE1             : out   std_logic;                                      -- write enable byte1
@@ -279,12 +303,15 @@ architecture structural of SH2_CPU is
             RE1             : out   std_logic;                                      -- read enable byte1
             RE2             : out   std_logic;                                      -- read enable byte2
             RE3             : out   std_logic;                                      -- read enable byte3
+
+            -- In/Out data bus
             DB              : inout std_logic_vector(DATA_BUS_SIZE-1 downto 0)      -- data bus
         );
     end component;
 
 
     -- ALU Signals
+    -- Instruction Decode stage control signals
     signal ALUOpASel_ID    : integer range ALUOPASEL_CNT-1 downto 0;
     signal ALUOpBSel_ID    : integer range ALUOPBSEL_CNT-1 downto 0;
     signal ALU_FCmd_ID     : std_logic_vector(3 downto 0);
@@ -292,7 +319,7 @@ architecture structural of SH2_CPU is
     signal ALU_SCmd_ID     : std_logic_vector(2 downto 0);
     signal ALU_ALUCmd_ID   : std_logic_vector(1 downto 0);
     signal ALU_TbitOp_ID   : std_logic_vector(3 downto 0);
-
+    -- Execute stage control signals
     signal ALUOpASel_EX    : integer range ALUOPASEL_CNT-1 downto 0;
     signal ALUOpBSel_EX    : integer range ALUOPBSEL_CNT-1 downto 0;
     signal ALU_FCmd_EX     : std_logic_vector(3 downto 0);
@@ -300,11 +327,13 @@ architecture structural of SH2_CPU is
     signal ALU_SCmd_EX     : std_logic_vector(2 downto 0);
     signal ALU_ALUCmd_EX   : std_logic_vector(1 downto 0);
     signal ALU_TbitOp_EX   : std_logic_vector(3 downto 0);
-
+    -- Output signals
     signal ALU_Result    : std_logic_vector(LONG_SIZE - 1 downto 0);
     signal ALU_Tbit      : std_logic;
 
+
     -- RegArray Signals
+    -- Instruction Decode stage control signals
     signal RegInSel_ID   : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegStore_ID   : std_logic;
     signal RegASel_ID    : integer range REGARRAY_RegCnt - 1 downto 0;
@@ -314,7 +343,7 @@ architecture structural of SH2_CPU is
     signal RegAxStore_ID : std_logic;
     signal RegA1Sel_ID   : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegOpSel_ID  : integer range REGOPSEL_CNT - 1 downto 0;
-
+    -- Execute stage control signals
     signal RegInSel_EX   : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegStore_EX   : std_logic;
     signal RegASel_EX    : integer range REGARRAY_RegCnt - 1 downto 0;
@@ -324,15 +353,17 @@ architecture structural of SH2_CPU is
     signal RegAxStore_EX : std_logic;
     signal RegA1Sel_EX   : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegOpSel_EX  : integer range REGOPSEL_CNT - 1 downto 0;
-
-
+    -- Output signals
     signal RegA       : std_logic_vector(LONG_SIZE - 1 downto 0);
     signal RegB       : std_logic_vector(LONG_SIZE - 1 downto 0);
     signal RegA1      : std_logic_vector(LONG_SIZE - 1 downto 0);
+    -- Input signals
     signal RegIn      : std_logic_vector(LONG_SIZE - 1 downto 0);
     signal RegAxIn    : std_logic_vector(LONG_SIZE - 1 downto 0);
 
+
     -- PAU Signals
+    -- Instruction Decode stage control signals
     signal PAU_SrcSel_ID      : integer range PAU_SRC_CNT - 1 downto 0;
     signal PAU_OffsetSel_ID   : integer range PAU_OFFSET_CNT - 1 downto 0;
     signal PAU_UpdatePC_ID    : std_logic;
@@ -340,7 +371,7 @@ architecture structural of SH2_CPU is
     signal PAU_IncDecSel_ID   : std_logic;
     signal PAU_IncDecBit_ID   : integer range 2 downto 0;
     signal PAU_PrePostSel_ID  : std_logic;
-
+    -- Execute stage control signals
     signal PAU_SrcSel_EX      : integer range PAU_SRC_CNT - 1 downto 0;
     signal PAU_OffsetSel_EX   : integer range PAU_OFFSET_CNT - 1 downto 0;
     signal PAU_UpdatePC_EX    : std_logic;
@@ -348,15 +379,17 @@ architecture structural of SH2_CPU is
     signal PAU_IncDecSel_EX   : std_logic;
     signal PAU_IncDecBit_EX   : integer range 2 downto 0;
     signal PAU_PrePostSel_EX  : std_logic;
-
-    signal PC_ID              : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-    signal PC_EX           : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
-
+    -- Output signals
     signal PAU_ProgAddr    : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal PAU_OffsetReg   : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal PR              : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+    -- PC pipeline signals
+    signal PC_ID              : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+    signal PC_EX           : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
+
 
     -- DAU Signals
+    -- Instruction Decode stage control signals
     signal DAU_SrcSel_ID      : integer range DAU_SRC_CNT - 1 downto 0;
     signal DAU_OffsetSel_ID   : integer range DAU_OFFSET_CNT - 1 downto 0;
     signal DAU_Offset4_ID     : std_logic_vector(3 downto 0);
@@ -366,7 +399,7 @@ architecture structural of SH2_CPU is
     signal DAU_PrePostSel_ID  : std_logic;
     signal DAU_GBRSel_ID      : integer range GBRSEL_CNT-1 downto 0;
     signal DAU_VBRSel_ID      : integer range VBRSEL_CNT-1 downto 0;
-
+    -- Execute stage control signals
     signal DAU_SrcSel_EX      : integer range DAU_SRC_CNT - 1 downto 0;
     signal DAU_OffsetSel_EX   : integer range DAU_OFFSET_CNT - 1 downto 0;
     signal DAU_Offset4_EX     : std_logic_vector(3 downto 0);
@@ -376,7 +409,7 @@ architecture structural of SH2_CPU is
     signal DAU_PrePostSel_EX  : std_logic;
     signal DAU_GBRSel_EX      : integer range GBRSEL_CNT-1 downto 0;
     signal DAU_VBRSel_EX      : integer range VBRSEL_CNT-1 downto 0;
-
+    -- Memory Access stage control signals
     signal DAU_SrcSel_MA      : integer range DAU_SRC_CNT - 1 downto 0;
     signal DAU_OffsetSel_MA   : integer range DAU_OFFSET_CNT - 1 downto 0;
     signal DAU_Offset4_MA     : std_logic_vector(3 downto 0);
@@ -386,7 +419,7 @@ architecture structural of SH2_CPU is
     signal DAU_PrePostSel_MA  : std_logic;
     signal DAU_GBRSel_MA      : integer range GBRSEL_CNT-1 downto 0;
     signal DAU_VBRSel_MA      : integer range VBRSEL_CNT-1 downto 0;
-    
+    -- Input signals    
     signal DAU_Rn          : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_R0          : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_PC          : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -395,152 +428,204 @@ architecture structural of SH2_CPU is
     signal DAU_PrePostSel  : std_logic;
     signal DAU_GBRSel      : integer range GBRSEL_CNT-1 downto 0;
     signal DAU_VBRSel      : integer range VBRSEL_CNT-1 downto 0;
+    -- Output signals
     signal DAU_AddrIDOut   : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal DAU_DataAddr    : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal GBR             : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
     signal VBR             : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
 
+
     -- DTU Signals
+    -- Instruction Decode stage control signals
     signal DBInMode_ID         : integer range DBINMODE_CNT-1 downto 0;
     signal DataAccessMode_ID   : integer range DATAACCESSMODE_CNT-1 downto 0;
     signal WR_ID : std_logic;
     signal RD_ID : std_logic;
-    
+    -- Execute stage control signals    
     signal DBInMode_EX         : integer range DBINMODE_CNT-1 downto 0;
     signal DataAccessMode_EX   : integer range DATAACCESSMODE_CNT-1 downto 0;
     signal WR_EX : std_logic;
     signal RD_EX : std_logic;
-
+    -- Memory Access stage control signals
     signal DBInMode_MA         : integer range DBINMODE_CNT-1 downto 0;
     signal DataAccessMode_MA   : integer range DATAACCESSMODE_CNT-1 downto 0;
     signal WR_MA : std_logic;
     signal RD_MA : std_logic;
-
+    -- Output signals
     signal DBIn             : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
     signal DBOut            : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
+
     -- CU Signals
+    -- Instruction Register (IR) pipeline
     signal IR_ID : std_logic_vector(INST_SIZE-1 downto 0);
     signal IR_EX : std_logic_vector(11 downto 0);
     signal IR_MA : std_logic_vector(11 downto 0);   -- reduce to 12 bits since we don't need the rest
+    -- Update IR signal pipeline
     signal UpdateIR_ID : std_logic;
     signal UpdateIR_EX : std_logic;
     signal UpdateIR_MA : std_logic;
+    -- Update SR pipeline
     signal UpdateSR_ID : std_logic;
     signal UpdateSR_EX : std_logic;
-
+    -- Output signals
     signal SR : std_logic_vector(REG_SIZE-1 downto 0);
     signal TempReg : std_logic_vector(31 downto 0);
     signal TempReg2 : std_logic_vector(31 downto 0);
 
-    -- Top-level mux signals
-    signal DBOutSel_ID : integer range DBOUTSEL_CNT-1 downto 0;    -- select data bus output
-    signal ABOutSel_ID : integer range 1 downto 0;                 -- select address bus output
 
-    signal DBOutSel_EX : integer range DBOUTSEL_CNT-1 downto 0;    -- select data bus output
-    signal ABOutSel_EX : integer range 1 downto 0;                 -- select address bus output
+-- Top-level pipeline signals
 
-    signal DBOutSel_MA : integer range DBOUTSEL_CNT-1 downto 0;    -- select data bus output
-    signal ABOutSel_MA : integer range 1 downto 0;                 -- select address bus output
-
-    signal PAU_SrcSel_Mux   : integer range PAU_SRC_CNT - 1 downto 0;
-    signal PAU_OffsetSel_Mux   : integer range PAU_OFFSET_CNT - 1 downto 0;
-
-  -- The following four signals are used to delay the insruction fetch information in
-  -- case of memory access.
-
-    -- Muxes for differentiating between normal and memory access stalled inputs
-    signal DBMux : std_logic_vector(DATA_BUS_SIZE-1 downto 0);   -- select DB input PL or not PL
-    signal ABMux : std_logic_vector(1 downto 0);                 -- select AB input PL or not PL
-
+    -- SH2 CPU bus pipelines
     -- Data bus pipeline
     signal DB_PL : std_logic_vector(DATA_BUS_SIZE-1 downto 0);   -- for stalling databus in memory access stage
-
     -- Address bus pipeline
     signal AB_PL : std_logic_vector(1 downto 0); -- additonal information for instruction register stalling 
 
-    -- Signal that indicates if the a conditional branch should be taken
+    -- SH2 CPU bus control signal pipelines
+    -- Databus out selection pipeline
+    signal DBOutSel_ID : integer range DBOUTSEL_CNT-1 downto 0;
+    signal DBOutSel_EX : integer range DBOUTSEL_CNT-1 downto 0;
+    signal DBOutSel_MA : integer range DBOUTSEL_CNT-1 downto 0;
+    -- Address bus out selection pipeline
+    signal ABOutSel_ID : integer range 1 downto 0;
+    signal ABOutSel_EX : integer range 1 downto 0;
+    signal ABOutSel_MA : integer range 1 downto 0;
+
+-- Top-level pipeline state signals and muxes
+--      The following signals are used to describe, redirect, or delay the flow of the pipeline
+--          This could be caused by special cases such as:
+--              - Memory access
+--              - Branching
+--              - Pipeline flush
+--              - Pipeline stall
+
+    -- Signal that indicates if a branch should be taken
     signal TakeBranch : std_logic;
-
+    -- Signal that indicates if the pipeline should be flushed
     signal FlushPL : std_logic;
-
+    -- Signal that indicates if the control unit should enforce a normal state in the next ID cycle
     signal ForceNormalStateNext : std_logic;
+    -- Branch type selection signal pipeline (This is a CU control signal so it might belong up in another section)
     signal BranchSel_ID : integer range BRANCHSEL_CNT-1 downto 0;
     signal BranchSel_EX : integer range BRANCHSEL_CNT-1 downto 0;
 
+    -- Control Unit (CU) input pipeline control signals 
+    --      The control unit handles the transition between the Insruction Fetch (IF) stage
+    --      and the Instruction Decode (ID) stage. 
+    --      
+    --      In case of a memory access, the required IF -> ID information stored within
+    --      DB and AB will experience a pipeline stall determined by the output of the 
+    --      following mux outputs:
+    signal DBMux : std_logic_vector(DATA_BUS_SIZE-1 downto 0);   -- DB or DB_PL in case of stall
+    signal ABMux : std_logic_vector(1 downto 0);     -- AB(1 downto 0) or AB_PL in case of stall
+
+
+    -- Program Memory Access Unit (PAU) input pipeline control signals 
+    --      The PAU requires different pipelined input sources in the case of branches.
+    --      These will be determined by the output of the following mux outputs:
+    signal PAU_SrcSel_Mux   : integer range PAU_SRC_CNT - 1 downto 0;
+    signal PAU_OffsetSel_Mux   : integer range PAU_OFFSET_CNT - 1 downto 0;
+
+
 begin
 
-    -- Update the CU data bus input either normal or memory access stalled input
-    DBMux <= DB_PL when UpdateIR_MA = '0' else DB;
-    ABMux <= AB_PL when UpdateIR_MA = '0' else AB(1 downto 0);
-
+    -- This process contains the combinational logic for the pipeline state signals and muxes.
+    -- Relevant control signals:
+    --      - TakeBranch signal
+    --      - FlushPL signal
+    --      - ForceNormalStateNext signal
+    -- Relevant muxes:
+    --      - PAU primary source selection mux
+    --      - PAU offset selection mux
+    --      - CU input signal mux (delay toggle mux)
     Branching  : process (all)
     begin
 
-        -- Check if branch
-        if BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BFS then
+    -- Determine branch pipeline state signal
+        if BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BFS then            
+            -- Detect false conditional branches
+            -- NOTE: SR is the clocked status register in CU, not the ALU output
             TakeBranch <= '1' when SR(0) = '0' else '0';
         elsif BranchSel_EX = BranchSel_BT or BranchSel_EX = BranchSel_BTS then
+            -- Detect true conditional branches
             TakeBranch <= '1' when SR(0) = '1' else '0';
         elsif BranchSel_EX /= BranchSel_None then
+            -- Detect unconditional branches
             TakeBranch <= '1';
         else
+            -- No branch taken
             TakeBranch <= '0';
         end if;
 
-        -- Flush pipeline if not using the slot instruction
+    -- Determine flush pipeline state signal if taking successful conditional branch
         if TakeBranch = '1' and (BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BT) then
             FlushPL <= '1';
         else
             FlushPL <= '0';
         end if;
 
-        -- PAU source should be pipelined PC if a conditional branch is taken
-        
-        if (BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BT or BranchSel_EX = BranchSel_BFS or
-            BranchSel_EX = BranchSel_BTS) then
-            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX when TakeBranch = '1' else PAU_OffsetWord;
-        elsif (BranchSel_EX = BranchSel_Always) then
-            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX;
-        elsif (BranchSel_EX = BranchSel_JUMP) then
-            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX;
-            -- PAU_OffsetSel_Mux <= PAU_OffsetReg;
-        else
-            PAU_OffsetSel_Mux <= PAU_OffsetWord;
-        end if;
+    -- Determine force normal state next signal
+        -- If a branch is taken, the next state should be forced to normal
+        ForceNormalStateNext <= '1' when TakeBranch = '1' else '0';
 
+
+
+    -- CU input signal muxes
+        --  The input to the CU should always be directly from DB or AB unless it is 
+        --  being stalled. The update IR signal correlates to a memory access operation,
+        --  so when such an instruction reaches the MA stage, a pipeline stall should activate.
+        DBMux <= DB_PL when UpdateIR_MA = '0' else DB;
+        ABMux <= AB_PL when UpdateIR_MA = '0' else AB(1 downto 0);
+
+    -- PAU input signal muxes
+        --  If a branch was taken, the input to the PAU source and PAU offset
+        --  should correspond to the specific branch type.
         if TakeBranch = '1' then
             if (BranchSel_EX = BranchSel_Always) then
+                -- Pipelined PC value is used for unconditional branches
                 PAU_SrcSel_Mux <= PAU_AddrPC_EX;
             elsif (BranchSel_EX = BranchSel_RET) then
+                -- Procedure Register (PR) is used for return instructions
                 PAU_SrcSel_Mux <= PAU_AddrPR;
             elsif (BranchSel_EX = BranchSel_JUMP) then
+                -- Zero address is used for jump instructions
                 PAU_SrcSel_Mux <= PAU_AddrZero;
             else
+                -- All other branches use the pipelined PC value
                 PAU_SrcSel_Mux <= PAU_AddrPC_EX;
             end if;
         else
+            -- If no branch is taken, the PAU the normal pipelined control signal
             PAU_SrcSel_Mux <= PAU_SrcSel_EX;
         end if;
 
-        
-        -- PAU_SrcSel_Mux <= PAU_SrcSel_ID when FlushPL = '0' else PAU_AddrPC_EX;
-        -- -- if (BranchSel_EX = BranchSel_RTS)
-        -- if TakeBranch = '1' then
-        --     PAU_SrcSel_Mux <= PAU_AddrPC_EX;
-        -- else
-        --     PAU_SrcSel_Mux <= PAU_SrcSel_EX;
-        -- end if;
-        -- PAU_SrcSel_Mux <= PAU_SrcSel_EX when TakeBranch = '0' else PAU_AddrPC_EX;
-
-        ForceNormalStateNext <= '1' when TakeBranch = '1' else '0';
+        -- In most cases, PAU_OffsetSel_EX will contain a branch's offset selection.
+        -- PAU_OffsetSel_EX is computed in the clocked pipeline procedure.
+        if (BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BT or 
+                BranchSel_EX = BranchSel_BFS or BranchSel_EX = BranchSel_BTS) then
+            -- Offset selection should be overridden if conditional branch is taken
+            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX when TakeBranch = '1' else PAU_OffsetWord;
+        elsif (BranchSel_EX = BranchSel_Always) then
+            -- Override offset selection for unconditional branches
+            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX;
+        elsif (BranchSel_EX = BranchSel_JUMP) then
+            -- Override offset selection for jump instructions
+            PAU_OffsetSel_Mux <= PAU_OffsetSel_EX;
+            -- PAU_OffsetSel_Mux <= PAU_OffsetReg;
+        else
+            -- If no branch is taken, simply increment PC
+            PAU_OffsetSel_Mux <= PAU_OffsetWord;
+        end if;
         
     end process;
 
-    -- Instruction decoding to Execution Pipeline
+
+    -- This process contains the behavior of clocked DFFs in the pipeline
+    -- and determines when each stage's registers are updated or stalled.
     Pipeline : process (clock)
     begin
-        -- Pass on instructions from one stage to the stage
+        -- Pass on signals from one stage to another stage on rising clock
         if rising_edge(clock) then
 
         
@@ -564,31 +649,103 @@ begin
 
                 ABOutSel_EX <= ABOutSel_Prog;
                 ABOutSel_MA <= ABOutSel_Prog;
-        
+
+
+
+    -- Define pipeline operation
+    --  There are five stages in the pipeline:
+    --      1. Instruction Fetch (IF)
+    --      2. Instruction Decode (ID)
+    --      3. Execution (EX)
+    --      4. Memory Access (MA)
+    --      5. Write Back (WB)
+    --
+    --  1) The IF stage's operation is defined by the PAU's PC output determined
+    --  by the PAU control signals and the address selection signal (ABOutSel) being
+    --  set to ABOutSel_Prog. All of these signals are pipelined. This results in the
+    --  data bus input fetching an instruction from program memory. To delay the IF
+    --  stage, the databus and address bus signals that go into the CU are pipelined
+    --  to delay the signals from reaching the next stage (ID).
+    --      IF Stage Flow Diagram:
+    --  PMAU Control Signals -> PC + ABOutSel_Prog -> DB + AB (may be PL delayed) -> CU (IR)
+    --
+    --  2) The ID stage's operation is mostly handled by the CU's internal IR
+    --  register decode logic. Most ID stage signals are output by the CU with the
+    --  notible exception of PC which is output from the PAU when a previous instruction's
+    --  PAU control signals reach the EX stage.
+    --      ID Stage Flow Diagram:
+    --  CU (IR) -> ALUcmds_ID, REGcmds_ID, PAUcmds_ID, MAUcmds_ID, DTUcmds_ID, CUcmds_ID
+    --  PAUcmds_EX -> PAU -> PC_ID
+    -- 
+    --  3) The EX stage's operation is the clocking of ID signals through a DFF.
+    --  At this stage of the pipeline, signals finally reach the ALU, REG, PAU, and DAU
+    --  components and the corresponding instruction's signals can finally be processed.
+    --  However, certain signals might need to be delayed and pipeline stalled by
+    --  preventing the transition of the ID stage signals to the EX stage.
+    --      EX Stage Flow Diagram:
+    --  DEF: X = ALUcmds or REGcmds or PAUcmds or DAUcmds or DTUcmds or CUcmds or PCcmds
+    --  X_ID (possible delay)-> X_EX
+    --
+    --  4) The MA stage's operation is the clocking of the EX stage signals through a DFF.
+    --  This stage of the pipeline is not guaranteed for all instructions, and is only
+    --  valid for instructions that access memory. This is conveniently denoted by the 
+    --  instuction's UpdateIR signal. If UpdateIR is '1', then the instruction does not
+    --  access memory. If it is '0', then memory should be accessed and the DTU control
+    --  signals can transition from the EX stage to the MA stage where they reach DTU.
+    --  While the MA stage is active, it will be in contention with the IF stage since
+    --  both require memory access. As a result, a valid MA stage will result in all
+    --  other pipeline stages execpt for WB to be stalled one clock cycle.
+    --      MA Stage Flow Diagram: 
+    --  DEF: X = ALUcmds or REGcmds or PAUcmds or DAUcmds or DTUcmds or CUcmds or PCcmds
+    --  IF signals (delay if MA valid aka UpdateIR is '0')-> CU (IR)
+    --  TODO: Decide if you need to document a NOP insertion delay
+    --  CU (IR) (delay if MA valid aka UpdateIR is '0') -> X_ID
+    --  X_ID (delay if MA valid aka UpdateIR is '0') -> X_EX
+    --  DTUcmds_EX -> DTUcmds_MA -> DTU -> External memory unit access
+    --  
+    --  5) The WB stage's operation is the directing of stalled EX stage signals into 
+    --  a component that requires the data accessed in the MA stage. This is only
+    --  applicable to instructions that access memory and use the read memory in their
+    --  operation. This write back might be in contention with another instruction's
+    --  EX stage if both are accessing the same register. In this case, the WB stage
+    --  takes priority and the EX stage instruction is stalled, along with the all
+    --  other stages.
+    --  TODO: Decide if you need to document an indicator signal
+    --      WB Stage Flow Diagram:
+    --  DEF: X = ALUcmds or REGcmds or PAUcmds or DAUcmds or DTUcmds or CUcmds or PCcmds
+    --  IF signals (delay if WB contention)-> CU (IR)
+    --  TODO: Decide if you need to document a NOP insertion delay
+    --  CU (IR) (delay if WB contention) -> X_ID
+    --  X_ID (delay if WB contention) -> X_EX
+    --  DTUcmds_EX -> DTUcmds_MA -> DTU -> External memory unit access
+    --  X_EX + Memory databus (If valid WB signal) -> Component with target register
             else
-                    
 
-        -- Define pipeline operation
-        --  There are four stages in the pipeline:
-        --      1. Instruction Fetch (IF)
-        --      2. Instruction Decode (ID)
-        --      3. Execution (EX)
-        --      4. Memory Access (MA)
-        --
-        --  The Instruction Fetch stage is defined by the PAU control signals that
-        --  arrive at the PAU to output a certain value of PC
-        --  TODO: Update how this works once we get the branching working
-        --
-        --  The Instruction Decode stage is mostly handled by the CU's internal IR
-        --  register and decode logic. Most ID stage signals are output by the CU.
-        -- 
-        --  The Execution stage signals go through one round of
-        --  
-        --  The Memory Access stage 
+            -- Pipeline signals that ALWAYS transition to next stage on rising clock
 
-
-                -- Always move update IR signal from execution to memory access stage
+                -- Always move UpdateIR (!memory access indicator)
+                -- TODO: possible bug
+                UpdateIR_EX <= UpdateIR_ID when FlushPL = '0' else '1';
                 UpdateIR_MA <= UpdateIR_EX;
+
+                -- SH2 CPU bus control signal pipelines
+                DBOutSel_EX <= DBOutSel_ID;
+                ABOutSel_EX <= ABOutSel_ID;
+
+                DBOutSel_MA <= DBOutSel_EX;
+                ABOutSel_MA <= ABOutSel_EX;
+
+                -- DTU control signals
+                DBInMode_EX <= DBInMode_ID;
+                DataAccessMode_EX <= DataAccessMode_ID;
+                WR_EX <= WR_ID when FlushPL = '0' else '1';
+                RD_EX <= RD_ID when FlushPL = '0' else '0';
+                
+                DBInMode_MA <= DBInMode_EX;
+                DataAccessMode_MA <= DataAccessMode_EX;
+                WR_MA <= WR_EX;
+                RD_MA <= RD_EX;
+
 
                 -- If the execution stage instruction updates IR, then activate pipeline
                 --      Signals passed from Instruction Decode to Execution stage:
@@ -656,10 +813,6 @@ begin
                 --          - Instruction register data
                 --          - DAU control signals
 
-                -- TODO: possible bug
-                UpdateIR_EX <= UpdateIR_ID when FlushPL = '0' else '1';
-
-
 
                 if UpdateIR_MA = '1' then
 
@@ -699,25 +852,10 @@ begin
 
                 end if;
 
-                DBOutSel_EX <= DBOutSel_ID;
-                ABOutSel_EX <= ABOutSel_ID;
+            end if; -- reset = '0'
 
-                DBOutSel_MA <= DBOutSel_EX;
-                ABOutSel_MA <= ABOutSel_EX;
+        end if; -- rising_edge(clock);
 
-                -- DTU control signals
-                DBInMode_EX <= DBInMode_ID;
-                DataAccessMode_EX <= DataAccessMode_ID;
-                WR_EX <= WR_ID when FlushPL = '0' else '1';
-                RD_EX <= RD_ID when FlushPL = '0' else '0';
-                
-                DBInMode_MA <= DBInMode_EX;
-                DataAccessMode_MA <= DataAccessMode_EX;
-                WR_MA <= WR_EX;
-                RD_MA <= RD_EX;
-            end if;
-
-        end if;
     end process;
 
     -- Select address to be either address output by PAU or DAU
@@ -734,9 +872,14 @@ begin
              PC_ID      when DBOutSel_MA = DBOutSel_PC     else
              (others => 'X');
 
+
+-- SH2 CPU Component Implementation and Port Mapping
+--  Create the all SH2 CPU component and map the ports to the internal signals.
+
     -- Create 32-bit ALU for standard logic and arithmetic operations
     SH2_ALU : ALU
         port map (
+            -- Operand signals (inputs)
             RegA        => RegA,
             RegB        => RegB,
             TempReg     => TempReg2,
@@ -744,13 +887,15 @@ begin
             DBIn        => DBIn,
             SR0         => SR(0),
 
+            -- Control signals (inputs)
             ALUOpASel   => ALUOpASel_EX,
             ALUOpBSel   => ALUOpBSel_EX,
             FCmd        => ALU_FCmd_EX,
             CinCmd      => ALU_CinCmd_EX,
             SCmd        => ALU_SCmd_EX,
             ALUCmd      => ALU_ALUCmd_EX,
-            
+
+            -- Output signals            
             TbitOp      => ALU_TbitOp_EX,
             Result      => ALU_Result,
             Tbit        => ALU_Tbit
@@ -759,13 +904,18 @@ begin
     -- Create 32-bit register array with general purpose registers R0-R15
     SH2_RegArray : RegArray
         port map (
+            -- RegIn input
             Result          => ALU_Result,
+
+            -- RegAxIn inputs
             DataAddrID      => DAU_AddrIDOut,
             DataAddr        => DAU_DataAddr,
             SR              => SR,
             GBR             => GBR,
             VBR             => VBR,
             PR              => PR,
+
+            -- Control signals (inputs)
             RegInSel        => RegInSel_EX,
             RegStore        => RegStore_EX,
             RegASel         => RegASel_EX,
@@ -776,6 +926,8 @@ begin
             RegA1Sel        => RegA1Sel_EX,
             RegOpSel        => RegOpSel_EX,
             CLK             => clock,
+
+            -- Register outputs
             RegA            => RegA,
             RegB            => RegB,
             RegA1           => RegA1
@@ -784,20 +936,29 @@ begin
     -- Create Program Memory Access Unit (PAU)
     SH2_PAU : PAU
         port map (
+            -- Control signals
             SrcSel     => PAU_SrcSel_Mux,
             OffsetSel  => PAU_OffsetSel_Mux,
+            UpdatePC   => PAU_UpdatePC_EX,
+            PRSel      => PAU_PRSel_EX,
+            IncDecSel  => PAU_IncDecSel_EX,
+            IncDecBit  => PAU_IncDecBit_EX,
+            PrePostSel => PAU_PrePostSel_EX,
+
+            -- Source inputs
+            DB         => DB,
+            PC_EX      => PC_EX,
+
+            -- Offset inputs
             Offset8    => IR_EX(7 downto 0),
             Offset12   => IR_EX(11 downto 0),
             OffsetReg  => RegA1,
             TempReg    => TempReg,
-            IncDecSel  => PAU_IncDecSel_EX,
-            IncDecBit  => PAU_IncDecBit_EX,
-            PrePostSel => PAU_PrePostSel_EX,
-            DB         => DB,
-            PC_EX      => PC_EX,
-            UpdatePC   => PAU_UpdatePC_EX,
-            PRSel      => PAU_PRSel_EX,
+
+            -- System signal
             CLK        => clock,
+
+            -- Output signals
             ProgAddr   => PAU_ProgAddr,
             PC         => PC_ID,
             PR         => PR
@@ -806,14 +967,21 @@ begin
     -- Create Data Memory Access Unit (DAU)
     SH2_DAU : DAU
         port map (
-            SrcSel     => DAU_SrcSel_EX,
-            OffsetSel  => DAU_OffsetSel_EX,
+            -- Source inputs
+            PC         => PC_ID,
+            Rn         => RegA1,
+
+            -- Offset inputs
             Offset4    => IR_EX(3 downto 0),
             Offset8    => IR_EX(7 downto 0),
-            Rn         => RegA1,
             R0         => RegA,
-            PC         => PC_ID,
+
+            -- Data inputs
             DB         => DB,
+
+            -- Control signals
+            SrcSel     => DAU_SrcSel_EX,
+            OffsetSel  => DAU_OffsetSel_EX,
             IncDecSel  => DAU_IncDecSel_EX,
             IncDecBit  => DAU_IncDecBit_EX,
             PrePostSel => DAU_PrePostSel_EX,
@@ -821,6 +989,8 @@ begin
             VBRSel     => DAU_VBRSel_EX,
             CLK        => clock,
             RST        => Reset,
+
+            -- Output signals
             AddrIDOut  => DAU_AddrIDOut,
             DataAddr   => DAU_DataAddr,
             GBR        => GBR,
@@ -830,13 +1000,18 @@ begin
     -- Create Data Transfer Unit (DTU) to interface with memory
     SH2_DTU : DTU
         port map (
+            -- Data input
             DBOut           => DBOut,
+
+            -- Control inputs
             AB              => AB(1 downto 0),
             RD              => RD_MA,
             WR              => WR_MA,
             DataAccessMode  => DataAccessMode_MA,
             DBInMode        => DBInMode_MA,
             CLK             => clock,
+
+            -- Control outputs
             DBIn            => DBIn,
             WE0             => WE0,
             WE1             => WE1,
@@ -846,6 +1021,8 @@ begin
             RE1             => RE1,
             RE2             => RE2,
             RE3             => RE3,
+
+            -- In/Out data bus
             DB              => DB
         );
 

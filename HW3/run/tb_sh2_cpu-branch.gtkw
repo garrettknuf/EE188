@@ -1,21 +1,21 @@
 [*]
-[*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Sun Jun 01 22:59:18 2025
+[*] GTKWave Analyzer v3.3.123 (w)1999-2025 BSI
+[*] Mon Jun  2 03:18:07 2025
 [*]
-[dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-branch.vcd"
-[dumpfile_mtime] "Sun Jun 01 22:56:26 2025"
-[dumpfile_size] 532494
-[savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-branch.gtkw"
+[dumpfile] "/home/gore/Projects/EE188/HW3/run/tb_sh2_cpu-branch.vcd"
+[dumpfile_mtime] "Mon Jun  2 03:17:50 2025"
+[dumpfile_size] 496592
+[savefile] "/home/gore/Projects/EE188/HW3/run/tb_sh2_cpu-branch.gtkw"
 [timestart] 1284000000
-[size] 1620 1009
-[pos] 1677 -522
+[size] 1446 987
+[pos] 2172 23
 *-25.000000 1364500000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
-[sst_width] 197
-[signals_width] 198
+[sst_width] 290
+[signals_width] 302
 [sst_expanded] 1
-[sst_vpaned_height] 297
+[sst_vpaned_height] 279
 @28
 tb_sh2_cpu.reset
 tb_sh2_cpu.clock

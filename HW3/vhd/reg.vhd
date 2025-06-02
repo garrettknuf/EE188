@@ -125,7 +125,7 @@ use work.RegArrayConstants.all;
 entity RegArray is
 
     port (
-        -- RegIn inputs
+        -- RegIn input
         Result      : in   std_logic_vector(LONG_SIZE - 1 downto 0);    -- ALU Result
 
         -- RegAxIn inputs
