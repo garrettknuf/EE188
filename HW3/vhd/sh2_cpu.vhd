@@ -571,11 +571,12 @@ begin
 
 
 
-    -- CU input signal muxes
-        --  The input to the CU should always be directly from DB or AB unless it is 
-        --  being stalled. The update IR signal correlates to a memory access operation,
-        --  so when such an instruction reaches the MA stage, a pipeline stall should activate.
-        DBMux <= DB_PL when UpdateIR_MA = '0' else DB;
+    -- CU/IF input signal muxes
+        --  The input to the CU should always be directly from DB and AB unless it is 
+        --  being stalled. UpdateIR = '0' signifies a memory access operation,
+        --  so when such a signal reaches the MA stage, an IF pipeline stall is occuring
+        --  and the CU should receive the pipeline delayed signal.
+        DBMux <= DB_PL when UpdateIR_MA = '0' else DB;  -- (PL signals stored when UpdateIR_EX = '0')
         ABMux <= AB_PL when UpdateIR_MA = '0' else AB(1 downto 0);
 
     -- PAU input signal muxes
@@ -722,38 +723,68 @@ begin
             else
 
             -- Pipeline signals that ALWAYS transition to next stage on rising clock
+            -- TODO: Comments here are inaccurate, must fix
 
-                -- Always move UpdateIR (!memory access indicator)
+                -- UpdateIR (!memory access indicator)
+                -- Indicate no mem access in EX stage if pipeline is flushed
                 -- TODO: possible bug
                 UpdateIR_EX <= UpdateIR_ID when FlushPL = '0' else '1';
                 UpdateIR_MA <= UpdateIR_EX;
 
-                -- SH2 CPU bus output control signals (ID -> MA)
+                -- SH2 CPU bus output control signals (ID -> EX -> MA)
                 DBOutSel_EX <= DBOutSel_ID; -- select databus output
                 DBOutSel_MA <= DBOutSel_EX; -- (ALUresult, PC, SR, PR, GBR, VBR)
 
                 ABOutSel_EX <= ABOutSel_ID; -- select addressbus output
                 ABOutSel_MA <= ABOutSel_EX; -- (PAU or DAU)
 
-                -- DTU control signals
+                -- DTU control signals (ID -> EX -> MA)
                 DBInMode_EX <= DBInMode_ID;
-                DataAccessMode_EX <= DataAccessMode_ID;
-                WR_EX <= WR_ID when FlushPL = '0' else '1';
-                RD_EX <= RD_ID when FlushPL = '0' else '0';
-                
                 DBInMode_MA <= DBInMode_EX;
+                DataAccessMode_EX <= DataAccessMode_ID;
                 DataAccessMode_MA <= DataAccessMode_EX;
-                WR_MA <= WR_EX;
+                -- EX stage DTU RD/WR control signals are set to read in case of flush
+                RD_EX <= RD_ID when FlushPL = '0' else '0';                
                 RD_MA <= RD_EX;
+                WR_EX <= WR_ID when FlushPL = '0' else '1';
+                WR_MA <= WR_EX;
+                
 
+            --
+            --    Memory Access Instuction in Execution Stage
+            --
+            --  cycle |   1  |   2  |   3  ->   4  |   5  |
+            --  ins_1 |  IF  |  ID  |  EX  ->  MA  |  WB  | 
+            --  ins_2 |         IF  |  ID  ->  --  |  EX  |
+            --  ins_3 |                IF  ->  --  |  ID  |
+            --  ins_4 |                        --  |  IF  |
+            --
+            --
+            --  If a memory access instruction has reached the
+            --  EX stage, indicated by UpdatesIR_EX = '0', then
+            --  the EX, ID, and IF stages should be stalled 
+            --  upon the next clock and specific preparations
+            --  should occur. If UpdatesIR_EX = '1' instead, 
+            --  then the pipeline should proceed as normal
+            --  with the IF, ID, and EX stages all getting their
+            --  values updated.
+            --
+            --  In the event of a flush, the pipeline should retain its values.
+            --
+            --      Signals passed from Instruction Decode to Execution stage:
+            --          - ALU control signals
+            --          - RegArray control signals
+            --          - DAU control signals
+            --          - **Update status register signal
+            --          - **Instruction register data
+            --      Missing signals:
+            --          - PAU control signals
+            --          - Pipelined PC signal
+            --          - **Branch type selection control signal
+            --
+            --  ** means lone signals
 
-                -- If the execution stage instruction updates IR, then activate pipeline
-                --      Signals passed from Instruction Decode to Execution stage:
-                --          - ALU control signals
-                --          - RegArray control signals
-                --          - DAU control signals
-                --          - Update status register signal
-                --          - Instruction register data
+                -- No memory access instruction in Execution Stage
                 if UpdateIR_EX = '1' then
                     -- ALU control signals
                     ALUOpASel_EX <= ALUOpASel_ID;
@@ -792,49 +823,124 @@ begin
                     -- Instruction register data
                     IR_EX <= IR_ID(11 downto 0);
 
+
+                -- Memory access instruction detected in EX Stage
                 else 
-                    -- Save the data bus input to pipeline register in case of memory access
+
+                    -- Stall IF stage by updating the PAU control signals this keeps PC
+                    -- at its current value in the next cycle?? NOT IMPLEMENTED
+
+                    -- Prepare to stall ID stage by saving the current IF control signals 
+                    -- (data and address bus) to their pipeline registers so that they
+                    -- are reused in the next cycle.
                     DB_PL <= DB when UpdateIR_EX = '0';
                     AB_PL <= AB(1 downto 0) when UpdateIR_EX = '0';
+                    -- PROBABLY CAN GET RID OF THIS
+
+                    -- Stall EX stage by not clocking in the current ID stage signals
                     
                 end if;
 
-                -- If the memory access stage instruction updates IR, then activate pipeline
-                --      Signals passed from Instruction Decode to Execution stage:
-                --          - Update IR signal
-                --          - PAU control signals
-                --      
-                --      Signals passed from Instruction Decode to special intermediate stage:
-                --          - Pipelined PC signal
-                --      Signals passed from special intermediate to Execution stage:
-                --          - Pipelined PC signal
-                --
-                --      Signals passed from Execution to Memory Access stage:
-                --          - Instruction register data
-                --          - DAU control signals
 
+            --
+            --    Memory Access Instuction in Memory Access Stage
+            --
+            --  If a memory access instruction has reached the
+            --  MA stage, indicated by UpdatesIR_MA = '0',  then the
+            --  EX, ID, and IF stages are in the process of being
+            --  stalled. The pipeline should then prepare for one
+            --  of three possible cases determined by the WriteBack 
+            --  and WB_EX_Contention signals:
+            --
+            --  1) WriteBack = '0', WB_EX_Contention = '0'
+            --  cycle |   1  |   2  |   3  |   4  |    5  |
+            --  ins_1 |  IF  |  ID  |  EX  |  MA          | 
+            --  ins_2 |         IF  |  ID  |  --  ->  EX  |
+            --  ins_3 |                IF  |  --  ->  ID  |
+            --  ins_4 |                       --  ->  IF  |
+            --
+            --  In this case, the pipeline should prepare to
+            --  return to normal operation by pushing the IF,
+            --  ID, and EX stages down the pipeline.
+            --
+            --  2) WriteBack = '1', WB_EX_Contention = '0'
+            --  cycle |   1  |   2  |   3  |   4  ->   5  |
+            --  ins_1 |  IF  |  ID  |  EX  |  MA  ->  WB  | 
+            --  ins_2 |         IF  |  ID  |  --  ->  EX  |
+            --  ins_3 |                IF  |  --  ->  ID  |
+            --  ins_4 |                       --  ->  IF  |
+            --
+            --  In this case, the pipeline should prepare to
+            --  return to normal operation by pushing the IF,
+            --  ID, and EX stages down the pipeline while
+            --  also routing the WB signals to their intended
+            --  destination.
+            --
+            --  3) WriteBack = '1', WB_EX_Contention = '1'
+            --  cycle |   1  |   2  |   3  |   4  ->   5  |   6  |
+            --  ins_1 |  IF  |  ID  |  EX  |  MA  ->  WB  |      |
+            --  ins_2 |         IF  |  ID  |  --  ->  --  |  EX  |
+            --  ins_3 |                IF  |  --  ->  --  |  ID  |
+            --  ins_4 |                       --  ->  --  |  IF  |
+            --
+            --  In this case, the pipeline should continue to
+            --  stall the EX, ID, and IF stages while also
+            --  routing the WB signals to their intended
+            --  destination.
+            --
+            --  If instead there is no detected memory access 
+            --  instruction in the MA stage (UpdatesIR_MA = '1'),
+            --  then the pipeline should operate as normal and
+            --  propagate all stages.
+            --  
+            --  No memory access instruction in MA Stage (UpdatesIR_MA = '1')
+            --  cycle |   1  |   2  |   3  |   4  |   5   |
+            --  ins_1 |  IF  |  ID  |  EX  |
+            --  ins_2 |         IF  |  ID  |  EX  |
+            --  ins_3 |                IF  |  ID  ->  EX  |
+            --  ins_4 |                       IF  ->  ID  |
+            --
+            --  For some reason PAU control signals, the branch
+            --  type selection control signal, and the pipelined
+            --  PC signal pipelines from the ID stage to the EX
+            --  stage are controlled here. Additionally, the IR
+            --  bit information signal and the DAU control signals
+            --  should be pipelined from the EX stage to the MA stage.
+            --              
+            --  
+            --  In the event of a flush, TODO: Figure this out later.
+            --
+            --      Signals passed from Instruction Decode to Execution stage:
+            --          - PAU control signals
+            --          - Pipelined PC signal
+            --          - **Branch type selection control signal
+            --
+            --      Signals passed from Execution to Memory Access stage:
+            --          - Instruction register data
+            --          - DAU control signals
+            --
+            --  ** means lone signals
 
+                -- No memory access instruction in MA Stage
                 if UpdateIR_MA = '1' then
 
-                                    -- Update IR signal
+                    -- Branch type selection control signal
                     BranchSel_EX <= BranchSel_ID when FlushPL = '0' else BranchSel_None;
 
-                    PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
-                    PAU_OffsetSel_EX <= PAU_OffsetSel_ID when TakeBranch = '0' else PAU_OffsetWord;    
-                   -- Pipelined PC signal
-                    PC_EX <= PC_ID when FlushPL = '0' else AB;
-
-                                    -- PAU source select should be pipelined PC if a conditional branch is taken
-
                     -- PAU control signals
-
                     PAU_UpdatePC_EX <= PAU_UpdatePC_ID;
                     PAU_PRSel_EX <= PAU_PRSel_ID when FlushPL = '0' else PRSel_None;
                     PAU_IncDecSel_EX <= PAU_IncDecSel_ID;
                     PAU_IncDecBit_EX <= PAU_IncDecBit_ID;
                     PAU_PrePostSel_EX <= PAU_PrePostSel_ID;
-                    
- 
+                    -- PAU input sources change when branch is taken                   
+                    PAU_SrcSel_EX <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
+                    PAU_OffsetSel_EX <= PAU_OffsetSel_ID when TakeBranch = '0' else PAU_OffsetWord;    
+
+                   -- Pipelined PC signal
+                    PC_EX <= PC_ID when FlushPL = '0' else AB;
+
+
 
                     -- Instruction register data
                     IR_MA <= IR_EX(11 downto 0);
