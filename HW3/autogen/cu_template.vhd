@@ -19,6 +19,7 @@
 --     24 April 2025    Garrett Knuf    Add FSM.
 --     12 May 2025      Garrett Knuf    Fix bugs in decoding.
 --     15 May 2025      Garrett Knuf    Optimize logic.
+--     2  Jun 2025      Garrett Knuf    Add controls for pipelining.
 --
 ----------------------------------------------------------------------------
 
@@ -106,15 +107,16 @@ package CUConstants is
     constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;  -- Set to register
     constant SRSel_Tmp2 : integer range SRSEL_CNT-1 downto 0 := 3;  -- Set to temporary reg 2
 
-    constant BRANCHSEL_CNT  : integer := 8;
-    constant BranchSel_None : integer := 0;
-    constant BranchSel_BF   : integer := 1;
-    constant BranchSel_BFS  : integer := 2;
-    constant BranchSel_BT   : integer := 3;
-    constant BranchSel_BTS  : integer := 4;
-    constant BranchSel_Always : integer := 5;
-    constant BranchSel_JUMP : integer := 6;
-    constant BranchSel_RET  : integer := 7;
+    -- BranchSel - types of branch to take (if any)
+    constant BRANCHSEL_CNT      : integer := 8;
+    constant BranchSel_None     : integer := 0; -- no branch
+    constant BranchSel_BF       : integer := 1; -- branch if false (no slot)
+    constant BranchSel_BFS      : integer := 2; -- branch if false (with slot)
+    constant BranchSel_BT       : integer := 3; -- branch if true (no slot)
+    constant BranchSel_BTS      : integer := 4; -- branch if true (with slot)
+    constant BranchSel_Direct   : integer := 5; -- direct branch
+    constant BranchSel_Indirect : integer := 6; -- indirect branch
+    constant BranchSel_RET      : integer := 7; -- return from procedure
 
     constant unused : integer := 0;
 
@@ -165,8 +167,11 @@ entity CU is
         TempReg2 : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);            -- secondary temp register
         
         -- CU Output Signals
-        UpdateIR  : out   std_logic;    -- update instruction register (used to delay pipeline during data access)
-        UpdateSR  : out   std_logic;
+        UpdateIR    : out   std_logic;  -- update instruction register (ID stage)
+        UpdateIR_EX : in std_logic;     -- pipelined signal to update IR (used to detect memory access)
+        UpdateSR    : out   std_logic;  -- update status register (ID stage)
+        UpdateSR_EX : in std_logic;     -- pipelined signal to update SR (used to determine conditional branching)
+        
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
@@ -215,10 +220,9 @@ entity CU is
         DataAccessMode : out integer range 2 downto 0;          -- align bytes, words, long
 
         -- Pipeline control signals
-        UpdateIR_EX : in std_logic;    -- pipelined signal to update IR
-        UpdateSR_EX : in std_logic;    -- pipelined control signal to update SR or not
-        ForceNormalStateNext : in std_logic;
-        BranchSel : out integer range BRANCHSEL_CNT-1 downto 0
+        TakeBranch      : in std_logic;    -- used to override the next state to normal when flushing pipeline
+        UseWB           : out std_logic;   -- used to determine when the write back state is used
+        BranchSel       : out integer range BRANCHSEL_CNT-1 downto 0  -- used to select type of branch (if any)
     );
 
 
@@ -326,7 +330,7 @@ begin
                 TempReg2 <= TempReg2MuxOut when UpdateTempReg2 = '1' else TempReg2;
 
                 -- Set state of FSM
-                CurrentState <= NextState when ForceNormalStateNext = '0' else Normal;
+                CurrentState <= NextState when TakeBranch = '0' else Normal;
 
             else
                 -- Reset to idle instruction (rising edge after reset)

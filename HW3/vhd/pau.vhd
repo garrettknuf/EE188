@@ -20,6 +20,7 @@
 --  Revision History:
 --     16 Apr 2025  Garrett Knuf    Initial Revision.
 --      9 May 2025  Garrett Knuf    Add procedure register.
+--      2 Jun 2025  Garrett Knuf    Add PC_EX signal for pipelining.
 --
 ----------------------------------------------------------------------------
 
@@ -40,7 +41,7 @@ package PAUConstants is
     constant PAU_AddrPC     : integer := 1;     -- PC
     constant PAU_AddrPR     : integer := 2;     -- PR
     constant PAU_AddrDB     : integer := 3;     -- DB
-    constant PAU_AddrPC_EX  : integer := 4;     -- pipelined PC (delayed)
+    constant PAU_AddrPC_EX  : integer := 4;     -- pipelined PC (delayed by 1 clock)
 
     -- Offset source mux select
     constant PAU_OffsetZero : integer := 0;     -- zero
@@ -110,7 +111,7 @@ entity PAU is
         IncDecBit   : in    integer range 2 downto 0;                       -- select bit to inc/dec
         PrePostSel  : in    std_logic;                                      -- select decrement by 4
         DB          : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- data bus
-        PC_EX       : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- pipelined PC (delayed by two clocks)
+        PC_EX       : in    std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- pipelined PC (delayed by 1 clock)
         CLK         : in    std_logic;                                      -- clock
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
         PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := x"FFFFFFFE";   -- program counter

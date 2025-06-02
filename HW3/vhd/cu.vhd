@@ -19,6 +19,7 @@
 --     24 April 2025    Garrett Knuf    Add FSM.
 --     12 May 2025      Garrett Knuf    Fix bugs in decoding.
 --     15 May 2025      Garrett Knuf    Optimize logic.
+--     2  Jun 2025      Garrett Knuf    Add controls for pipelining.
 --
 ----------------------------------------------------------------------------
 
@@ -106,15 +107,16 @@ package CUConstants is
     constant SRSel_Reg  : integer range SRSEL_CNT-1 downto 0 := 2;  -- Set to register
     constant SRSel_Tmp2 : integer range SRSEL_CNT-1 downto 0 := 3;  -- Set to temporary reg 2
 
-    constant BRANCHSEL_CNT  : integer := 8;
-    constant BranchSel_None : integer := 0;
-    constant BranchSel_BF   : integer := 1;
-    constant BranchSel_BFS  : integer := 2;
-    constant BranchSel_BT   : integer := 3;
-    constant BranchSel_BTS  : integer := 4;
-    constant BranchSel_Always : integer := 5;
-    constant BranchSel_JUMP : integer := 6;
-    constant BranchSel_RET  : integer := 7;
+    -- BranchSel - types of branch to take (if any)
+    constant BRANCHSEL_CNT      : integer := 8;
+    constant BranchSel_None     : integer := 0; -- no branch
+    constant BranchSel_BF       : integer := 1; -- branch if false (no slot)
+    constant BranchSel_BFS      : integer := 2; -- branch if false (with slot)
+    constant BranchSel_BT       : integer := 3; -- branch if true (no slot)
+    constant BranchSel_BTS      : integer := 4; -- branch if true (with slot)
+    constant BranchSel_Direct   : integer := 5; -- direct branch
+    constant BranchSel_Indirect : integer := 6; -- indirect branch
+    constant BranchSel_RET      : integer := 7; -- return from procedure
 
     constant unused : integer := 0;
 
@@ -165,8 +167,11 @@ entity CU is
         TempReg2 : out std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);            -- secondary temp register
         
         -- CU Output Signals
-        UpdateIR  : out   std_logic;    -- update instruction register (used to delay pipeline during data access)
-        UpdateSR  : out   std_logic;
+        UpdateIR    : out   std_logic;  -- update instruction register (ID stage)
+        UpdateIR_EX : in std_logic;     -- pipelined signal to update IR (used to detect memory access)
+        UpdateSR    : out   std_logic;  -- update status register (ID stage)
+        UpdateSR_EX : in std_logic;     -- pipelined signal to update SR (used to determine conditional branching)
+        
 
         -- ALU Control Signals
         ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
@@ -215,10 +220,9 @@ entity CU is
         DataAccessMode : out integer range 2 downto 0;          -- align bytes, words, long
 
         -- Pipeline control signals
-        UpdateIR_EX : in std_logic;    -- pipelined signal to update IR
-        UpdateSR_EX : in std_logic;    -- pipelined control signal to update SR or not
-        ForceNormalStateNext : in std_logic;
-        BranchSel : out integer range BRANCHSEL_CNT-1 downto 0
+        TakeBranch      : in std_logic;    -- used to override the next state to normal when flushing pipeline
+        UseWB           : out std_logic;   -- used to determine when the write back state is used
+        BranchSel       : out integer range BRANCHSEL_CNT-1 downto 0  -- used to select type of branch (if any)
     );
 
 
@@ -326,7 +330,7 @@ begin
                 TempReg2 <= TempReg2MuxOut when UpdateTempReg2 = '1' else TempReg2;
 
                 -- Set state of FSM
-                CurrentState <= NextState when ForceNormalStateNext = '0' else Normal;
+                CurrentState <= NextState when TakeBranch = '0' else Normal;
 
             else
                 -- Reset to idle instruction (rising edge after reset)
@@ -420,6 +424,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVW_At_Disp_PC_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -455,6 +460,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_PC_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -490,6 +496,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOV_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -522,6 +529,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -559,6 +567,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -596,6 +605,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -633,6 +643,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVB_At_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -668,6 +679,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVW_At_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -703,6 +715,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVL_At_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -738,6 +751,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -778,6 +792,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -818,6 +833,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -858,6 +874,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVB_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -896,6 +913,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVW_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -934,6 +952,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVL_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -972,6 +991,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1009,6 +1029,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1046,6 +1067,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1083,6 +1105,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVB_At_Disp_Rm_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1118,6 +1141,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVW_At_Disp_Rm_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1153,6 +1177,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1188,6 +1213,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVB_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1225,6 +1251,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVW_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1262,6 +1289,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVL_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1299,6 +1327,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVB_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1334,6 +1363,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVW_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1369,6 +1399,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVL_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1404,6 +1435,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1441,6 +1473,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1478,6 +1511,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1515,6 +1549,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVB_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1550,6 +1585,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVW_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1585,6 +1621,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1620,6 +1657,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpMOVA) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1659,6 +1697,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpMOVT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Tbit;
@@ -1693,6 +1732,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSwapB) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1726,6 +1766,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSwapW) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1759,6 +1800,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpXTRCT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1792,6 +1834,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpADD_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1824,6 +1867,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpADD_Imm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Signed;
@@ -1856,6 +1900,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpADDC) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1889,6 +1934,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpADDV) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1922,6 +1968,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_EQ_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Signed;
@@ -1955,6 +2002,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_EQ_RmRn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1988,6 +2036,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_HS) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2021,6 +2070,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_GE) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2054,6 +2104,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_HI) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2087,6 +2138,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_GT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2120,6 +2172,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_PL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2153,6 +2206,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_PZ) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2186,6 +2240,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpCMP_STR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2217,6 +2272,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpDT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2250,6 +2306,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpEXTS_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2281,6 +2338,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpEXTS_W) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2312,6 +2370,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpEXTU_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2343,6 +2402,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpEXTU_W) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2374,6 +2434,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpNEG) then
 			ALUOpASel <= ALUOpASel_Zero;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2406,6 +2467,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpNEGC) then
 			ALUOpASel <= ALUOpASel_Zero;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2439,6 +2501,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSUB) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2471,6 +2534,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSUBC) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2504,6 +2568,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSUBV) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2537,6 +2602,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpAND_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2569,6 +2635,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpAND_Imm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2601,6 +2668,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpAND_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2640,6 +2708,7 @@ begin
 			UpdateTempReg2 <= '1';
 			TempReg2Sel <= TempReg2Sel_Result;
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpNOT) then
 			ALUOpBSel <= ALUOpBSel_RegB;
 			FCmd <= FCmd_NOTB;
@@ -2671,6 +2740,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpOR_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2703,6 +2773,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpOR_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2735,6 +2806,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpOR_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2774,6 +2846,7 @@ begin
 			UpdateTempReg2 <= '1';
 			TempReg2Sel <= TempReg2Sel_Result;
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpTAS_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_TASMask;
@@ -2814,6 +2887,7 @@ begin
 			UpdateTempReg2 <= '1';
 			TempReg2Sel <= TempReg2Sel_Result;
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpTST_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2847,6 +2921,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpTST_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2880,6 +2955,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpTST_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2920,6 +2996,7 @@ begin
 			UpdateTempReg2 <= '1';
 			TempReg2Sel <= TempReg2Sel_Result;
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpXOR_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2952,6 +3029,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpXOR_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2984,6 +3062,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpXOR_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3023,6 +3102,7 @@ begin
 			UpdateTempReg2 <= '1';
 			TempReg2Sel <= TempReg2Sel_Result;
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpROTL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3056,6 +3136,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpROTR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3089,6 +3170,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpROTCL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3122,6 +3204,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpROTCR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3155,6 +3238,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHAL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3188,6 +3272,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHAR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3221,6 +3306,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHLL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3254,6 +3340,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHLR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3287,6 +3374,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHLL2) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3319,6 +3407,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHLR2) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3351,6 +3440,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHLL8) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3383,6 +3473,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHLR8) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3415,6 +3506,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHLL16) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3447,6 +3539,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSHLR16) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3479,6 +3572,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpBF) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3505,6 +3599,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_BF;
+			UseWB <= '0';
 		elsif std_match(IR, OpBFS) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3532,6 +3627,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_BFS;
+			UseWB <= '0';
 		elsif std_match(IR, OpBT) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3558,6 +3654,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_BT;
+			UseWB <= '0';
 		elsif std_match(IR, OpBTS) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3585,6 +3682,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_BTS;
+			UseWB <= '0';
 		elsif std_match(IR, OpBRA) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3611,7 +3709,8 @@ begin
 			TempRegSel <= TempRegSel_Offset12;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
-			BranchSel <= BranchSel_Always;
+			BranchSel <= BranchSel_Direct;
+			UseWB <= '0';
 		elsif std_match(IR, OpBRAF) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3639,7 +3738,8 @@ begin
 			TempRegSel <= TempRegSel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
-			BranchSel <= BranchSel_Always;
+			BranchSel <= BranchSel_Direct;
+			UseWB <= '0';
 		elsif std_match(IR, OpBSR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3666,7 +3766,8 @@ begin
 			TempRegSel <= TempRegSel_Offset12;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
-			BranchSel <= BranchSel_Always;
+			BranchSel <= BranchSel_Direct;
+			UseWB <= '0';
 		elsif std_match(IR, OpBSRF) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3694,7 +3795,8 @@ begin
 			TempRegSel <= TempRegSel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
-			BranchSel <= BranchSel_Always;
+			BranchSel <= BranchSel_Direct;
+			UseWB <= '0';
 		elsif std_match(IR, OpJMP) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrZero;
@@ -3723,7 +3825,8 @@ begin
 			TempRegSel <= TempRegSel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
-			BranchSel <= BranchSel_JUMP;
+			BranchSel <= BranchSel_Indirect;
+			UseWB <= '0';
 		elsif std_match(IR, OpJSR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrZero;
@@ -3752,7 +3855,8 @@ begin
 			TempRegSel <= TempRegSel_RegB;
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
-			BranchSel <= BranchSel_JUMP;
+			BranchSel <= BranchSel_Indirect;
+			UseWB <= '0';
 		elsif std_match(IR, OpRTS) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPR;
@@ -3780,6 +3884,7 @@ begin
 			SRSel <= SRSel_Tbit;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_RET;
+			UseWB <= '0';
 		elsif std_match(IR, OpCLRT) then
 			FCmd <= FCmd_ONE;
 			ALUCmd <= ALUCmd_FBLOCK;
@@ -3815,6 +3920,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_SR) then
 			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3849,6 +3955,7 @@ begin
 			SRSel <= SRSel_Reg;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_GBR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3883,6 +3990,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_VBR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3917,6 +4025,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_SR) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -3957,6 +4066,7 @@ begin
 			SRSel <= SRSel_DB;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_GBR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3994,6 +4104,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_VBR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4031,6 +4142,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpLDS_Rm_To_PR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4063,6 +4175,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpLDSL_At_Rm_Inc_To_PR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4100,6 +4213,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '1';
 		elsif std_match(IR, OpSLEEP) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4132,6 +4246,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpNOP) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4164,6 +4279,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpRTE) then
 			UpdateSR <= '0';
 			PAU_UpdatePC <= '0';
@@ -4199,6 +4315,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= 0;
+			UseWB <= '0';
 		elsif std_match(IR, OpSETT) then
 			FCmd <= FCmd_ZERO;
 			ALUCmd <= ALUCmd_FBLOCK;
@@ -4234,6 +4351,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSTC_SR_To_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4266,6 +4384,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSTC_GBR_To_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4298,6 +4417,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSTC_VBR_To_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4330,6 +4450,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSTCL_SR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4367,6 +4488,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSTCL_GBR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4404,6 +4526,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSTCL_VBR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4441,6 +4564,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSTS_PR_To_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4473,6 +4597,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpSTSL_PR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4510,6 +4635,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= BranchSel_None;
+			UseWB <= '0';
 		elsif std_match(IR, OpTRAPA) then
 			UpdateSR <= '0';
 			PAU_UpdatePC <= '0';
@@ -4545,6 +4671,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= 0;
+			UseWB <= '0';
 		elsif std_match(IR, OpBoot) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrDB;
@@ -4580,6 +4707,7 @@ begin
 			SRSel <= 0;
 			UpdateTempReg2 <= '0';
 			BranchSel <= 0;
+			UseWB <= '0';
 		end if;
 
 		-- State Decoding Autogen

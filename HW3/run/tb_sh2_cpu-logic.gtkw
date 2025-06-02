@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Mon May 19 00:44:13 2025
+[*] Mon Jun 02 00:01:27 2025
 [*]
-[dumpfile] "C:\Users\garre\Desktop\EE 188\HW2\run\tb_sh2_cpu-logic.vcd"
-[dumpfile_mtime] "Mon May 19 00:40:04 2025"
-[dumpfile_size] 573405
-[savefile] "C:\Users\garre\Desktop\EE 188\HW2\run\tb_sh2_cpu-logic.gtkw"
-[timestart] 1667110000
+[dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-logic.vcd"
+[dumpfile_mtime] "Mon Jun 02 00:00:59 2025"
+[dumpfile_size] 125801
+[savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-logic.gtkw"
+[timestart] 0
 [size] 1620 1009
-[pos] -9 -9
-*-24.000000 1707200000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-25.000000 35500000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
 [sst_width] 197
@@ -18,6 +18,8 @@
 [sst_vpaned_height] 297
 @28
 tb_sh2_cpu.clock
+@29
+tb_sh2_cpu.reset
 @22
 tb_sh2_cpu.ab[31:0]
 tb_sh2_cpu.db[31:0]
@@ -25,7 +27,6 @@ tb_sh2_cpu.db[31:0]
 tb_sh2_cpu.re[3:0]
 tb_sh2_cpu.we[3:0]
 @22
-tb_sh2_cpu.uut.ir[15:0]
 tb_sh2_cpu.uut.alu_result[31:0]
 @420
 tb_sh2_cpu.uut.sh2_cu.currentstate
@@ -89,10 +90,8 @@ tb_sh2_cpu.uut.sh2_cu.tempreg2[31:0]
 tb_sh2_cpu.uut.sh2_dau.gbr[31:0]
 @28
 tb_sh2_cpu.uut.sh2_alu.tbit
-tb_sh2_cpu.uut.sh2_cu.rmw
 @22
 tb_sh2_cpu.uut.sh2_alu.opa[31:0]
-@23
 tb_sh2_cpu.uut.sh2_alu.opb[31:0]
 [pattern_trace] 1
 [pattern_trace] 0
