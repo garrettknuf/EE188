@@ -350,6 +350,17 @@ architecture structural of SH2_CPU is
     signal RegA1Sel_EX   : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegOpSel_EX   : integer range REGOPSEL_CNT - 1 downto 0;
 
+    -- RegArray MA Stage : RegArray control signal DFFs are stalled during MA
+    --  and do not change value, so the DFFs from the EX state can connect
+    --  directly to the WB state.
+
+    -- RegArray WB Stage (DFFs -> RegArray)
+    signal RegInSel_WB          : integer range REGARRAY_RegCnt - 1 downto 0;
+    signal RegStore_WB          : std_logic;
+    signal RegAxInSel_WB        : integer range REGARRAY_RegCnt - 1 downto 0;
+    signal RegAxInDataSel_WB    : integer range REGAXINDATASEL_CNT - 1 downto 0;
+    signal RegAxStore_WB        : std_logic;
+
     -- Non-pipelined outputs
     signal RegA       : std_logic_vector(LONG_SIZE - 1 downto 0);
     signal RegB       : std_logic_vector(LONG_SIZE - 1 downto 0);
@@ -512,10 +523,15 @@ architecture structural of SH2_CPU is
     signal PAU_SrcSel_Mux       : integer range PAU_SRC_CNT - 1 downto 0;
     signal PAU_OffsetSel_Mux    : integer range PAU_OFFSET_CNT - 1 downto 0;
 
+    -- Create mux to select when registers should be written to
+    signal RegStore_Mux     : std_logic;
+    signal RegAxStore_Mux   : std_logic;
+
     -- Pipeline signal that indicates when write back state should be used
     signal UseWB_ID : std_logic;
     signal UseWB_EX : std_logic;
     signal UseWB_MA : std_logic;
+    signal UseWB_WB : std_logic;
 
     -- Data bus inputs and outputs
     signal DBIn     : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
@@ -552,6 +568,9 @@ begin
     -- Update the CU data bus input either normal or memory access stalled input
     DBMux <= DB_Delayed when UpdateIR_MA = '0' else DB;
     ABMux <= AB_Delayed when UpdateIR_MA = '0' else AB(1 downto 0);
+
+    RegStore_Mux <= RegStore_EX when UseWB_EX = '0' else '0';
+    RegAxStore_Mux <= RegAxStore_EX when UseWB_EX = '0' else '0';
 
     -- Combinational logic to handle branching and control hazards
     Branching  : process (all)
@@ -599,7 +618,7 @@ begin
     StallPL_EX_MA <= UpdateIR_MA;   -- Stall DFFs from EX to MA stage
 
 
-    -- Instruction decoding to Execution Pipeline
+    -- Insert DFFs into pipeline and give default values upon reset or pipeline flush
     Pipeline : process (clock)
     begin
         -- Pass on instructions from one stage to the stage
@@ -698,10 +717,10 @@ begin
                     DAU_VBRSel_EX       <= DAU_VBRSel_ID when FlushPL = '0' else VBRSel_None;
 
                     -- CU signals
-                    UpdateSR_EX     <= UpdateSR_ID when FlushPL = '0' else '0';
+                    UpdateSR_EX <= UpdateSR_ID when FlushPL = '0' else '0';
 
                     -- Top-level signals
-                    IR_EX       <= IR_ID(11 downto 0);
+                    IR_EX   <= IR_ID(11 downto 0);
 
                 end if;
 
@@ -713,19 +732,19 @@ begin
                 -- default values for when pipeline is flushed.
                 
                 -- DTU signals
-                DBInMode_MA <= DBInMode_EX;
-                DataAccessMode_MA <= DataAccessMode_EX;
-                WR_MA <= WR_EX;
-                RD_MA <= RD_EX;
+                DBInMode_MA         <= DBInMode_EX;
+                DataAccessMode_MA   <= DataAccessMode_EX;
+                WR_MA               <= WR_EX;
+                RD_MA               <= RD_EX;
 
                 -- CU signals
                 UpdateIR_MA <= UpdateIR_EX when FlushPL = '0' else '1';
 
                 -- Top-level signals
-                DBOutSel_MA <= DBOutSel_EX;
-                ABOutSel_MA <= ABOutSel_EX;
-                DB_Delayed <= DB;
-                AB_Delayed <= AB(1 downto 0);
+                DBOutSel_MA     <= DBOutSel_EX;
+                ABOutSel_MA     <= ABOutSel_EX;
+                AB_Delayed      <= AB(1 downto 0);
+                UseWB_MA        <= UseWB_EX;
 
                 -- Either update or stall DFFs from EX to MA stage
                 -- Some signals are also given default value when pipeline flushed
@@ -747,10 +766,16 @@ begin
 
                 end if;
 
+                ---------------------------------------------------------------
+                -- MA to WB DFFs
+                ---------------------------------------------------------------
+                UseWB_WB    <= UseWB_MA;
+                DB_Delayed  <= DB;
+
             end if;
 
         end if;
-        
+
     end process;
 
 
@@ -787,12 +812,12 @@ begin
             VBR             => VBR,
             PR              => PR,
             RegInSel        => RegInSel_EX,
-            RegStore        => RegStore_EX,
+            RegStore        => RegStore_MUX,
             RegASel         => RegASel_EX,
             RegBSel         => RegBSel_EX,
             RegAxInSel      => RegAxInSel_EX,
             RegAxInDataSel  => RegAxInDataSel_EX,
-            RegAxStore      => RegAxStore_EX,
+            RegAxStore      => RegAxStore_Mux,
             RegA1Sel        => RegA1Sel_EX,
             RegOpSel        => RegOpSel_EX,
             CLK             => clock,

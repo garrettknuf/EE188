@@ -29,7 +29,7 @@ ASM_FILES=(
     # "../asm_tests/shift.asm"
     # "../asm_tests/data_xfer.asm"
     # "../asm_tests/sys_ctrl.asm"
-    # "../asm_tests/pipeline.asm"
+    "../asm_tests/pipeline.asm"
 )
 
 # Check for --gore to use executable paths for George's epic archlinux(btw) system

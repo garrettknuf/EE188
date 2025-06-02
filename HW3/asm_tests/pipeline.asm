@@ -32,6 +32,8 @@ InitDataSegAddr:
     MOV     #4, R0      ; Load the start of the data segment into R0 (1024)
     SHLL8   R0          ; Multiply 4 by 256 to arrive at 1024 (8 shifts left)
     MOV     R0, R10     ; R10 = 0x00000400 (base of data buffer)
+    MOV     R10, R14    ; R14 = 0x00000400 (address to read from)
+    ADD     #4, R10     ; Calculate address to start writing to R14 = 0x00000404
 
 TestWriting:
     MOV     #15, R0
@@ -45,6 +47,11 @@ TestWriting:
     MOV.L   R2, @R11    ; Write 63 immediately after another write
 
 TestReading:
+    ADD     #8, R10
+    MOV.L   @R14, R4
+    NOP
+    MOV.L   R4, @R10
+    ADD     #2, R4
 
 
 TestBranching:
@@ -52,3 +59,7 @@ TestBranching:
 
 TestEnd:
     SLEEP
+
+.data
+
+Var: .long 1023

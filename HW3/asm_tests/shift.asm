@@ -40,7 +40,12 @@
 ;; InitGBR: Set GBR to start of data buffer (0x400) via R0 shifts
 ;;--------------------------------------------------------------------------
 InitGBR:                  ; calculate starting address of data segment
+    NOP
+    NOP
+    NOP
     MOV     #64, R0
+    MOV.L   R1, @R2
+    MOV.L   @R1, R1
     SHLL    R0
     SHLL    R0
     SHLL    R0
