@@ -171,8 +171,9 @@ entity CU is
         UpdateIR_EX : in std_logic;     -- pipelined signal to update IR (used to detect memory access)
         UpdateSR    : out   std_logic;  -- update status register (ID stage)
         UpdateSR_EX : in std_logic;     -- pipelined signal to update SR (used to determine conditional branching)
+        SRSel       : out integer range SRSEL_CNT-1 downto 0; -- select input to status register
+        SRSel_EX    : in  integer range SRSEL_CNT-1 downto 0; -- select input to status register
         
-
         -- ALU Control Signals
         ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
         ALUOpBSel   : out     integer range ALUOPBSEL_CNT-1 downto 0 := 0;  -- select operand B
@@ -220,10 +221,12 @@ entity CU is
         DataAccessMode : out integer range 2 downto 0;          -- align bytes, words, long
 
         -- Pipeline control signals
-        TakeBranch      : in std_logic;    -- used to override the next state to normal when flushing pipeline
+        StallPL         : out std_logic;    -- used to indicate when a pipeline stall is needed
+        TakeBranch      : in std_logic;     -- used to override the next state to normal when flushing pipeline
         RMW             : out std_logic;    -- high when there is a read-modify-write (RMW) instruction
-        UseWB           : out std_logic;   -- used to determine when the write back state is used
+        UseWB           : out std_logic;    -- used to determine when the write back state is used
         BranchSel       : out integer range BRANCHSEL_CNT-1 downto 0 -- used to select type of branch (if any)
+
     );
 
 
@@ -234,25 +237,21 @@ architecture behavioral of CU is
     -- Finite-state machine (FSM) states
     constant Normal             : integer := 0; -- fetch next instruction while executing current
     constant WaitForFetch       : integer := 1; -- one clock wait to fetch next instruction
-    constant BranchSlot         : integer := 2; -- branch slot to reg+offset
-    constant BranchSlotRet      : integer := 3; -- branch slot when returning from function call
-    constant BranchSlotDirect   : integer := 4; -- branch slot to offset
-    constant BootReadSP         : integer := 5; -- read stack pointer from vec table on boot
-    constant BootWaitForFetch   : integer := 6; -- fetch first instruction to run after boot sequence
-    constant WriteBack          : integer := 7; -- write a value from temp reg back to memory
-    constant TRAPA_PushPC       : integer := 8; -- push PC onto stack
-    constant TRAPA_ReadVector   : integer := 9; -- read vector address
-    constant RTE_PopSR          : integer := 10; -- pop SR from stack
-    constant RTE_Slot           : integer := 11; -- RTE branch slot
-    constant Sleep              : integer := 12; -- idle (no code executing)
-    constant STATE_CNT          : integer := 13; -- total number of states
+    constant RMW_WaitForFetch   : integer := 2; -- wait for next fetch after RMW
+    constant BootReadSP         : integer := 3; -- read stack pointer from vec table on boot
+    constant BootWaitForFetch   : integer := 4; -- fetch first instruction to run after boot sequence
+    constant WriteBack          : integer := 5; -- write a value from temp reg back to memory
+    constant TRAPA_PushPC       : integer := 6; -- push PC onto stack
+    constant TRAPA_ReadVector   : integer := 7; -- read vector address
+    constant RTE_PopSR          : integer := 8; -- pop SR from stack
+    constant RTE_Slot           : integer := 9; -- RTE branch slot
+    constant Sleep              : integer := 10; -- idle (no code executing)
+    constant STATE_CNT          : integer := 11; -- total number of states
 
     signal NextState : integer range STATE_CNT-1 downto 0;      -- state to transition to on next clock
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
 
     -- CU internal control signals
-    signal SRSel : integer range SRSEL_CNT-1 downto 0;                  -- select input to status register
-
     signal RegInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;      -- select register for RegArray input
     signal RegASelCmd : integer range REGARRAY_RegCnt-1 downto 0;       -- select register for RegArray RegA
     signal RegBSelCmd : integer range REGARRAY_RegCnt-1 downto 0;       -- select register for RegArray RegB
@@ -317,10 +316,10 @@ begin
 
                 -- Update status register accordingly
                 if UpdateSR_EX = '1' then
-                    SR <= (31 downto 1 => '0') & Tbit  when SRSel = SRSel_Tbit else
-                          DB                           when SRSel = SRSel_DB   else
-                          RegB                         when SRSel = SRSel_Reg  else
-                          TempReg2                     when SRSel = SRSel_Tmp2 else
+                    SR <= (31 downto 1 => '0') & Tbit  when SRSel_EX = SRSel_Tbit else
+                          DB                           when SRSel_EX = SRSel_DB   else
+                          RegB                         when SRSel_EX = SRSel_Reg  else
+                          TempReg2                     when SRSel_EX = SRSel_Tmp2 else
                           (others => 'X');
                 end if;
 
@@ -427,6 +426,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpMOVW_At_Disp_PC_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -466,6 +466,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_PC_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -505,6 +506,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOV_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -539,6 +541,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -578,6 +581,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -617,6 +621,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -656,6 +661,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_At_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -693,6 +699,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_At_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -730,6 +737,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_At_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -767,6 +775,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -809,6 +818,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -851,6 +861,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_Rm_To_At_Dec_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -893,6 +904,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -933,6 +945,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -973,6 +986,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_At_Rm_Inc_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1013,6 +1027,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1052,6 +1067,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1091,6 +1107,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1130,6 +1147,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_At_Disp_Rm_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1167,6 +1185,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_At_Disp_Rm_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1204,6 +1223,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1241,6 +1261,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1280,6 +1301,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1319,6 +1341,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_Rm_To_At_R0_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1358,6 +1381,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1395,6 +1419,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1432,6 +1457,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_At_R0_Rm_To_Rn) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1469,6 +1495,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1508,6 +1535,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1547,6 +1575,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_R0_To_At_Disp_GBR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1586,6 +1615,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVB_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1623,6 +1653,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVW_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1660,6 +1691,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVL_At_Disp_GBR_To_R0) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1697,6 +1729,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVA) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -1738,6 +1771,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpMOVT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Tbit;
@@ -1774,6 +1808,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSwapB) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1809,6 +1844,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSwapW) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1844,6 +1880,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpXTRCT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1879,6 +1916,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpADD_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1913,6 +1951,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpADD_Imm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Signed;
@@ -1947,6 +1986,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpADDC) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -1982,6 +2022,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpADDV) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2017,6 +2058,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_EQ_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Signed;
@@ -2052,6 +2094,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_EQ_RmRn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2087,6 +2130,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_HS) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2122,6 +2166,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_GE) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2157,6 +2202,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_HI) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2192,6 +2238,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_GT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2227,6 +2274,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_PL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2262,6 +2310,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_PZ) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2297,6 +2346,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCMP_STR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2330,6 +2380,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpDT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2365,6 +2416,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpEXTS_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2398,6 +2450,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpEXTS_W) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2431,6 +2484,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpEXTU_B) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2464,6 +2518,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpEXTU_W) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2497,6 +2552,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpNEG) then
 			ALUOpASel <= ALUOpASel_Zero;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2531,6 +2587,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpNEGC) then
 			ALUOpASel <= ALUOpASel_Zero;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2566,6 +2623,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSUB) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2600,6 +2658,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSUBC) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2635,6 +2694,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSUBV) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2670,6 +2730,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpAND_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2704,6 +2765,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpAND_Imm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2738,6 +2800,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpAND_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2779,6 +2842,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '1';
+			StallPL <= '1';
 		elsif std_match(IR, OpNOT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2813,6 +2877,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpOR_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2847,6 +2912,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpOR_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2881,6 +2947,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpOR_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -2922,6 +2989,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '1';
+			StallPL <= '1';
 		elsif std_match(IR, OpTAS_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_TASMask;
@@ -2964,6 +3032,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '1';
+			StallPL <= '1';
 		elsif std_match(IR, OpTST_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -2999,6 +3068,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpTST_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3034,6 +3104,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpTST_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3076,6 +3147,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '1';
+			StallPL <= '1';
 		elsif std_match(IR, OpXOR_Rm_Rn) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3110,6 +3182,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpXOR_Imm) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3144,6 +3217,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpXOR_Imm_B) then
 			ALUOpASel <= ALUOpASel_DB;
 			ALUOpBSel <= ALUOpBSel_Imm_Unsigned;
@@ -3185,6 +3259,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '1';
+			StallPL <= '1';
 		elsif std_match(IR, OpROTL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3220,6 +3295,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpROTR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3255,6 +3331,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpROTCL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3290,6 +3367,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpROTCR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3325,6 +3403,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHAL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3360,6 +3439,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHAR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3395,6 +3475,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHLL) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3430,6 +3511,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHLR) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3465,6 +3547,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHLL2) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3499,6 +3582,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHLR2) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3533,6 +3617,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHLL8) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3567,6 +3652,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHLR8) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3601,6 +3687,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHLL16) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3635,6 +3722,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSHLR16) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
@@ -3669,6 +3757,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBF) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3697,9 +3786,10 @@ begin
 			BranchSel <= BranchSel_BF;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBFS) then
 			UpdateSR <= '0';
-			PAU_SrcSel <= PAU_AddrPC_EX;
+			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_Offset8;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
@@ -3726,6 +3816,7 @@ begin
 			BranchSel <= BranchSel_BFS;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBT) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -3754,9 +3845,10 @@ begin
 			BranchSel <= BranchSel_BT;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBTS) then
 			UpdateSR <= '0';
-			PAU_SrcSel <= PAU_AddrPC_EX;
+			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_Offset8;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
@@ -3783,6 +3875,7 @@ begin
 			BranchSel <= BranchSel_BTS;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBRA) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3812,6 +3905,7 @@ begin
 			BranchSel <= BranchSel_Direct;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBRAF) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3842,6 +3936,7 @@ begin
 			BranchSel <= BranchSel_Direct;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBSR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3871,6 +3966,7 @@ begin
 			BranchSel <= BranchSel_Direct;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBSRF) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC_EX;
@@ -3901,6 +3997,7 @@ begin
 			BranchSel <= BranchSel_Direct;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpJMP) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrZero;
@@ -3932,6 +4029,7 @@ begin
 			BranchSel <= BranchSel_Indirect;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpJSR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrZero;
@@ -3963,6 +4061,7 @@ begin
 			BranchSel <= BranchSel_Indirect;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpRTS) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPR;
@@ -3992,6 +4091,7 @@ begin
 			BranchSel <= BranchSel_RET;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpCLRT) then
 			FCmd <= FCmd_ONE;
 			ALUCmd <= ALUCmd_FBLOCK;
@@ -4029,6 +4129,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_SR) then
 			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4065,6 +4166,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_GBR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4101,6 +4203,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpLDC_Rm_To_VBR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4137,6 +4240,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_SR) then
 			ALUOpASel <= ALUOpASel_DB;
 			FCmd <= FCmd_A;
@@ -4144,7 +4248,7 @@ begin
 			UpdateSR <= '1';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4179,11 +4283,12 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_GBR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4218,11 +4323,12 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpLDCL_At_Rm_Inc_To_VBR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4257,6 +4363,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpLDS_Rm_To_PR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4291,11 +4398,12 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpLDSL_At_Rm_Inc_To_PR) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_DB;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4330,6 +4438,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '1';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpSLEEP) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4364,6 +4473,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpNOP) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4398,6 +4508,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpRTE) then
 			UpdateSR <= '0';
 			PAU_UpdatePC <= '0';
@@ -4435,6 +4546,7 @@ begin
 			BranchSel <= 0;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSETT) then
 			FCmd <= FCmd_ZERO;
 			ALUCmd <= ALUCmd_FBLOCK;
@@ -4472,6 +4584,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSTC_SR_To_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4506,6 +4619,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSTC_GBR_To_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4540,6 +4654,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSTC_VBR_To_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4574,11 +4689,12 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSTCL_SR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4613,11 +4729,12 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpSTCL_GBR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4652,11 +4769,12 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpSTCL_VBR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4691,6 +4809,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpSTS_PR_To_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -4725,11 +4844,12 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpSTSL_PR_To_At_Dec_Rn) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
 			PAU_OffsetSel <= PAU_OffsetWord;
-			PAU_UpdatePC <= '1';
+			PAU_UpdatePC <= '0';
 			PAU_PRSel <= PRSel_None;
 			PAU_PrePostSel <= MemUnit_POST;
 			PAU_IncDecSel <= '1';
@@ -4764,6 +4884,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpTRAPA) then
 			UpdateSR <= '0';
 			PAU_UpdatePC <= '0';
@@ -4801,6 +4922,7 @@ begin
 			BranchSel <= 0;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		elsif std_match(IR, OpBoot) then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrDB;
@@ -4838,6 +4960,7 @@ begin
 			BranchSel <= 0;
 			UseWB <= '0';
 			RMW <= '0';
+			StallPL <= '0';
 		end if;
 
 		-- State Decoding Autogen
@@ -4883,28 +5006,25 @@ begin
 			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
-		elsif CurrentState = BranchSlot then
-			PAU_SrcSel <= PAU_AddrPC;
-			PAU_OffsetSel <= PAU_TempReg;
+		elsif CurrentState = RMW_WaitForFetch then
+			ALUOpASel <= ALUOpASel_RegA;
+			ALUOpBSel <= ALUOpBSel_RegB;
+			UpdateSR <= '0';
+			PAU_SrcSel <= PAU_AddrPC_EX;
+			PAU_OffsetSel <= PAU_OffsetWord;
 			PAU_UpdatePC <= '1';
 			PAU_PRSel <= PRSel_None;
-			UpdateTempReg <= '0';
-			PAU_IncDecBit <= 1;
-			PAU_PrePostSel <= MemUnit_PRE;
-			PAU_IncDecSel <= MemUnit_DEC;
-		elsif CurrentState = BranchSlotRet then
-			PAU_SrcSel <= PAU_AddrPR;
-			PAU_OffsetSel <= PAU_OffsetLong;
-			PAU_UpdatePC <= '1';
-			PAU_PRSel <= PRSel_None;
-			UpdateTempReg <= '0';
-			PAU_IncDecBit <= 0;
-			PAU_PrePostSel <= MemUnit_POST;
-		elsif CurrentState = BranchSlotDirect then
-			PAU_SrcSel <= PAU_AddrZero;
-			PAU_OffsetSel <= PAU_TempReg;
-			PAU_UpdatePC <= '1';
-			PAU_PRSel <= PRSel_None;
+			DAU_GBRSel <= 0;
+			DAU_VBRSel <= 0;
+			RegStore <= '0';
+			RegAxStore <= '0';
+			RegOpSel <= RegOpSel_None;
+			RD <= '0';
+			WR <= '1';
+			ABOutSel <= ABOutSel_Prog;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= Normal;
+			UpdateIR <= '1';
 			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
@@ -4966,7 +5086,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBOutSel <= DBOutSel_Result;
 			DataAccessMode <= DataAccessMode_Byte;
-			NextState <= WaitForFetch;
+			NextState <= RMW_WaitForFetch;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;

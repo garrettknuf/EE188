@@ -171,8 +171,9 @@ entity CU is
         UpdateIR_EX : in std_logic;     -- pipelined signal to update IR (used to detect memory access)
         UpdateSR    : out   std_logic;  -- update status register (ID stage)
         UpdateSR_EX : in std_logic;     -- pipelined signal to update SR (used to determine conditional branching)
+        SRSel       : out integer range SRSEL_CNT-1 downto 0; -- select input to status register
+        SRSel_EX    : in  integer range SRSEL_CNT-1 downto 0; -- select input to status register
         
-
         -- ALU Control Signals
         ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
         ALUOpBSel   : out     integer range ALUOPBSEL_CNT-1 downto 0 := 0;  -- select operand B
@@ -220,10 +221,12 @@ entity CU is
         DataAccessMode : out integer range 2 downto 0;          -- align bytes, words, long
 
         -- Pipeline control signals
-        TakeBranch      : in std_logic;    -- used to override the next state to normal when flushing pipeline
+        StallPL         : out std_logic;    -- used to indicate when a pipeline stall is needed
+        TakeBranch      : in std_logic;     -- used to override the next state to normal when flushing pipeline
         RMW             : out std_logic;    -- high when there is a read-modify-write (RMW) instruction
-        UseWB           : out std_logic;   -- used to determine when the write back state is used
+        UseWB           : out std_logic;    -- used to determine when the write back state is used
         BranchSel       : out integer range BRANCHSEL_CNT-1 downto 0 -- used to select type of branch (if any)
+
     );
 
 
@@ -234,25 +237,21 @@ architecture behavioral of CU is
     -- Finite-state machine (FSM) states
     constant Normal             : integer := 0; -- fetch next instruction while executing current
     constant WaitForFetch       : integer := 1; -- one clock wait to fetch next instruction
-    constant BranchSlot         : integer := 2; -- branch slot to reg+offset
-    constant BranchSlotRet      : integer := 3; -- branch slot when returning from function call
-    constant BranchSlotDirect   : integer := 4; -- branch slot to offset
-    constant BootReadSP         : integer := 5; -- read stack pointer from vec table on boot
-    constant BootWaitForFetch   : integer := 6; -- fetch first instruction to run after boot sequence
-    constant WriteBack          : integer := 7; -- write a value from temp reg back to memory
-    constant TRAPA_PushPC       : integer := 8; -- push PC onto stack
-    constant TRAPA_ReadVector   : integer := 9; -- read vector address
-    constant RTE_PopSR          : integer := 10; -- pop SR from stack
-    constant RTE_Slot           : integer := 11; -- RTE branch slot
-    constant Sleep              : integer := 12; -- idle (no code executing)
-    constant STATE_CNT          : integer := 13; -- total number of states
+    constant RMW_WaitForFetch   : integer := 2; -- wait for next fetch after RMW
+    constant BootReadSP         : integer := 3; -- read stack pointer from vec table on boot
+    constant BootWaitForFetch   : integer := 4; -- fetch first instruction to run after boot sequence
+    constant WriteBack          : integer := 5; -- write a value from temp reg back to memory
+    constant TRAPA_PushPC       : integer := 6; -- push PC onto stack
+    constant TRAPA_ReadVector   : integer := 7; -- read vector address
+    constant RTE_PopSR          : integer := 8; -- pop SR from stack
+    constant RTE_Slot           : integer := 9; -- RTE branch slot
+    constant Sleep              : integer := 10; -- idle (no code executing)
+    constant STATE_CNT          : integer := 11; -- total number of states
 
     signal NextState : integer range STATE_CNT-1 downto 0;      -- state to transition to on next clock
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
 
     -- CU internal control signals
-    signal SRSel : integer range SRSEL_CNT-1 downto 0;                  -- select input to status register
-
     signal RegInSelCmd : integer range REGARRAY_RegCnt-1 downto 0;      -- select register for RegArray input
     signal RegASelCmd : integer range REGARRAY_RegCnt-1 downto 0;       -- select register for RegArray RegA
     signal RegBSelCmd : integer range REGARRAY_RegCnt-1 downto 0;       -- select register for RegArray RegB
@@ -317,10 +316,10 @@ begin
 
                 -- Update status register accordingly
                 if UpdateSR_EX = '1' then
-                    SR <= (31 downto 1 => '0') & Tbit  when SRSel = SRSel_Tbit else
-                          DB                           when SRSel = SRSel_DB   else
-                          RegB                         when SRSel = SRSel_Reg  else
-                          TempReg2                     when SRSel = SRSel_Tmp2 else
+                    SR <= (31 downto 1 => '0') & Tbit  when SRSel_EX = SRSel_Tbit else
+                          DB                           when SRSel_EX = SRSel_DB   else
+                          RegB                         when SRSel_EX = SRSel_Reg  else
+                          TempReg2                     when SRSel_EX = SRSel_Tmp2 else
                           (others => 'X');
                 end if;
 

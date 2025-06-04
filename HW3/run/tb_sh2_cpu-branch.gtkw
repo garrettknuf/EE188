@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Sun Jun 01 22:59:18 2025
+[*] Wed Jun 04 22:26:20 2025
 [*]
 [dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-branch.vcd"
-[dumpfile_mtime] "Sun Jun 01 22:56:26 2025"
-[dumpfile_size] 532494
+[dumpfile_mtime] "Wed Jun 04 22:14:13 2025"
+[dumpfile_size] 1604159
 [savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-branch.gtkw"
-[timestart] 1284000000
+[timestart] 1066200000
 [size] 1620 1009
-[pos] 1677 -522
-*-25.000000 1364500000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -9 -9
+*-25.000000 1143300000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
 [sst_width] 197
@@ -32,89 +32,6 @@ tb_sh2_cpu.uut.sh2_alu.opa[31:0]
 tb_sh2_cpu.uut.sh2_alu.opb[31:0]
 [color] 2
 tb_sh2_cpu.uut.alu_result[31:0]
-@c00022
-tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-@28
-(0)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(1)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(2)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(3)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(4)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(5)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(6)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(7)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(8)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(9)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(10)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(11)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(12)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(13)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(14)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(15)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(16)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(17)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(18)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(19)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(20)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(21)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(22)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(23)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(24)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(25)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(26)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(27)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(28)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(29)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(30)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-(31)tb_sh2_cpu.uut.sh2_regarray.rega[31:0]
-@1401200
--group_end
-@420
-[color] 5
-tb_sh2_cpu.uut.sh2_regarray.regasel
-[color] 5
-tb_sh2_cpu.uut.sh2_regarray.regb[31:0]
-[color] 5
-tb_sh2_cpu.uut.sh2_regarray.regbsel
-@22
-tb_sh2_cpu.uut.sh2_regarray.regin[31:0]
-@c00420
-tb_sh2_cpu.uut.sh2_regarray.reginsel
-@28
-(0)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(1)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(2)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(3)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(4)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(5)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(6)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(7)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(8)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(9)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(10)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(11)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(12)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(13)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(14)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(15)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(16)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(17)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(18)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(19)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(20)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(21)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(22)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(23)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(24)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(25)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(26)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(27)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(28)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(29)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(30)tb_sh2_cpu.uut.sh2_regarray.reginsel
-(31)tb_sh2_cpu.uut.sh2_regarray.reginsel
-@1401200
--group_end
 @28
 [color] 5
 tb_sh2_cpu.uut.sh2_regarray.regstore
@@ -126,17 +43,9 @@ tb_sh2_cpu.uut.sh2_regarray.regaxin[31:0]
 tb_sh2_cpu.uut.sh2_dau.dataaddr[31:0]
 @420
 tb_sh2_cpu.uut.sh2_dau.srcsel
-@421
 tb_sh2_cpu.uut.sh2_dau.offsetsel
 @22
 tb_sh2_cpu.uut.sh2_dau.offset8[7:0]
-@420
-tb_sh2_cpu.uut.regaxinsel_id
-tb_sh2_cpu.uut.regaxinsel_id
-tb_sh2_cpu.uut.regaxinsel_ex
-@28
-tb_sh2_cpu.uut.sh2_regarray.regaxstore
-@22
 [color] 7
 tb_sh2_cpu.uut.sh2_pau.pc[31:0]
 @28
@@ -288,5 +197,13 @@ tb_sh2_cpu.uut.updateir_ma
 @22
 tb_sh2_cpu.uut.sh2_regarray.dataaddr[31:0]
 tb_sh2_cpu.uut.sh2_regarray.dataaddrid[31:0]
+tb_sh2_cpu.uut.sh2_cu.ir[15:0]
+@28
+tb_sh2_cpu.uut.flushpl
+tb_sh2_cpu.uut.sh2_regarray.regstore
+@22
+tb_sh2_cpu.uut.sh2_regarray.regin[31:0]
+@23
+tb_sh2_cpu.uut.sh2_regarray.dataaddr[31:0]
 [pattern_trace] 1
 [pattern_trace] 0

@@ -100,8 +100,8 @@ ORTest:
 ;;   - Tests byte at @GBR+4 then @GBR+5, checks T flag
 ;;--------------------------------------------------------------------------
 TASTest:
-    STC     GBR, R3
-    ADD     #4, R3
+    MOV     #4, R3      ; Load the start of the data segment into R3 (1024)
+    SHLL8   R3          ; Multiply 4 by 256 to arrive at 1024 (8 shifts left)
     TAS.B   @R3         ; 0x70 -> 0xF0 and T = 0
     BT      TestFail
     ADD     #1, R3

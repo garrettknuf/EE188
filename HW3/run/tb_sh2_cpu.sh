@@ -22,14 +22,14 @@ MEMCOMPARE="../asm_tests/mem_dump/mem_compare.py"
 
 # Include Assembly test files
 ASM_FILES=(
-    # "../asm_tests/fibonacci.asm"
+    "../asm_tests/fibonacci.asm"
     "../asm_tests/branch.asm"
     # "../asm_tests/pipeline.asm"
-    "../asm_tests/data_xfer.asm"
+    # "../asm_tests/data_xfer.asm"
     # "../asm_tests/shift.asm"
     # "../asm_tests/arithmetic.asm"
     # "../asm_tests/logic.asm"
-    "../asm_tests/sys_ctrl.asm"
+    # "../asm_tests/sys_ctrl.asm"
 
 )
 

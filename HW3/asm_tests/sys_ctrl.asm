@@ -116,8 +116,10 @@ TestSR:
     STC     SR,R8       ; R8 = 23
     MOV.L   R8,@R10     ; WRITE 23
     ADD     #4,R10
+    NOP
     LDC.L   @R11+,SR    ; Read 80
     ADD     #4, R10     ; Counteract pre-dec
+    NOP
     STC.L   SR,@-R10    ; WRITE 80
     ADD     #4, R10
 

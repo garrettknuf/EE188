@@ -178,6 +178,7 @@ architecture structural of SH2_CPU is
 
             -- System signal
             CLK         : in    std_logic;                                      -- clock
+            RESET       : in    std_logic;                                      -- reset
 
             -- Output signals
             ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
@@ -241,6 +242,8 @@ architecture structural of SH2_CPU is
             UpdateIR_EX : in std_logic;     -- pipelined signal to update IR (used to detect memory access)
             UpdateSR    : out   std_logic;  -- update status register (ID stage)
             UpdateSR_EX : in std_logic;     -- pipelined signal to update SR (used to determine conditional branching)
+            SRSel       : out integer range SRSEL_CNT-1 downto 0; -- select input to status register
+            SRSel_EX    : in  integer range SRSEL_CNT-1 downto 0; -- select input to status register
             
             -- ALU Control Signals
             ALUOpASel   : out     integer range ALUOPASEL_CNT-1 downto 0 := 0;  -- select operand A
@@ -289,6 +292,7 @@ architecture structural of SH2_CPU is
             DataAccessMode : out integer range 2 downto 0;          -- align bytes, words, long
 
             -- Pipeline control signals
+            StallPL         : out std_logic;    -- used to indicate when a pipeline stall is needed
             TakeBranch      : in std_logic;    -- used to override the next state to normal when flushing pipeline
             RMW             : out std_logic;    -- high when there is a read-modify-write (RMW) instruction
             UseWB           : out std_logic;   -- used to determine when the write back state is used
@@ -366,7 +370,7 @@ architecture structural of SH2_CPU is
     signal RegA1Sel_ID   : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegOpSel_ID   : integer range REGOPSEL_CNT - 1 downto 0;
 
-    -- RegArray EX Stage (DFFs -> RegArray)
+    -- RegArray EX Stage (DFFs -> DFFs/RegArray)
     signal RegInSel_EX   : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegStore_EX   : std_logic;
     signal RegASel_EX    : integer range REGARRAY_RegCnt - 1 downto 0;
@@ -377,9 +381,16 @@ architecture structural of SH2_CPU is
     signal RegA1Sel_EX   : integer range REGARRAY_RegCnt - 1 downto 0;
     signal RegOpSel_EX   : integer range REGOPSEL_CNT - 1 downto 0;
 
-    -- RegArray MA Stage : RegArray control signal DFFs are stalled during MA
-    --  and do not change value, so the DFFs from the EX state can connect
-    --  directly to the WB state.
+    -- RegArray MA Stage (DFFs -> DFFs/RegArray)
+    signal RegInSel_MA   : integer range REGARRAY_RegCnt - 1 downto 0;
+    signal RegStore_MA   : std_logic;
+    signal RegASel_MA    : integer range REGARRAY_RegCnt - 1 downto 0;
+    signal RegBSel_MA    : integer range REGARRAY_RegCnt - 1 downto 0;
+    signal RegAxInSel_MA : integer range REGARRAY_RegCnt - 1 downto 0;
+    signal RegAxInDataSel_MA : integer range REGAXINDATASEL_CNT - 1 downto 0;
+    signal RegAxStore_MA : std_logic;
+    signal RegA1Sel_MA   : integer range REGARRAY_RegCnt - 1 downto 0;
+    signal RegOpSel_MA   : integer range REGOPSEL_CNT - 1 downto 0;
 
     -- RegArray WB Stage (DFFs -> RegArray)
     signal RegInSel_WB          : integer range REGARRAY_RegCnt - 1 downto 0;
@@ -439,7 +450,7 @@ architecture structural of SH2_CPU is
     signal DAU_GBRSel_ID      : integer range GBRSEL_CNT-1 downto 0;
     signal DAU_VBRSel_ID      : integer range VBRSEL_CNT-1 downto 0;
 
-    -- DAU EX Stage (DFFs -> DFFs)
+    -- DAU EX Stage (DFFs -> DFFs/DAU)
     signal DAU_SrcSel_EX      : integer range DAU_SRC_CNT - 1 downto 0;
     signal DAU_OffsetSel_EX   : integer range DAU_OFFSET_CNT - 1 downto 0;
     signal DAU_Offset4_EX     : std_logic_vector(3 downto 0);
@@ -450,7 +461,7 @@ architecture structural of SH2_CPU is
     signal DAU_GBRSel_EX      : integer range GBRSEL_CNT-1 downto 0;
     signal DAU_VBRSel_EX      : integer range VBRSEL_CNT-1 downto 0;
 
-    -- DAU MA Stage (DFFs -> DAU)
+    -- DAU MA Stage (DFFs -> DFFs/DAU)
     signal DAU_SrcSel_MA      : integer range DAU_SRC_CNT - 1 downto 0;
     signal DAU_OffsetSel_MA   : integer range DAU_OFFSET_CNT - 1 downto 0;
     signal DAU_Offset4_MA     : std_logic_vector(3 downto 0);
@@ -460,6 +471,17 @@ architecture structural of SH2_CPU is
     signal DAU_PrePostSel_MA  : std_logic;
     signal DAU_GBRSel_MA      : integer range GBRSEL_CNT-1 downto 0;
     signal DAU_VBRSel_MA      : integer range VBRSEL_CNT-1 downto 0;
+
+    -- DAU WB Stage (DFFs -> DAU)
+    signal DAU_SrcSel_WB      : integer range DAU_SRC_CNT - 1 downto 0;
+    signal DAU_OffsetSel_WB   : integer range DAU_OFFSET_CNT - 1 downto 0;
+    signal DAU_Offset4_WB     : std_logic_vector(3 downto 0);
+    signal DAU_Offset8_WB     : std_logic_vector(7 downto 0);
+    signal DAU_IncDecSel_WB   : std_logic;
+    signal DAU_IncDecBit_WB   : integer range 2 downto 0;
+    signal DAU_PrePostSel_WB  : std_logic;
+    signal DAU_GBRSel_WB      : integer range GBRSEL_CNT-1 downto 0;
+    signal DAU_VBRSel_WB      : integer range VBRSEL_CNT-1 downto 0;
     
     -- Non-pipelined outputs
     signal DAU_Rn          : std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);
@@ -491,11 +513,17 @@ architecture structural of SH2_CPU is
     signal WR_EX                : std_logic;
     signal RD_EX                : std_logic;
 
-    -- DTU MA Stage (DFFs -> DTU)
+    -- DTU MA Stage (DFFs -> DFFs)
     signal DBInMode_MA          : integer range DBINMODE_CNT-1 downto 0;
     signal DataAccessMode_MA    : integer range DATAACCESSMODE_CNT-1 downto 0;
     signal WR_MA                : std_logic;
     signal RD_MA                : std_logic;
+
+    -- DTU MA Stage (DFFs -> DTU)
+    signal DBInMode_WB          : integer range DBINMODE_CNT-1 downto 0;
+    signal DataAccessMode_WB    : integer range DATAACCESSMODE_CNT-1 downto 0;
+    signal WR_WB                : std_logic;
+    signal RD_WB                : std_logic;
 
     ---------------------------------------------------------------------------
     -- CU Signals
@@ -510,15 +538,23 @@ architecture structural of SH2_CPU is
     signal UpdateIR_ID : std_logic;
     signal UpdateIR_EX : std_logic;
     signal UpdateIR_MA : std_logic;
+    signal UpdateIR_WB : std_logic;
 
     -- Pipeline when to update SR (fed back into CU)
     signal UpdateSR_ID : std_logic;
     signal UpdateSR_EX : std_logic;
+    signal UpdateSR_MA : std_logic;
+    signal UpdateSR_WB : std_logic;
+    signal SRSel_ID    : integer range SRSEL_CNT-1 downto 0;
+    signal SRSel_EX    : integer range SRSEL_CNT-1 downto 0;
+    signal SRSel_MA    : integer range SRSEL_CNT-1 downto 0;
+    signal SRSel_WB    : integer range SRSEL_CNT-1 downto 0;
 
     -- Pipeline read-modify-write (RMW) command
     signal RMW_ID : std_logic;
     signal RMW_EX : std_logic;
     signal RMW_MA : std_logic;
+    signal RMW_WB : std_logic;
 
     -- Non-pipelined outputs
     signal SR : std_logic_vector(REG_SIZE-1 downto 0);
@@ -533,11 +569,13 @@ architecture structural of SH2_CPU is
     signal DBOutSel_ID : integer range DBOUTSEL_CNT-1 downto 0;
     signal DBOutSel_EX : integer range DBOUTSEL_CNT-1 downto 0;
     signal DBOutSel_MA : integer range DBOUTSEL_CNT-1 downto 0;
+    signal DBOutSel_WB : integer range DBOUTSEL_CNT-1 downto 0;
 
     -- Pipeline address bus output control signals to determine source of AB
     signal ABOutSel_ID : integer range 1 downto 0;
     signal ABOutSel_EX : integer range 1 downto 0;
     signal ABOutSel_MA : integer range 1 downto 0;
+    signal ABOutSel_WB : integer range 1 downto 0;
 
     -- Create muxes for data forwarding to avoid data bus and address bus contentions
     signal DBMux : std_logic_vector(DATA_BUS_SIZE-1 downto 0); -- select DB or delayed DB
@@ -554,10 +592,14 @@ architecture structural of SH2_CPU is
     -- Create muxes to select source and offset to PAU (needed for branch control hazards)
     signal PAU_SrcSel_Mux       : integer range PAU_SRC_CNT - 1 downto 0;
     signal PAU_OffsetSel_Mux    : integer range PAU_OFFSET_CNT - 1 downto 0;
+    signal PAU_UpdatePC_Mux     : std_logic;
 
     -- Create mux to select when registers should be written to
     signal RegStore_Mux     : std_logic;
     signal RegAxStore_Mux   : std_logic;
+
+    -- Mux to determine which source to use to update instruction register (IR)
+    signal UpdateIR_Mux : std_logic;
 
     -- Pipeline signal that indicates when write back state should be used
     signal UseWB_ID : std_logic;
@@ -572,11 +614,11 @@ architecture structural of SH2_CPU is
     -- Indicate when a branch should be taken
     signal TakeBranch : std_logic;
 
-    -- Stall ID to EX DFFs of pipeline
-    signal StallPL_ID_EX : std_logic;
-
-    -- Stall EX to MA DFFs of pipeline
-    signal StallPL_EX_MA : std_logic;
+    -- Indicate when stages of pipeline should be stalled
+    signal StallPL_ID : std_logic;
+    signal StallPL_EX : std_logic;
+    signal StallPL_MA : std_logic;
+    signal StallPL_WB : std_logic;
 
     -- Indicate when the pipeline should be flushed
     signal FlushPL : std_logic;
@@ -598,13 +640,15 @@ begin
              (others => 'X');
 
     -- Update the CU data bus input either normal or memory access stalled input
-    DBMux <= DB_Delayed when UpdateIR_MA = '0' else DB;
+    DBMux <= DB_Delayed when UpdateIR_MA = '0' and UpdateSR_EX = '0' else DB;
     ABMux <= AB_Delayed when UpdateIR_MA = '0' else AB(1 downto 0);
 
     -- These muxes prevent registers from storing values on multiple clocks
-    RegStore_Mux <= RegStore_EX when UseWB_EX = '0' or ABOutSel_MA = ABOutSel_Data else '0';
-    RegAxStore_Mux <= RegAxStore_EX when (UseWB_EX = '0' or ABOutSel_MA = ABOutSel_Data)
-                      and (WR_EX = '1') else '0';
+    RegStore_Mux <= RegStore_EX when UseWB_WB = '0' else RegStore_WB;
+    RegAxStore_Mux <= RegAxStore_MA when UseWB_WB = '0' else RegAxStore_WB;
+
+
+    UpdateIR_Mux <= UpdateIR_EX;
 
     -- Combinational logic to handle branching and control hazards
     Branching  : process (all)
@@ -621,7 +665,7 @@ begin
             TakeBranch <= '0';  -- Not a branch instruction so don't branch
         end if;
 
-        -- Flush pipeline if not using the branch slot instruction
+        -- Flush pipeline if branching without a slot instruction
         FlushPL <= '1' when TakeBranch = '1' and (BranchSel_EX = BranchSel_BF or BranchSel_EX = BranchSel_BT) else '0';
 
         -- Select PAU source to calculate address to branch to (if branching)
@@ -642,28 +686,10 @@ begin
         -- Mux to select PAU offset to calculate address to branch to if branching
         PAU_OffsetSel_Mux <= PAU_OffsetSel_EX when TakeBranch = '1' and BranchSel_EX /= BranchSel_None else
                              PAU_OffsetWord;
-        
 
-
-
-        -- The UpdateIR signal suffices as an indicator to stall pipeline because it
-        -- means no new instruction should be fetched and decoded, hence, stall.
-
-        -- if (TakeBranch = '1' and ABOutSel_MA = ABOutSel_Data) then
-        --     StallPL_ID_EX <= '1';
-        -- else
-        StallPL_ID_EX <= not UpdateIR_EX;   -- Stall DFFs from ID to EX stage
-        -- end if;
-
-        StallPL_EX_MA <= not UpdateIR_MA;   -- Stall DFFs from EX to MA stage
-        -- StallPL_EX_MA <= '1' when RMW_MA = '1' else not UpdateIR_MA;   -- Stall DFFs from EX to MA stage
+        PAU_UpdatePC_Mux <= PAU_UpdatePC_EX;
 
     end process;
-
-
-
-
-    
 
 
     -- Insert DFFs into pipeline and give default values upon reset or pipeline flush
@@ -702,19 +728,8 @@ begin
 
                 -- Pipelined signals that cannot be stalled. Some are given
                 -- default values for when pipeline is flushed.
-
-                -- PAU signals
-                 
-                if RMW_EX = '0' then
-                    PAU_UpdatePC_EX     <= PAU_UpdatePC_ID;
-                    PAU_PRSel_EX        <= PAU_PRSel_ID when FlushPL = '0' else PRSel_None;
-                    PAU_IncDecSel_EX    <= PAU_IncDecSel_ID;
-                    PAU_IncDecBit_EX    <= PAU_IncDecBit_ID;
-                    PAU_PrePostSel_EX   <= PAU_PrePostSel_ID;
-                    PC_EX               <= PC_ID when FlushPL = '0' else AB;
-                    PAU_SrcSel_EX       <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
-                end if;
-
+                -- Avoid contentions on address bus when there is a memory access
+                -- before/after the branch instruction
                 if (TakeBranch = '1' and ABOutSel_MA = ABOutSel_Data) then
                     BranchSel_EX <= BranchSel_EX;
                     PAU_OffsetSel_EX <= PAU_OffsetSel_ID;
@@ -722,16 +737,24 @@ begin
                     BranchSel_EX <= BranchSel_ID when FlushPL = '0' else BranchSel_None;
                     PAU_OffsetSel_EX    <= PAU_OffsetSel_ID when TakeBranch = '0' else PAU_OffsetWord; 
                 end if;
-                
-                    
-                -- end if;
+
+                                    -- PAU signals
+                    PAU_UpdatePC_EX     <= PAU_UpdatePC_ID;
+                    PAU_PRSel_EX        <= PAU_PRSel_ID when FlushPL = '0' else PRSel_None;
+                    PAU_IncDecSel_EX    <= PAU_IncDecSel_ID;
+                    PAU_IncDecBit_EX    <= PAU_IncDecBit_ID;
+                    PAU_PrePostSel_EX   <= PAU_PrePostSel_ID;
+                    PC_EX               <= PC_ID when FlushPL = '0' else AB;
+                    PAU_SrcSel_EX       <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
+
+  
+                StallPL_EX <= StallPL_ID;
 
                 -- DTU signals
                 DBInMode_EX <= DBInMode_ID;
                 DataAccessMode_EX <= DataAccessMode_ID;
                 WR_EX <= WR_ID when FlushPL = '0' else '1';
                 RD_EX <= RD_ID when FlushPL = '0' else '0';
-
 
                 -- CU signals
                 UpdateIR_EX         <= UpdateIR_ID when FlushPL = '0' else '1';
@@ -742,10 +765,9 @@ begin
                 UseWB_EX            <= UseWB_ID;
                 RMW_EX              <= RMW_ID;
 
-
                 -- Stall some signals when neccessary. Some are given default
                 -- values for when pipeline is flushed.
-                if StallPL_ID_EX = '0' then
+                if StallPL_EX = '0' then
 
                     -- ALU signals
                     ALUOpASel_EX    <= ALUOpASel_ID;
@@ -780,6 +802,7 @@ begin
 
                     -- CU signals
                     UpdateSR_EX <= UpdateSR_ID when FlushPL = '0' else '0';
+                    SRSel_EX    <= SRSel_ID;
 
                     -- Top-level signals
                     IR_EX   <= IR_ID(11 downto 0);
@@ -792,8 +815,26 @@ begin
 
                 -- Pipelined signals that cannot be stalled. Some are given
                 -- default values for when pipeline is flushed.
-                
-                -- DTU signals
+
+                -- Instruction register data
+                IR_MA <= IR_EX(11 downto 0);
+
+                -- DAU control signals
+                DAU_SrcSel_MA       <= DAU_SrcSel_EX;
+                DAU_OffsetSel_MA    <= DAU_OffsetSel_EX;
+                DAU_Offset4_MA      <= DAU_Offset4_EX;
+                DAU_Offset8_MA      <= DAU_Offset8_EX;
+                DAU_IncDecSel_MA    <= DAU_IncDecSel_EX;
+                DAU_IncDecBit_MA    <= DAU_IncDecBit_EX;
+                DAU_PrePostSel_MA   <= DAU_PrePostSel_EX;
+                DAU_GBRSel_MA       <= DAU_GBRSel_EX;
+                DAU_VBRSel_MA       <= DAU_VBRSel_EX;
+
+                -- Top-level signals
+                DB_Delayed  <= DB;
+                AB_Delayed  <= AB(1 downto 0);
+
+                    -- DTU signals
                 DBInMode_MA         <= DBInMode_EX;
                 DataAccessMode_MA   <= DataAccessMode_EX;
                 WR_MA               <= WR_EX;
@@ -805,37 +846,18 @@ begin
                 -- Top-level signals
                 DBOutSel_MA     <= DBOutSel_EX;
                 ABOutSel_MA     <= ABOutSel_EX;
-                -- AB_Delayed      <= AB(1 downto 0);
                 UseWB_MA        <= UseWB_EX;
                 RMW_MA          <= RMW_EX;
 
-                -- Either update or stall DFFs from EX to MA stage
-                -- Some signals are also given default value when pipeline flushed
-                if StallPL_EX_MA = '0' then  
-
-                    -- Instruction register data
-                    IR_MA <= IR_EX(11 downto 0);
-
-                    -- DAU control signals
-                    DAU_SrcSel_MA       <= DAU_SrcSel_EX;
-                    DAU_OffsetSel_MA    <= DAU_OffsetSel_EX;
-                    DAU_Offset4_MA      <= DAU_Offset4_EX;
-                    DAU_Offset8_MA      <= DAU_Offset8_EX;
-                    DAU_IncDecSel_MA    <= DAU_IncDecSel_EX;
-                    DAU_IncDecBit_MA    <= DAU_IncDecBit_EX;
-                    DAU_PrePostSel_MA   <= DAU_PrePostSel_EX;
-                    DAU_GBRSel_MA       <= DAU_GBRSel_EX;
-                    DAU_VBRSel_MA       <= DAU_VBRSel_EX;
-
-                    AB_Delayed      <= AB(1 downto 0);
-
-                end if;
+                StallPL_MA <= StallPL_EX;
 
                 ---------------------------------------------------------------
                 -- MA to WB DFFs
                 ---------------------------------------------------------------
                 UseWB_WB    <= UseWB_MA;
-                DB_Delayed  <= DB;
+                RMW_WB      <= RMW_MA;
+
+                StallPL_WB <= StallPL_MA;
 
             end if;
 
@@ -910,7 +932,7 @@ begin
             -- Control signals
             SrcSel     => PAU_SrcSel_Mux,
             OffsetSel  => PAU_OffsetSel_Mux,
-            UpdatePC   => PAU_UpdatePC_EX,
+            UpdatePC   => PAU_UpdatePC_Mux,
             PRSel      => PAU_PRSel_EX,
             IncDecSel  => PAU_IncDecSel_EX,
             IncDecBit  => PAU_IncDecBit_EX,
@@ -928,6 +950,7 @@ begin
 
             -- System signal
             CLK        => clock,
+            RESET      => reset,
 
             -- Output signals
             ProgAddr   => PAU_ProgAddr,
@@ -1019,6 +1042,8 @@ begin
             -- CU Output Signals
             UpdateIR   => UpdateIR_ID,
             UpdateSR   => UpdateSR_ID,
+            SRSel      => SRSel_ID,
+            SRSel_EX   => SRSel_EX,
 
             -- ALU Signals
             ALUOpASel   => ALUOpASel_ID,
@@ -1069,7 +1094,8 @@ begin
             ABOutSel    => ABOutSel_ID,
 
             -- Pipeline signals
-            UpdateIR_EX => UpdateIR_EX,
+            StallPL => StallPL_ID,
+            UpdateIR_EX => UpdateIR_Mux,
             UpdateSR_EX => UpdateSR_EX,
             TakeBranch => TakeBranch,
             RMW => RMW_ID,

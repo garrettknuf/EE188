@@ -120,10 +120,11 @@ entity PAU is
 
         -- System signal
         CLK         : in    std_logic;                                      -- clock
+        RESET       : in    std_logic;                                      -- reset
 
         -- Output signals
         ProgAddr    : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program address
-        PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0) := x"FFFFFFFE";   -- program counter
+        PC          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0);   -- program counter
         PR          : out   std_logic_vector(ADDR_BUS_SIZE - 1 downto 0)    -- procedure register
     );
 
@@ -185,7 +186,11 @@ begin
         if rising_edge(CLK) then
 
             -- Update PC
-            PC <= ProgAddr when UpdatePC = '1' else PC;
+            if (RESET = '0') then
+                PC <= x"FFFFFFFE";
+            else
+                PC <= ProgAddr when UpdatePC = '1' else PC;
+            end if;
 
             -- Update PR
             PR <= PC        when PRSel = PRSel_PC   else    -- program counter
