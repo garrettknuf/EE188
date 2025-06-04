@@ -221,8 +221,9 @@ entity CU is
 
         -- Pipeline control signals
         TakeBranch      : in std_logic;    -- used to override the next state to normal when flushing pipeline
+        RMW             : out std_logic;    -- high when there is a read-modify-write (RMW) instruction
         UseWB           : out std_logic;   -- used to determine when the write back state is used
-        BranchSel       : out integer range BRANCHSEL_CNT-1 downto 0  -- used to select type of branch (if any)
+        BranchSel       : out integer range BRANCHSEL_CNT-1 downto 0 -- used to select type of branch (if any)
     );
 
 

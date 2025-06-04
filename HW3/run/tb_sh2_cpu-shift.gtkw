@@ -1,20 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Mon Jun 02 22:16:21 2025
+[*] Wed Jun 04 04:10:44 2025
 [*]
 [dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-shift.vcd"
-[dumpfile_mtime] "Mon Jun 02 22:16:07 2025"
-[dumpfile_size] 963380
+[dumpfile_mtime] "Wed Jun 04 04:03:42 2025"
+[dumpfile_size] 882474
 [savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-shift.gtkw"
-[timestart] 0
-[size] 1575 600
+[timestart] 2818400000
+[size] 1620 1009
 [pos] -1 -1
-*-25.000000 45100000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-25.000000 2904900000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
+[treeopen] tb_sh2_cpu.uut.
 [sst_width] 197
-[signals_width] 159
+[signals_width] 174
 [sst_expanded] 1
-[sst_vpaned_height] 153
+[sst_vpaned_height] 297
 @28
 tb_sh2_cpu.clock
 @22
@@ -22,7 +23,50 @@ tb_sh2_cpu.ab[31:0]
 tb_sh2_cpu.uut.db[31:0]
 @28
 tb_sh2_cpu.re[3:0]
-@29
 tb_sh2_cpu.we[3:0]
+@22
+tb_sh2_cpu.uut.gbr[31:0]
+@28
+tb_sh2_cpu.uut.stallpl_id_ex
+tb_sh2_cpu.uut.stallpl_ex_ma
+@22
+tb_sh2_cpu.uut.sh2_pau.pc[31:0]
+tb_sh2_cpu.uut.pc_ex[31:0]
+@28
+tb_sh2_cpu.uut.stallpl_id_ex
+@420
+tb_sh2_cpu.uut.pau_srcsel_mux
+@22
+tb_sh2_cpu.uut.pc_id[31:0]
+tb_sh2_cpu.uut.pc_ex[31:0]
+@28
+tb_sh2_cpu.uut.pau_updatepc_ex
+@22
+tb_sh2_cpu.uut.pau_progaddr[31:0]
+@28
+tb_sh2_cpu.uut.flushpl
+@22
+tb_sh2_cpu.uut.ir_ex[11:0]
+@420
+tb_sh2_cpu.uut.pau_offsetsel_mux
+tb_sh2_cpu.uut.pau_offsetsel_id
+tb_sh2_cpu.uut.pau_offsetsel_ex
+@28
+tb_sh2_cpu.uut.takebranch
+@420
+tb_sh2_cpu.uut.branchsel_id
+tb_sh2_cpu.uut.branchsel_ex
+@28
+tb_sh2_cpu.uut.sh2_pau.updatepc
+@22
+tb_sh2_cpu.uut.sh2_cu.ir[15:0]
+@28
+tb_sh2_cpu.uut.takebranch
+@420
+tb_sh2_cpu.uut.branchsel_ex
+@28
+tb_sh2_cpu.uut.stallpl_id_ex
+@29
+tb_sh2_cpu.uut.stallpl_ex_ma
 [pattern_trace] 1
 [pattern_trace] 0

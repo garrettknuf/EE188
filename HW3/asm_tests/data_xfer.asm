@@ -116,7 +116,7 @@ TestWriteRegToAtReg:        ; test reg to @reg
 ;;--------------------------------------------------------------------------
 ;; TestWritePreDec: Pre-decrement store operations
 ;;--------------------------------------------------------------------------
-TestWritePreDec:
+; TestWritePreDec:
     ADD     #8, R11
     MOV.B   R0,@-R11    ; WRITE -5
     MOV.B   R4,@-R11    ; WRITE -36
@@ -232,7 +232,7 @@ TestReadAtDispPCToRn:       ; read @(disp + PC) to reg
 ;; TestMOVA: MOVA PC-relative address calculation
 ;;--------------------------------------------------------------------------
 TestMOVA:
-    MOVA    @(7,PC),R0      ; read (PC+7*4) = (0xDC + 0x1C) = 0xF8
+    MOVA    @(7,PC),R0      ; read (PC+7*4) = (0xD4 + 0x1C) = 0xF0
     MOV.L   R0, @R11
     ADD     #4, R11
 
@@ -289,6 +289,7 @@ TestFail:
     ;BRA    TestEnd
 
 TestEnd:
+    NOP
     SLEEP
 
 ;;------------------------------------------------------------------------------

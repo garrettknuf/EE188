@@ -68,6 +68,7 @@ use work.GenericConstants.all;
 use work.GenericALUConstants.all;
 use work.ALUConstants.all;
 use work.GenericALUConstants.all;
+use work.MemUnitConstants.all;
 use work.PAUConstants.all;
 use work.DAUConstants.all;
 use work.RegArrayConstants.all;
@@ -289,6 +290,7 @@ architecture structural of SH2_CPU is
 
             -- Pipeline control signals
             TakeBranch      : in std_logic;    -- used to override the next state to normal when flushing pipeline
+            RMW             : out std_logic;    -- high when there is a read-modify-write (RMW) instruction
             UseWB           : out std_logic;   -- used to determine when the write back state is used
             BranchSel       : out integer range BRANCHSEL_CNT-1 downto 0  -- used to select type of branch (if any)
         );
@@ -513,6 +515,11 @@ architecture structural of SH2_CPU is
     signal UpdateSR_ID : std_logic;
     signal UpdateSR_EX : std_logic;
 
+    -- Pipeline read-modify-write (RMW) command
+    signal RMW_ID : std_logic;
+    signal RMW_EX : std_logic;
+    signal RMW_MA : std_logic;
+
     -- Non-pipelined outputs
     signal SR : std_logic_vector(REG_SIZE-1 downto 0);
     signal TempReg : std_logic_vector(31 downto 0);
@@ -594,8 +601,10 @@ begin
     DBMux <= DB_Delayed when UpdateIR_MA = '0' else DB;
     ABMux <= AB_Delayed when UpdateIR_MA = '0' else AB(1 downto 0);
 
-    RegStore_Mux <= RegStore_EX when UseWB_EX = '0' else '0';
-    RegAxStore_Mux <= RegAxStore_EX when UseWB_EX = '0' else '0';
+    -- These muxes prevent registers from storing values on multiple clocks
+    RegStore_Mux <= RegStore_EX when UseWB_EX = '0' or ABOutSel_MA = ABOutSel_Data else '0';
+    RegAxStore_Mux <= RegAxStore_EX when (UseWB_EX = '0' or ABOutSel_MA = ABOutSel_Data)
+                      and (WR_EX = '1') else '0';
 
     -- Combinational logic to handle branching and control hazards
     Branching  : process (all)
@@ -634,13 +643,27 @@ begin
         PAU_OffsetSel_Mux <= PAU_OffsetSel_EX when TakeBranch = '1' and BranchSel_EX /= BranchSel_None else
                              PAU_OffsetWord;
         
+
+
+
+        -- The UpdateIR signal suffices as an indicator to stall pipeline because it
+        -- means no new instruction should be fetched and decoded, hence, stall.
+
+        -- if (TakeBranch = '1' and ABOutSel_MA = ABOutSel_Data) then
+        --     StallPL_ID_EX <= '1';
+        -- else
+        StallPL_ID_EX <= not UpdateIR_EX;   -- Stall DFFs from ID to EX stage
+        -- end if;
+
+        StallPL_EX_MA <= not UpdateIR_MA;   -- Stall DFFs from EX to MA stage
+        -- StallPL_EX_MA <= '1' when RMW_MA = '1' else not UpdateIR_MA;   -- Stall DFFs from EX to MA stage
+
     end process;
 
 
-    -- The UpdateIR signal suffices as an indicator to stall pipeline because it
-    -- means no new instruction should be fetched and decoded, hence, stall.
-    StallPL_ID_EX <= UpdateIR_EX;   -- Stall DFFs from ID to EX stage
-    StallPL_EX_MA <= UpdateIR_MA;   -- Stall DFFs from EX to MA stage
+
+
+    
 
 
     -- Insert DFFs into pipeline and give default values upon reset or pipeline flush
@@ -681,14 +704,27 @@ begin
                 -- default values for when pipeline is flushed.
 
                 -- PAU signals
-                PAU_UpdatePC_EX     <= PAU_UpdatePC_ID;
-                PAU_PRSel_EX        <= PAU_PRSel_ID when FlushPL = '0' else PRSel_None;
-                PAU_IncDecSel_EX    <= PAU_IncDecSel_ID;
-                PAU_IncDecBit_EX    <= PAU_IncDecBit_ID;
-                PAU_PrePostSel_EX   <= PAU_PrePostSel_ID;
-                PC_EX               <= PC_ID when FlushPL = '0' else AB;
-                PAU_SrcSel_EX       <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
-                PAU_OffsetSel_EX    <= PAU_OffsetSel_ID when TakeBranch = '0' else PAU_OffsetWord;  
+                 
+                if RMW_EX = '0' then
+                    PAU_UpdatePC_EX     <= PAU_UpdatePC_ID;
+                    PAU_PRSel_EX        <= PAU_PRSel_ID when FlushPL = '0' else PRSel_None;
+                    PAU_IncDecSel_EX    <= PAU_IncDecSel_ID;
+                    PAU_IncDecBit_EX    <= PAU_IncDecBit_ID;
+                    PAU_PrePostSel_EX   <= PAU_PrePostSel_ID;
+                    PC_EX               <= PC_ID when FlushPL = '0' else AB;
+                    PAU_SrcSel_EX       <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
+                end if;
+
+                if (TakeBranch = '1' and ABOutSel_MA = ABOutSel_Data) then
+                    BranchSel_EX <= BranchSel_EX;
+                    PAU_OffsetSel_EX <= PAU_OffsetSel_ID;
+                else
+                    BranchSel_EX <= BranchSel_ID when FlushPL = '0' else BranchSel_None;
+                    PAU_OffsetSel_EX    <= PAU_OffsetSel_ID when TakeBranch = '0' else PAU_OffsetWord; 
+                end if;
+                
+                    
+                -- end if;
 
                 -- DTU signals
                 DBInMode_EX <= DBInMode_ID;
@@ -696,19 +732,20 @@ begin
                 WR_EX <= WR_ID when FlushPL = '0' else '1';
                 RD_EX <= RD_ID when FlushPL = '0' else '0';
 
+
                 -- CU signals
                 UpdateIR_EX         <= UpdateIR_ID when FlushPL = '0' else '1';
 
                 -- Top-level signals
-                BranchSel_EX        <= BranchSel_ID when FlushPL = '0' else BranchSel_None;
                 DBOutSel_EX         <= DBOutSel_ID;
                 ABOutSel_EX         <= ABOutSel_ID;
                 UseWB_EX            <= UseWB_ID;
+                RMW_EX              <= RMW_ID;
 
 
                 -- Stall some signals when neccessary. Some are given default
                 -- values for when pipeline is flushed.
-                if StallPL_ID_EX = '1' then
+                if StallPL_ID_EX = '0' then
 
                     -- ALU signals
                     ALUOpASel_EX    <= ALUOpASel_ID;
@@ -768,12 +805,13 @@ begin
                 -- Top-level signals
                 DBOutSel_MA     <= DBOutSel_EX;
                 ABOutSel_MA     <= ABOutSel_EX;
-                AB_Delayed      <= AB(1 downto 0);
+                -- AB_Delayed      <= AB(1 downto 0);
                 UseWB_MA        <= UseWB_EX;
+                RMW_MA          <= RMW_EX;
 
                 -- Either update or stall DFFs from EX to MA stage
                 -- Some signals are also given default value when pipeline flushed
-                if StallPL_EX_MA = '1' then  
+                if StallPL_EX_MA = '0' then  
 
                     -- Instruction register data
                     IR_MA <= IR_EX(11 downto 0);
@@ -788,6 +826,8 @@ begin
                     DAU_PrePostSel_MA   <= DAU_PrePostSel_EX;
                     DAU_GBRSel_MA       <= DAU_GBRSel_EX;
                     DAU_VBRSel_MA       <= DAU_VBRSel_EX;
+
+                    AB_Delayed      <= AB(1 downto 0);
 
                 end if;
 
@@ -848,12 +888,12 @@ begin
 
             -- Control signals (inputs)
             RegInSel        => RegInSel_EX,
-            RegStore        => RegStore_EX,
+            RegStore        => RegStore_Mux,
             RegASel         => RegASel_EX,
             RegBSel         => RegBSel_EX,
             RegAxInSel      => RegAxInSel_EX,
             RegAxInDataSel  => RegAxInDataSel_EX,
-            RegAxStore      => RegAxStore_EX,
+            RegAxStore      => RegAxStore_Mux,
             RegA1Sel        => RegA1Sel_EX,
             RegOpSel        => RegOpSel_EX,
             CLK             => clock,
@@ -1032,6 +1072,7 @@ begin
             UpdateIR_EX => UpdateIR_EX,
             UpdateSR_EX => UpdateSR_EX,
             TakeBranch => TakeBranch,
+            RMW => RMW_ID,
             UseWB => UseWB_ID,
             BranchSel => BranchSel_ID
         );

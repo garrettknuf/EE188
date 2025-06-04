@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Sun Jun 01 06:36:20 2025
+[*] Tue Jun 03 22:46:09 2025
 [*]
 [dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-arithmetic.vcd"
-[dumpfile_mtime] "Sun Jun 01 06:36:08 2025"
-[dumpfile_size] 880120
+[dumpfile_mtime] "Tue Jun 03 22:44:08 2025"
+[dumpfile_size] 1296040
 [savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-arithmetic.gtkw"
-[timestart] 0
+[timestart] 1048300000
 [size] 1620 1009
 [pos] -1 -1
-*-26.000000 38500000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-25.000000 1089000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
 [treeopen] tb_sh2_cpu.uut.sh2_alu.

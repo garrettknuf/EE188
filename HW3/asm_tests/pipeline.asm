@@ -49,7 +49,6 @@ TestWriting:
 TestReading:
     ADD     #8, R10
     MOV.L   @R14, R4
-    NOP
     MOV.L   R4, @R10
     ADD     #2, R4
 
