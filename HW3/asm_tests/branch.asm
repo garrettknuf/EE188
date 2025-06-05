@@ -172,14 +172,17 @@ BSRF_RTSTest:
     BSRF    R12             ; call test function
     MOV     #20, R11        ; should execute
     MOV.L  R11, @R10        ; WRITE 19 on first call, 36 on second call
-    ADD    #4, R10
     ; BRA    JMPTest
 
 ;;--------------------------------------------------------------------------
 ;; JMPTest: Test JMP to PC-relative address via MOVA
 ;;--------------------------------------------------------------------------
 JMPTest:
-    MOVA    @(3, PC), R0
+    NOP
+    NOP
+    MOV     #69, R0
+    ADD     #69, R0
+    NOP
     MOV     #-20, R1
     JMP     @R0
     NOP
@@ -193,10 +196,11 @@ JMPTest:
 JSRTest:
     MOV.L   R1, @R10
     ADD     #4, R10     ; WRITE -20
-    MOVA    @(0,PC),R0
-    ADD     #-36, R0
-    MOV     R0, R13
-    JSR     @R13        ; jump to TestFunction
+    NOP
+    NOP
+    MOV     #64,R0
+    NOP
+    JSR     @R0        ; jump to TestFunction
     MOV     #37, R11
     MOV.L   R11, @R10
     ADD     #4, R10

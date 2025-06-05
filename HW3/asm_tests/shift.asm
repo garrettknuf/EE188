@@ -53,18 +53,22 @@ InitGBR:                  ; calculate starting address of data segment
 ;;--------------------------------------------------------------------------
 ROTTest:
     MOV.L   @(0,GBR),R0
+    NOP
     ROTL    R0
     BT      TestFail
     MOV.L   R0,@(4,GBR)    ; write ROTL Num0
     MOV.L   @(1,GBR),R0
+    NOP
     ROTL    R0
     BF      TestFail
     MOV.L   R0,@(5,GBR)    ; write ROTL Num1
     MOV.L   @(0,GBR),R0
+    NOP
     ROTR    R0
     BT      TestFail
     MOV.L   R0,@(6,GBR)    ; write ROTR Num0
     MOV.L   @(1,GBR),R0
+    NOP
     ROTR    R0
     BF      TestFail
     MOV.L   R0,@(7,GBR)    ; write ROTR Num1
@@ -76,21 +80,25 @@ ROTTest:
 ROTCTest:
     SETT
     MOV.L   @(0,GBR),R0
+    NOP
     ROTCL   R0
     BT      TestFail
     MOV.L   R0,@(8,GBR)    ; write ROTCL(T=1) Num0
     CLRT                    
     MOV.L   @(1,GBR),R0
+    NOP
     ROTCL   R0
     BF      TestFail
     MOV.L   R0,@(9,GBR)    ; write ROTCL(T=0) Num1
     SETT
     MOV.L   @(0,GBR),R0
+    NOP
     ROTCR   R0
     BT      TestFail
     MOV.L   R0,@(10,GBR)    ; write ROTCR(T=1) Num0
     CLRT
     MOV.L   @(1,GBR),R0
+    NOP
     ROTCR   R0
     BF      TestFail
     MOV.L   R0,@(11,GBR)    ; write ROTCR(T=0) Num1
@@ -102,21 +110,25 @@ ROTCTest:
 SHATest:
     SETT
     MOV.L   @(0,GBR),R0
+    NOP
     SHAL    R0
     BT      TestFail
     MOV.L   R0,@(12,GBR)   ; write SHAL Num0
     CLRT
     MOV.L   @(1,GBR),R0
+    NOP
     SHAL    R0
     BF      TestFail
     MOV.L   R0,@(13,GBR)   ; write SHAL Num1
     SETT
     MOV.L   @(0,GBR),R0
+    NOP
     SHAR    R0
     BT      TestFail
     MOV.L   R0,@(14,GBR)   ; write SHAR Num0
     CLRT
     MOV.L   @(1,GBR),R0
+    NOP
     SHAR    R0
     BF      TestFail
     MOV.L   R0,@(15,GBR)   ; write SHAR Num1
@@ -128,21 +140,25 @@ SHATest:
 SHLTest:
     SETT
     MOV.L   @(0,GBR),R0
+    NOP
     SHLL    R0
     BT      TestFail
     MOV.L   R0,@(16,GBR)   ; write SHAL Num0
     CLRT
     MOV.L   @(1,GBR),R0
+    NOP
     SHLL    R0
     BF      TestFail
     MOV.L   R0,@(17,GBR)   ; write SHAL Num1
     SETT
     MOV.L   @(0,GBR),R0
+    NOP
     SHLR    R0
     BT      TestFail
     MOV.L   R0,@(18,GBR)   ; write SHAR Num0
     SETT
     MOV.L   @(1,GBR),R0
+    NOP
     SHLR    R0
     BF      TestFail
     MOV.L   R0,@(19,GBR)   ; write SHAR Num1
@@ -153,6 +169,7 @@ SHLTest:
 ;;--------------------------------------------------------------------------
 SHL2Test:
     MOV.L   @(0,GBR),R0
+    NOP
     SHLL2   R0
     MOV.L   R0,@(20,GBR)   ; write SHLL2 Num0
     SHLR2   R0
@@ -161,6 +178,7 @@ SHL2Test:
 
 SHL8Test:
     MOV.L   @(0,GBR),R0
+    NOP
     SHLL8   R0
     MOV.L   R0,@(22,GBR)   ; write SHLL8 Num0
     SHLR8   R0
@@ -169,6 +187,7 @@ SHL8Test:
 
 SHL16Test:
     MOV.L   @(0,GBR),R0
+    NOP
     SHLL16  R0
     MOV.L   R0,@(24,GBR)   ; write SHLL16 Num0
     SHLR16  R0

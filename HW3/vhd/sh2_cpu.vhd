@@ -596,6 +596,13 @@ architecture structural of SH2_CPU is
     signal DBIn     : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
     signal DBOut    : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
 
+    signal ALU_DBMux : std_logic_vector(DATA_BUS_SIZE-1 downto 0);
+
+    signal RegInMux : std_logic_vector(REG_SIZE-1 downto 0);
+    signal RegInSelMux : integer range REGARRAY_RegCnt - 1 downto 0; 
+
+    signal DBIn_Delayed : std_logic_vector(DATA_BUS_SIZE-1 downto 0);  -- delayed DB by 1 clock
+
     -- Indicate when a branch should be taken
     signal TakeBranch : std_logic;
 
@@ -608,9 +615,8 @@ architecture structural of SH2_CPU is
     -- Indicate when the pipeline should be flushed
     signal FlushPL : std_logic;
 
+    -- Indiciate if pipeline should be stalled or not
     signal StallPL_Mux : std_logic;
-
-    signal StallPL_History : std_logic;
 
 begin
 
@@ -629,8 +635,14 @@ begin
              (others => 'X');
 
     -- Update the CU data bus input either normal or memory access stalled input
-    DBMux <= DB_Delayed when UpdateIR_MA = '0' else DB;
-    ABMux <= AB_Delayed when UpdateIR_MA = '0' else AB(1 downto 0);
+    DBMux <= DB_Delayed when UpdateIR_MA = '0' and UseWB_WB = '0' else DB;
+    ABMux <= AB_Delayed when UpdateIR_MA = '0' and UseWB_WB = '0' else AB(1 downto 0);
+
+    ALU_DBMux <= DBIn when UseWB_WB = '0' else DBIn_Delayed;
+
+    RegInMux <= ALU_Result when UseWB_WB = '0' else DBIn_Delayed;
+    RegInSelMux <= RegInSel_EX when UseWB_WB = '0' else RegInSel_WB;
+    -- ALU_DBMux <= DBIn when UpdateIR_MA = '0' and UseWB_WB = '0' else DB;
 
     -- These muxes prevent registers from storing values on multiple clocks
     RegStore_Mux <= RegStore_EX when UseWB_EX = '0' and UseWB_WB = '0' else RegStore_WB;
@@ -677,14 +689,14 @@ begin
         PAU_OffsetSel_Mux <= PAU_OffsetSel_EX when TakeBranch = '1' and BranchSel_EX /= BranchSel_None else
                              PAU_OffsetWord;
 
+        -- Mux to select if PC should be updated (currently 1:1)
         PAU_UpdatePC_Mux <= PAU_UpdatePC_EX;
 
     end process;
 
     Stalling : process (all)
     begin
-
-        StallPL_Mux <= StallPL_EX when StallPL_History = '0' else '0';
+        StallPL_Mux <= StallPL_EX;
     end process;
 
     -- Insert DFFs into pipeline and give default values upon reset or pipeline flush
@@ -698,10 +710,10 @@ begin
             if reset = '0' then
 
                 -- Set pipeline values to read in first instruction
-                -- Essentially fill pipeline with NOP control signals
+                -- Essentially fill pipeline with NOP control signals that will
+                -- read instructions into the pipeline
 
                 -- EX stage
-               
                 DBInMode_EX <= DBInMode_Unsigned;
                 DataAccessMode_EX <= DataAccessMode_WORD;
                 WR_EX <= '1';
@@ -719,6 +731,7 @@ begin
                 ABOutSel_MA <= ABOutSel_Prog;
                 UseWB_MA <= '0';
 
+                -- WB stage
                 UseWB_WB <= '0';
         
             else
@@ -729,6 +742,23 @@ begin
 
                 -- Pipelined signals that cannot be stalled. Some are given
                 -- default values for when pipeline is flushed.
+
+                -- DTU signals
+                DBInMode_EX <= DBInMode_ID;
+                DataAccessMode_EX <= DataAccessMode_ID;
+                WR_EX <= WR_ID when FlushPL = '0' else '1';
+                RD_EX <= RD_ID when FlushPL = '0' else '0';
+
+                -- CU signals
+                UpdateIR_EX         <= UpdateIR_ID when FlushPL = '0' else '1';
+
+                -- Top-level signals
+                StallPL_EX <= StallPL_ID when FlushPL = '0' else '0';
+                DBOutSel_EX         <= DBOutSel_ID;
+                ABOutSel_EX         <= ABOutSel_ID;
+                UseWB_EX            <= UseWB_ID;
+                RMW_EX              <= RMW_ID;
+
                 -- Avoid contentions on address bus when there is a memory access
                 -- before/after the branch instruction
                 if (TakeBranch = '1' and ABOutSel_MA = ABOutSel_Data) then
@@ -737,14 +767,6 @@ begin
                 else
                     BranchSel_EX <= BranchSel_ID when FlushPL = '0' else BranchSel_None;
                     PAU_OffsetSel_EX    <= PAU_OffsetSel_ID when TakeBranch = '0' else PAU_OffsetWord; 
-                end if;
-
-                if UseWB_WB = '1' and UseWB_MA = '1' and UseWB_EX = '1' then
-                    StallPL_History <= '1';
-                else   
-                    -- StallPL_Mux <= StallPL_EX when UseWB_MA = '0' else '1';
-                    StallPL_History <= '0';
-                    
                 end if;
 
                 -- PAU signals
@@ -758,38 +780,11 @@ begin
                     PAU_SrcSel_EX       <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
                 end if;
 
-  
-                StallPL_EX <= StallPL_ID;
-
-                -- DTU signals
-                DBInMode_EX <= DBInMode_ID;
-                DataAccessMode_EX <= DataAccessMode_ID;
-                WR_EX <= WR_ID when FlushPL = '0' else '1';
-                RD_EX <= RD_ID when FlushPL = '0' else '0';
-
-                -- CU signals
-                UpdateIR_EX         <= UpdateIR_ID when FlushPL = '0' else '1';
-
-                -- Top-level signals
-                DBOutSel_EX         <= DBOutSel_ID;
-                ABOutSel_EX         <= ABOutSel_ID;
-                UseWB_EX            <= UseWB_ID;
-                RMW_EX              <= RMW_ID;
-
                 -- Stall some signals when neccessary. Some are given default
                 -- values for when pipeline is flushed.
-                if StallPL_Mux = '0' or UseWB_EX = '1' then
-                                    -- RegArray signals
-                    RegInSel_EX         <= RegInSel_ID;
-                    RegStore_EX         <= RegStore_ID when FlushPL = '0' else '0';
-                    RegASel_EX          <= RegASel_ID;
-                    RegBSel_EX          <= RegBSel_ID;
-                    RegAxInSel_EX       <= RegAxInSel_ID;
-                    RegAxInDataSel_EX   <= RegAxInDataSel_ID;
-                    RegAxStore_EX       <= RegAxStore_ID when FlushPL = '0' else '0';
-                    RegA1Sel_EX         <= RegA1Sel_ID;
-                    RegOpSel_EX         <= RegOpSel_ID;
-                end if;
+                -- if StallPL_Mux = '0' or UseWB_EX = '1' then
+  
+                -- end if;
 
                 if StallPL_Mux = '0' then
 
@@ -801,6 +796,17 @@ begin
                     ALU_SCmd_EX     <= ALU_SCmd_ID;
                     ALU_ALUCmd_EX   <= ALU_ALUCmd_ID;
                     ALU_TbitOp_EX   <= ALU_TbitOp_ID;
+
+                    -- RegArray signals
+                    RegInSel_EX         <= RegInSel_ID;
+                    RegStore_EX         <= RegStore_ID when FlushPL = '0' else '0';
+                    RegASel_EX          <= RegASel_ID;
+                    RegBSel_EX          <= RegBSel_ID;
+                    RegAxInSel_EX       <= RegAxInSel_ID;
+                    RegAxInDataSel_EX   <= RegAxInDataSel_ID;
+                    RegAxStore_EX       <= RegAxStore_ID when FlushPL = '0' else '0';
+                    RegA1Sel_EX         <= RegA1Sel_ID;
+                    RegOpSel_EX         <= RegOpSel_ID;
 
                     -- DAU signals
                     DAU_SrcSel_EX       <= DAU_SrcSel_ID when FlushPL = '0' else DAU_SrcSel_EX;
@@ -822,13 +828,8 @@ begin
 
                 end if;
 
-                if UseWB_EX = '1' and UseWB_MA = '1' and UseWB_WB = '1' then
-                    UseWB_MA <= '0';
-                    UseWB_WB <= '0';
-                else
-                    UseWB_MA <= UseWB_EX;
-                    UseWB_WB    <= UseWB_MA;
-                end if;
+                UseWB_MA <= UseWB_EX;
+                UseWB_WB <= UseWB_MA;
 
                 ---------------------------------------------------------------
                 -- EX to MA DFFs
@@ -854,6 +855,8 @@ begin
                 -- Top-level signals
                 DB_Delayed  <= DB;-- when UseWB_MA = '0' else DB_Delayed;
                 AB_Delayed  <= AB(1 downto 0);
+
+                DBIn_Delayed  <= DBIn;-- when UseWB_MA = '0' else DB_Delayed;
 
                     -- DTU signals
                 DBInMode_MA         <= DBInMode_EX;
@@ -921,7 +924,7 @@ begin
             RegB        => RegB,
             TempReg     => TempReg2,
             Imm         => IR_EX(7 downto 0),
-            DBIn        => DBIn,
+            DBIn        => ALU_DBMux,
             SR0         => SR(0),
 
             -- Control signals (inputs)
@@ -942,7 +945,7 @@ begin
     SH2_RegArray : RegArray
         port map (
             -- RegIn input
-            Result          => ALU_Result,
+            Result          => RegInMux,
 
             -- RegAxIn inputs
             DataAddrID      => DAU_AddrIDOut,
@@ -953,7 +956,7 @@ begin
             PR              => PR,
 
             -- Control signals (inputs)
-            RegInSel        => RegInSel_EX,
+            RegInSel        => RegInSelMux,
             RegStore        => RegStore_Mux,
             RegASel         => RegASel_EX,
             RegBSel         => RegBSel_EX,

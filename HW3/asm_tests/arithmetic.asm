@@ -97,11 +97,13 @@ ADDCTests:
 ;;--------------------------------------------------------------------------
 ADDVTests:
     MOV.L   @(2,GBR),R0
+    NOP
     MOV     #1, R1
     ADDV    R1, R0
     MOV.L   R0,@(9,GBR)  ; WRITE 0x7FFFFFFF+0x00000001=0x80000000
     BF      TestFail    ; overflow = 1
     MOV.L   @(2,GBR),R0
+    NOP
     MOV     #-1, R1
     ADDV    R1, R0
     MOV.L   R0,@(10,GBR) ; WRITE 0x7FFFFFFF+0xFFFFFFFF=0x7FFFFFFE
@@ -126,6 +128,7 @@ DTTests:
 ;;--------------------------------------------------------------------------
 EXTTests:   
     MOV.L   @(1,GBR),R0 ; read 0x5555D19B
+    NOP
     EXTS.B  R0, R1      ; sign extend byte
     EXTS.W  R0, R2      ; sign extend word
     EXTU.B  R0, R3      ; zero extend byte
@@ -198,6 +201,7 @@ SUBCTests:
 ;;--------------------------------------------------------------------------
 SUBVTests:
     MOV.L   @(2,GBR),R0
+    NOP
     MOV     #-1, R1
     SUBV    R0, R1
     MOV     R1, R0

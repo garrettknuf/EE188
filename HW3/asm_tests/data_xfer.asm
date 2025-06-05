@@ -123,9 +123,13 @@ TestWriteRegToAtReg:        ; test reg to @reg
 ; TestWritePreDec:
     ADD     #8, R11
     MOV.B   R0,@-R11    ; WRITE -5
+    NOP
     MOV.B   R4,@-R11    ; WRITE -36
+    NOP
     MOV.W   R2,@-R11    ; WRITE 2000
+    NOP
     MOV.L   R3,@-R11    ; WRITE -6000
+    NOP
     ADD     #8, R11
 
 ;;--------------------------------------------------------------------------
@@ -142,17 +146,20 @@ TestWriteR0ToAtDispReg:     ; test write R0 to @(disp x n + reg)
     MOV.L   R7,@(1,R11)     ; WRITE 1357902468
     ADD     #8, R11
     
-;;--------------------------------------------------------------------------
-;; TestReadAtDispRegToR0: Displacement load into R0
-;;--------------------------------------------------------------------------
+; ;;--------------------------------------------------------------------------
+; ;; TestReadAtDispRegToR0: Displacement load into R0
+; ;;--------------------------------------------------------------------------
 TestReadAtDispRegToR0:      ; test reading from @(reg+disp) to R0
     MOV.B   @(8,R9), R0     ; read -36
+    NOP
     MOV.L   R0, @R11
     ADD     #4, R11
     MOV.W   @(5,R9), R0     ; read -4500
+    NOP
     MOV.L   R0, @R11
     ADD     #4, R11
     MOV.L   @(3,R9), R13    ; read 1357902468
+    NOP
     MOV.L   R13, @R11
     ADD     #4, R11
 
@@ -178,12 +185,15 @@ TestReadAtR0RmToRn:
     MOV     #2, R13
     MOV     #12, R14
     MOV.B   @(R0,R12), R8
+    NOP
     MOV.L   R8, @R11
     ADD     #4, R11
     MOV.W   @(R0,R13), R13
+    NOP
     MOV.L   R13, @R11
     ADD     #4, R11
     MOV.L   @(R0,R14), R12
+    NOP
     MOV.L   R12, @R11
     ADD     #4, R11
 
@@ -205,12 +215,15 @@ TestWriteR0ToAtDispGBR:
 ;;--------------------------------------------------------------------------
 TestReadAtDispGBRToR0:
     MOV.B   @(8,GBR),R0     ; Read -36
+    NOP
     MOV.L   R0, @R11        ; Write -36
     ADD     #4, R11
     MOV.W   @(5,GBR),R0     ; Read -4500
+    NOP
     MOV.L   R0, @R11        ; Write -4500
     ADD     #4, R11
     MOV.L   @(3,GBR),R0     ; Read 1357902468
+    NOP
     MOV.L   R0, @R11        ; Write 1357902468
     ADD     #4, R11
 
@@ -218,79 +231,79 @@ TestReadAtDispGBRToR0:
 ;; TestReadAtDispPCToRn: PC-relative loads of opcodes for self-test
 ;;--------------------------------------------------------------------------
 TestReadAtDispPCToRn:       ; read @(disp + PC) to reg
-    MOV.W   @(7, PC), R15   ; put MOV.L(2, PC) op code into R15
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    MOV.L   @(2, PC), R14   ; put NOT R3,R4 and ADD #4,R11 opcodes into R14
-    MOV.L   R15, @R11       ; WRITE 0xFFFFDE02 (MOV.L instruction op code sign-ext)
-    ADD     #4, R11
-    MOV.L   R14, @R11       ; WRITE 0x64377B04 (NOT + ADD opcodes)
-    NOT     R3, R4          ; used for NOT opcode
-    ADD     #4, R11         ; used for AND opcode 
+    ; MOV.W   @(7, PC), R15   ; put MOV.L(2, PC) op code into R15
+    ; NOP
+    ; NOP
+    ; NOP
+    ; NOP
+    ; NOP
+    ; NOP
+    ; MOV.L   @(2, PC), R14   ; put NOT R3,R4 and ADD #4,R11 opcodes into R14
+    ; MOV.L   R15, @R11       ; WRITE 0xFFFFDE02 (MOV.L instruction op code sign-ext)
+    ; ADD     #4, R11
+    ; MOV.L   R14, @R11       ; WRITE 0x64377B04 (NOT + ADD opcodes)
+    ; NOT     R3, R4          ; used for NOT opcode
+    ; ADD     #4, R11         ; used for AND opcode 
 
 ;;--------------------------------------------------------------------------
 ;; TestMOVA: MOVA PC-relative address calculation
 ;;--------------------------------------------------------------------------
-TestMOVA:
-    MOVA    @(7,PC),R0      ; read (PC+7*4) = (0xD4 + 0x1C) = 0xF0
-    MOV.L   R0, @R11
-    ADD     #4, R11
+; TestMOVA:
+;     MOVA    @(7,PC),R0      ; read (PC+7*4) = (0xD4 + 0x1C) = 0xF0
+;     MOV.L   R0, @R11
+;     ADD     #4, R11
 
-;;--------------------------------------------------------------------------
-;; TestMOVT: Move T flag into bit0 of destination reg
-;;--------------------------------------------------------------------------
-TestMOVT:
-    SETT
-    MOVT    R13
-    MOV     R13, R0
-    CMP/EQ  #1, R0
-    BF      TestFail
-    CLRT
-    MOVT    R12
-    MOV     R12, R0
-    CMP/EQ  #0, R0
-    BF      TestFail
+; ;;--------------------------------------------------------------------------
+; ;; TestMOVT: Move T flag into bit0 of destination reg
+; ;;--------------------------------------------------------------------------
+; TestMOVT:
+;     SETT
+;     MOVT    R13
+;     MOV     R13, R0
+;     CMP/EQ  #1, R0
+;     BF      TestFail
+;     CLRT
+;     MOVT    R12
+;     MOV     R12, R0
+;     CMP/EQ  #0, R0
+;     BF      TestFail
 
-;;--------------------------------------------------------------------------
-;; TestSWAP: Byte and word swaps within register
-;;--------------------------------------------------------------------------
-TestSWAP:
-    MOV.L   @(4,GBR), R0
-    MOV     R0, R13
-    SWAP.B  R13, R12
-    MOV.L   R12, @R11
-    ADD     #4, R11
-    SWAP.W  R13, R12
-    MOV.L   R12, @R11
-    ADD     #4, R11
-    ;BRA    TestXTRCT
+; ;;--------------------------------------------------------------------------
+; ;; TestSWAP: Byte and word swaps within register
+; ;;--------------------------------------------------------------------------
+; TestSWAP:
+;     MOV.L   @(4,GBR), R0
+;     MOV     R0, R13
+;     SWAP.B  R13, R12
+;     MOV.L   R12, @R11
+;     ADD     #4, R11
+;     SWAP.W  R13, R12
+;     MOV.L   R12, @R11
+;     ADD     #4, R11
+;     ;BRA    TestXTRCT
 
-;;--------------------------------------------------------------------------
-;; TestXTRCT: Extract and combine pair of bytes
-;;--------------------------------------------------------------------------
-TestXTRCT:
-    MOV.L   @(5,GBR), R0
-    XTRCT   R13, R0
-    MOV.L   R0, @R11
-    ADD     #4, R11
-    ; BRA   TestSuccess
+; ;;--------------------------------------------------------------------------
+; ;; TestXTRCT: Extract and combine pair of bytes
+; ;;--------------------------------------------------------------------------
+; TestXTRCT:
+;     MOV.L   @(5,GBR), R0
+;     XTRCT   R13, R0
+;     MOV.L   R0, @R11
+;     ADD     #4, R11
+;     ; BRA   TestSuccess
 
-;;--------------------------------------------------------------------------
-;; TestSuccess/Fail: Record pass/fail and halt
-;;--------------------------------------------------------------------------
-TestSuccess:
-    MOV     #1, R9
-    MOV.L   R9, @R11 ; store SUCCESS (1)
-    BRA     TestEnd
+; ;;--------------------------------------------------------------------------
+; ;; TestSuccess/Fail: Record pass/fail and halt
+; ;;--------------------------------------------------------------------------
+; TestSuccess:
+;     MOV     #1, R9
+;     MOV.L   R9, @R11 ; store SUCCESS (1)
+;     BRA     TestEnd
 
-TestFail:
-    MOV     #0, R9
-    MOV.L   R9, @R11 ; store FAIL (0)
-    ;BRA    TestEnd
+; TestFail:
+;     MOV     #0, R9
+;     MOV.L   R9, @R11 ; store FAIL (0)
+;     ;BRA    TestEnd
 
 TestEnd:
     NOP

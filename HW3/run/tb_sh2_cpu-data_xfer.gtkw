@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Wed Jun 04 23:59:48 2025
+[*] Thu Jun 05 03:56:59 2025
 [*]
 [dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-data_xfer.vcd"
-[dumpfile_mtime] "Wed Jun 04 23:54:17 2025"
-[dumpfile_size] 695080
+[dumpfile_mtime] "Thu Jun 05 03:56:08 2025"
+[dumpfile_size] 479445
 [savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-data_xfer.gtkw"
-[timestart] 183800000
+[timestart] 87800000
 [size] 1620 1009
-[pos] -1 -1
-*-25.000000 265000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] 1755 -522
+*-25.000000 220800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
 [sst_width] 197
@@ -37,6 +37,9 @@ tb_sh2_cpu.we[3:0]
 tb_sh2_cpu.uut.alu_result[31:0]
 @420
 tb_sh2_cpu.uut.sh2_cu.currentstate
+@28
+[color] 6
+tb_sh2_cpu.uut.usewb_wb
 @22
 tb_sh2_cpu.uut.sh2_dau.rn[31:0]
 [color] 3
@@ -66,16 +69,8 @@ tb_sh2_cpu.uut.usewb_ex
 tb_sh2_cpu.uut.sh2_dau.pc[31:0]
 @420
 tb_sh2_cpu.uut.aboutsel_ex
-tb_sh2_cpu.uut.aboutsel_ma
-tb_sh2_cpu.uut.sh2_regarray.regaxindatasel
-@28
-tb_sh2_cpu.uut.usewb_ma
-@420
-tb_sh2_cpu.uut.reginsel_id
-tb_sh2_cpu.uut.reginsel_ex
-@23
-tb_sh2_cpu.uut.sh2_cu.ir[15:0]
 @22
+tb_sh2_cpu.uut.sh2_cu.ir[15:0]
 tb_sh2_cpu.uut.db_delayed[31:0]
 tb_sh2_cpu.uut.dau_dataaddr[31:0]
 @28
@@ -85,9 +80,9 @@ tb_sh2_cpu.uut.sh2_alu.opa[31:0]
 tb_sh2_cpu.uut.sh2_alu.opb[31:0]
 @420
 tb_sh2_cpu.uut.sh2_alu.aluopasel
-tb_sh2_cpu.uut.reginsel_id
-tb_sh2_cpu.uut.reginsel_ex
-tb_sh2_cpu.uut.reginsel_ma
 tb_sh2_cpu.uut.aboutsel_ma
+@22
+tb_sh2_cpu.uut.sh2_cu.db[31:0]
+tb_sh2_cpu.uut.alu_dbmux[31:0]
 [pattern_trace] 1
 [pattern_trace] 0

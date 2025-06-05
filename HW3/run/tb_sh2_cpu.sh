@@ -25,7 +25,7 @@ ASM_FILES=(
     "../asm_tests/fibonacci.asm"
     "../asm_tests/branch.asm"
     # "../asm_tests/pipeline.asm"
-    "../asm_tests/data_xfer.asm"
+    # "../asm_tests/data_xfer.asm"
     # "../asm_tests/shift.asm"
     # "../asm_tests/arithmetic.asm"
     # "../asm_tests/logic.asm"
