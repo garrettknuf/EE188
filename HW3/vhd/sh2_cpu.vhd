@@ -473,13 +473,6 @@ architecture structural of SH2_CPU is
     signal DAU_VBRSel_MA      : integer range VBRSEL_CNT-1 downto 0;
 
     -- DAU WB Stage (DFFs -> DAU)
-    signal DAU_SrcSel_WB      : integer range DAU_SRC_CNT - 1 downto 0;
-    signal DAU_OffsetSel_WB   : integer range DAU_OFFSET_CNT - 1 downto 0;
-    signal DAU_Offset4_WB     : std_logic_vector(3 downto 0);
-    signal DAU_Offset8_WB     : std_logic_vector(7 downto 0);
-    signal DAU_IncDecSel_WB   : std_logic;
-    signal DAU_IncDecBit_WB   : integer range 2 downto 0;
-    signal DAU_PrePostSel_WB  : std_logic;
     signal DAU_GBRSel_WB      : integer range GBRSEL_CNT-1 downto 0;
     signal DAU_VBRSel_WB      : integer range VBRSEL_CNT-1 downto 0;
     
@@ -513,17 +506,11 @@ architecture structural of SH2_CPU is
     signal WR_EX                : std_logic;
     signal RD_EX                : std_logic;
 
-    -- DTU MA Stage (DFFs -> DFFs)
+    -- DTU MA Stage (DFFs -> DTU)
     signal DBInMode_MA          : integer range DBINMODE_CNT-1 downto 0;
     signal DataAccessMode_MA    : integer range DATAACCESSMODE_CNT-1 downto 0;
     signal WR_MA                : std_logic;
     signal RD_MA                : std_logic;
-
-    -- DTU MA Stage (DFFs -> DTU)
-    signal DBInMode_WB          : integer range DBINMODE_CNT-1 downto 0;
-    signal DataAccessMode_WB    : integer range DATAACCESSMODE_CNT-1 downto 0;
-    signal WR_WB                : std_logic;
-    signal RD_WB                : std_logic;
 
     ---------------------------------------------------------------------------
     -- CU Signals
@@ -538,7 +525,7 @@ architecture structural of SH2_CPU is
     signal UpdateIR_ID : std_logic;
     signal UpdateIR_EX : std_logic;
     signal UpdateIR_MA : std_logic;
-    signal UpdateIR_WB : std_logic;
+    -- signal UpdateIR_WB : std_logic;
 
     -- Pipeline when to update SR (fed back into CU)
     signal UpdateSR_ID : std_logic;
@@ -569,13 +556,11 @@ architecture structural of SH2_CPU is
     signal DBOutSel_ID : integer range DBOUTSEL_CNT-1 downto 0;
     signal DBOutSel_EX : integer range DBOUTSEL_CNT-1 downto 0;
     signal DBOutSel_MA : integer range DBOUTSEL_CNT-1 downto 0;
-    signal DBOutSel_WB : integer range DBOUTSEL_CNT-1 downto 0;
 
     -- Pipeline address bus output control signals to determine source of AB
     signal ABOutSel_ID : integer range 1 downto 0;
     signal ABOutSel_EX : integer range 1 downto 0;
     signal ABOutSel_MA : integer range 1 downto 0;
-    signal ABOutSel_WB : integer range 1 downto 0;
 
     -- Create muxes for data forwarding to avoid data bus and address bus contentions
     signal DBMux : std_logic_vector(DATA_BUS_SIZE-1 downto 0); -- select DB or delayed DB
@@ -623,6 +608,10 @@ architecture structural of SH2_CPU is
     -- Indicate when the pipeline should be flushed
     signal FlushPL : std_logic;
 
+    signal StallPL_Mux : std_logic;
+
+    signal StallPL_History : std_logic;
+
 begin
 
     -- Select address to be either address output by PAU or DAU
@@ -640,15 +629,16 @@ begin
              (others => 'X');
 
     -- Update the CU data bus input either normal or memory access stalled input
-    DBMux <= DB_Delayed when UpdateIR_MA = '0' and UpdateSR_EX = '0' else DB;
+    DBMux <= DB_Delayed when UpdateIR_MA = '0' else DB;
     ABMux <= AB_Delayed when UpdateIR_MA = '0' else AB(1 downto 0);
 
     -- These muxes prevent registers from storing values on multiple clocks
-    RegStore_Mux <= RegStore_EX when UseWB_WB = '0' else RegStore_WB;
-    RegAxStore_Mux <= RegAxStore_MA when UseWB_WB = '0' else RegAxStore_WB;
-
+    RegStore_Mux <= RegStore_EX when UseWB_EX = '0' and UseWB_WB = '0' else RegStore_WB;
+    RegAxStore_Mux <= RegAxStore_MA when UseWB_WB = '0' else '0';
 
     UpdateIR_Mux <= UpdateIR_EX;
+
+
 
     -- Combinational logic to handle branching and control hazards
     Branching  : process (all)
@@ -691,10 +681,16 @@ begin
 
     end process;
 
+    Stalling : process (all)
+    begin
+
+        StallPL_Mux <= StallPL_EX when StallPL_History = '0' else '0';
+    end process;
 
     -- Insert DFFs into pipeline and give default values upon reset or pipeline flush
     Pipeline : process (clock)
     begin
+
         -- Pass on instructions from one stage to the stage
         if rising_edge(clock) then
         
@@ -705,6 +701,7 @@ begin
                 -- Essentially fill pipeline with NOP control signals
 
                 -- EX stage
+               
                 DBInMode_EX <= DBInMode_Unsigned;
                 DataAccessMode_EX <= DataAccessMode_WORD;
                 WR_EX <= '1';
@@ -712,6 +709,7 @@ begin
                 UpdateIR_EX <= '1';
                 UpdateIR_MA <= '1';
                 ABOutSel_EX <= ABOutSel_Prog;
+                UseWB_EX <= '0';
                 
                 -- MA stage
                 DBInMode_MA <= DBInMode_Unsigned;
@@ -719,6 +717,9 @@ begin
                 WR_MA <= '1';
                 RD_MA <= '0';
                 ABOutSel_MA <= ABOutSel_Prog;
+                UseWB_MA <= '0';
+
+                UseWB_WB <= '0';
         
             else
                     
@@ -738,7 +739,16 @@ begin
                     PAU_OffsetSel_EX    <= PAU_OffsetSel_ID when TakeBranch = '0' else PAU_OffsetWord; 
                 end if;
 
-                                    -- PAU signals
+                if UseWB_WB = '1' and UseWB_MA = '1' and UseWB_EX = '1' then
+                    StallPL_History <= '1';
+                else   
+                    -- StallPL_Mux <= StallPL_EX when UseWB_MA = '0' else '1';
+                    StallPL_History <= '0';
+                    
+                end if;
+
+                -- PAU signals
+                if UseWB_MA = '0' then
                     PAU_UpdatePC_EX     <= PAU_UpdatePC_ID;
                     PAU_PRSel_EX        <= PAU_PRSel_ID when FlushPL = '0' else PRSel_None;
                     PAU_IncDecSel_EX    <= PAU_IncDecSel_ID;
@@ -746,6 +756,7 @@ begin
                     PAU_PrePostSel_EX   <= PAU_PrePostSel_ID;
                     PC_EX               <= PC_ID when FlushPL = '0' else AB;
                     PAU_SrcSel_EX       <= PAU_SrcSel_ID when TakeBranch = '0' else PAU_AddrPC;
+                end if;
 
   
                 StallPL_EX <= StallPL_ID;
@@ -767,18 +778,8 @@ begin
 
                 -- Stall some signals when neccessary. Some are given default
                 -- values for when pipeline is flushed.
-                if StallPL_EX = '0' then
-
-                    -- ALU signals
-                    ALUOpASel_EX    <= ALUOpASel_ID;
-                    ALUOpBSel_EX    <= ALUOpBSel_ID;
-                    ALU_FCmd_EX     <= ALU_FCmd_ID;
-                    ALU_CinCmd_EX   <= ALU_CinCmd_ID;
-                    ALU_SCmd_EX     <= ALU_SCmd_ID;
-                    ALU_ALUCmd_EX   <= ALU_ALUCmd_ID;
-                    ALU_TbitOp_EX   <= ALU_TbitOp_ID;
-
-                    -- RegArray signals
+                if StallPL_Mux = '0' or UseWB_EX = '1' then
+                                    -- RegArray signals
                     RegInSel_EX         <= RegInSel_ID;
                     RegStore_EX         <= RegStore_ID when FlushPL = '0' else '0';
                     RegASel_EX          <= RegASel_ID;
@@ -788,6 +789,18 @@ begin
                     RegAxStore_EX       <= RegAxStore_ID when FlushPL = '0' else '0';
                     RegA1Sel_EX         <= RegA1Sel_ID;
                     RegOpSel_EX         <= RegOpSel_ID;
+                end if;
+
+                if StallPL_Mux = '0' then
+
+                    -- ALU signals
+                    ALUOpASel_EX    <= ALUOpASel_ID;
+                    ALUOpBSel_EX    <= ALUOpBSel_ID;
+                    ALU_FCmd_EX     <= ALU_FCmd_ID;
+                    ALU_CinCmd_EX   <= ALU_CinCmd_ID;
+                    ALU_SCmd_EX     <= ALU_SCmd_ID;
+                    ALU_ALUCmd_EX   <= ALU_ALUCmd_ID;
+                    ALU_TbitOp_EX   <= ALU_TbitOp_ID;
 
                     -- DAU signals
                     DAU_SrcSel_EX       <= DAU_SrcSel_ID when FlushPL = '0' else DAU_SrcSel_EX;
@@ -807,6 +820,14 @@ begin
                     -- Top-level signals
                     IR_EX   <= IR_ID(11 downto 0);
 
+                end if;
+
+                if UseWB_EX = '1' and UseWB_MA = '1' and UseWB_WB = '1' then
+                    UseWB_MA <= '0';
+                    UseWB_WB <= '0';
+                else
+                    UseWB_MA <= UseWB_EX;
+                    UseWB_WB    <= UseWB_MA;
                 end if;
 
                 ---------------------------------------------------------------
@@ -831,7 +852,7 @@ begin
                 DAU_VBRSel_MA       <= DAU_VBRSel_EX;
 
                 -- Top-level signals
-                DB_Delayed  <= DB;
+                DB_Delayed  <= DB;-- when UseWB_MA = '0' else DB_Delayed;
                 AB_Delayed  <= AB(1 downto 0);
 
                     -- DTU signals
@@ -846,18 +867,41 @@ begin
                 -- Top-level signals
                 DBOutSel_MA     <= DBOutSel_EX;
                 ABOutSel_MA     <= ABOutSel_EX;
-                UseWB_MA        <= UseWB_EX;
+                
                 RMW_MA          <= RMW_EX;
 
                 StallPL_MA <= StallPL_EX;
 
+
+                RegInSel_MA         <= RegInSel_EX;
+                RegStore_MA         <= RegStore_EX;
+                RegAxInSel_MA       <= RegAxInSel_EX;
+                RegAxInDataSel_MA   <= RegAxInDataSel_EX;
+                RegAxStore_MA       <= RegAxStore_EX;
+
+
+                UpdateSR_MA <= UpdateSR_EX;
+                SRSel_MA <= SRSel_WB;
+
                 ---------------------------------------------------------------
                 -- MA to WB DFFs
                 ---------------------------------------------------------------
-                UseWB_WB    <= UseWB_MA;
+                
                 RMW_WB      <= RMW_MA;
 
                 StallPL_WB <= StallPL_MA;
+
+                RegInSel_WB         <= RegInSel_MA;
+                RegStore_WB         <= RegStore_MA;
+                RegAxInSel_WB       <= RegAxInSel_MA;
+                RegAxInDataSel_WB   <= RegAxInDataSel_MA;
+                RegAxStore_WB       <= RegAxStore_MA;
+
+                DAU_GBRSel_MA       <= DAU_GBRSel_EX;
+                DAU_VBRSel_MA       <= DAU_VBRSel_EX;
+
+                UpdateSR_WB <= UpdateSR_MA;
+                SRSel_WB <= SRSel_MA;
 
             end if;
 

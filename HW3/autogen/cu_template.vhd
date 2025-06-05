@@ -246,7 +246,9 @@ architecture behavioral of CU is
     constant RTE_PopSR          : integer := 8; -- pop SR from stack
     constant RTE_Slot           : integer := 9; -- RTE branch slot
     constant Sleep              : integer := 10; -- idle (no code executing)
-    constant STATE_CNT          : integer := 11; -- total number of states
+    constant ReadAccess         : integer := 11;
+    constant WaitForFetch_Read  : integer := 12;
+    constant STATE_CNT          : integer := 13; -- total number of states
 
     signal NextState : integer range STATE_CNT-1 downto 0;      -- state to transition to on next clock
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed

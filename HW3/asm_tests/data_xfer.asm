@@ -82,9 +82,13 @@ InitDataSegAddr:
 ;;--------------------------------------------------------------------------
 TestReadAtRegToReg:     ; test @reg to reg with and without post-increment
     MOV.B   @R10+,R0    ; R0 = -5
+    NOP
     MOV.B   @R10+,R1    ; R1 = 68
+    NOP
     MOV.W   @R10+,R2    ; R2 = 2000
+    NOP
     MOV.L   @R10+,R3    ; R3 = -6000
+    NOP
     MOV.B   @R10,R4     ; R4 = -36
     ADD     #1, R10
     MOV.B   @R10,R5     ; R5 = 0

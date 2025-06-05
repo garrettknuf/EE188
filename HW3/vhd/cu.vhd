@@ -246,7 +246,9 @@ architecture behavioral of CU is
     constant RTE_PopSR          : integer := 8; -- pop SR from stack
     constant RTE_Slot           : integer := 9; -- RTE branch slot
     constant Sleep              : integer := 10; -- idle (no code executing)
-    constant STATE_CNT          : integer := 11; -- total number of states
+    constant ReadAccess         : integer := 11;
+    constant WaitForFetch_Read  : integer := 12;
+    constant STATE_CNT          : integer := 13; -- total number of states
 
     signal NextState : integer range STATE_CNT-1 downto 0;      -- state to transition to on next clock
     signal CurrentState : integer range STATE_CNT-1 downto 0;   -- current state being executed
@@ -691,7 +693,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Byte;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -729,7 +731,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -767,7 +769,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Long;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -937,7 +939,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Byte;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -978,7 +980,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1019,7 +1021,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Long;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1177,7 +1179,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Byte;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1215,7 +1217,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1253,7 +1255,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Long;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1411,7 +1413,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Byte;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1449,7 +1451,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1487,7 +1489,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Long;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1645,7 +1647,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Byte;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1683,7 +1685,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1721,7 +1723,7 @@ begin
 			ABOutSel <= ABOutSel_Data;
 			DBInMode <= DBInMode_Signed;
 			DataAccessMode <= DataAccessMode_Long;
-			NextState <= WaitForFetch;
+			NextState <= ReadAccess;
 			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			SRSel <= SRSel_Tbit;
@@ -1771,7 +1773,7 @@ begin
 			BranchSel <= BranchSel_None;
 			UseWB <= '0';
 			RMW <= '0';
-			StallPL <= '0';
+			StallPL <= '1';
 		elsif std_match(IR, OpMOVT) then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_Tbit;
@@ -4986,6 +4988,28 @@ begin
 			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
+		elsif CurrentState = WaitForFetch_Read then
+			ALUOpASel <= ALUOpASel_RegA;
+			ALUOpBSel <= ALUOpBSel_RegB;
+			UpdateSR <= '0';
+			PAU_SrcSel <= PAU_AddrPC;
+			PAU_OffsetSel <= PAU_OffsetWord;
+			PAU_UpdatePC <= '1';
+			PAU_PRSel <= PRSel_None;
+			DAU_GBRSel <= 0;
+			DAU_VBRSel <= 0;
+			RegStore <= '0';
+			RegAxStore <= '0';
+			RegOpSel <= RegOpSel_None;
+			RD <= '0';
+			WR <= '1';
+			ABOutSel <= ABOutSel_Prog;
+			DataAccessMode <= DataAccessMode_Word;
+			NextState <= Normal;
+			UpdateIR <= '1';
+			UpdateTempReg <= '0';
+			PAU_IncDecBit <= 0;
+			PAU_PrePostSel <= MemUnit_POST;
 		elsif CurrentState = Sleep then
 			UpdateSR <= '0';
 			PAU_SrcSel <= PAU_AddrPC;
@@ -5006,7 +5030,7 @@ begin
 			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
-		elsif CurrentState = RMW_WaitForFetch then
+		elsif CurrentState = ReadAccess then
 			ALUOpASel <= ALUOpASel_RegA;
 			ALUOpBSel <= ALUOpBSel_RegB;
 			UpdateSR <= '0';
@@ -5023,8 +5047,8 @@ begin
 			WR <= '1';
 			ABOutSel <= ABOutSel_Prog;
 			DataAccessMode <= DataAccessMode_Word;
-			NextState <= Normal;
-			UpdateIR <= '1';
+			NextState <= WaitForFetch_Read;
+			UpdateIR <= '0';
 			UpdateTempReg <= '0';
 			PAU_IncDecBit <= 0;
 			PAU_PrePostSel <= MemUnit_POST;
