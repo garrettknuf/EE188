@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.90 (w)1999-2018 BSI
-[*] Thu Jun 05 04:41:06 2025
+[*] Thu Jun 05 05:04:15 2025
 [*]
 [dumpfile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-branch.vcd"
-[dumpfile_mtime] "Thu Jun 05 04:40:22 2025"
-[dumpfile_size] 702672
+[dumpfile_mtime] "Thu Jun 05 05:04:06 2025"
+[dumpfile_size] 563804
 [savefile] "C:\Users\garre\Desktop\EE 188\HW3\run\tb_sh2_cpu-branch.gtkw"
-[timestart] 1066200000
+[timestart] 1362400000
 [size] 1620 1009
-[pos] 1859 -522
-*-25.000000 1196800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-25.000000 1445200000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_sh2_cpu.
 [treeopen] tb_sh2_cpu.uut.
 [sst_width] 197

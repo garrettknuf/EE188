@@ -93,13 +93,15 @@
   <FileSets Version="1" Minor="32">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/../vhd/generic/generic_const.vhd">
+      <File Path="$PSRCDIR/sources_1/imports/vhd/generic/generic_const.vhd">
         <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/generic/generic_const.vhd"/>
+          <Attr Name="ImportTime" Val="1747676481"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../vhd/opcode.vhd">
+      <File Path="$PPRDIR/../vhd/generic/generic_const.vhd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -111,8 +113,18 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../vhd/alu.vhd">
-        <FileInfo SFType="VHDL2008">
+      <File Path="$PSRCDIR/sources_1/imports/vhd/generic/generic_alu.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/generic/generic_alu.vhd"/>
+          <Attr Name="ImportTime" Val="1747401245"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/imports/vhd/alu.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/alu.vhd"/>
+          <Attr Name="ImportTime" Val="1747676481"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
@@ -123,31 +135,77 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../vhd/reg.vhd">
-        <FileInfo SFType="VHDL2008">
+      <File Path="$PSRCDIR/sources_1/imports/vhd/generic/generic_mau.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/generic/generic_mau.vhd"/>
+          <Attr Name="ImportTime" Val="1747676481"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../vhd/dtu.vhd">
-        <FileInfo SFType="VHDL2008">
+      <File Path="$PSRCDIR/sources_1/imports/vhd/reg.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/reg.vhd"/>
+          <Attr Name="ImportTime" Val="1748985930"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../vhd/dau.vhd">
-        <FileInfo SFType="VHDL2008">
+      <File Path="$PSRCDIR/sources_1/imports/vhd/dtu.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/dtu.vhd"/>
+          <Attr Name="ImportTime" Val="1748919890"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../vhd/pau.vhd">
-        <FileInfo SFType="VHDL2008">
+      <File Path="$PSRCDIR/sources_1/imports/vhd/dau.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/dau.vhd"/>
+          <Attr Name="ImportTime" Val="1748919890"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../vhd/cu.vhd">
+      <File Path="$PSRCDIR/sources_1/imports/vhd/pau.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/pau.vhd"/>
+          <Attr Name="ImportTime" Val="1749093633"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/imports/vhd/opcode.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/opcode.vhd"/>
+          <Attr Name="ImportTime" Val="1747401178"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../vhd/opcode.vhd">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/imports/vhd/cu.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/cu.vhd"/>
+          <Attr Name="ImportTime" Val="1749099988"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PSRCDIR/sources_1/imports/vhd/generic/generic_reg.vhd">
+        <FileInfo>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/generic/generic_reg.vhd"/>
+          <Attr Name="ImportTime" Val="1747676481"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../vhd/sh2_cpu.vhd">
         <FileInfo SFType="VHDL2008">
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -155,12 +213,16 @@
       </File>
       <File Path="$PPRDIR/../vhd/generic/generic_reg.vhd">
         <FileInfo SFType="VHDL2008">
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../vhd/sh2_cpu.vhd">
-        <FileInfo SFType="VHDL2008">
+      <File Path="$PSRCDIR/sources_1/imports/vhd/sh2_cpu.vhd">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="ImportPath" Val="$PPRDIR/../../HW3/vhd/sh2_cpu.vhd"/>
+          <Attr Name="ImportTime" Val="1749100174"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>

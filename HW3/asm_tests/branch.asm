@@ -198,8 +198,8 @@ JSRTest:
     ADD     #4, R10     ; WRITE -20
     NOP
     NOP
-    MOV     #64,R0
-    NOP
+    MOV     #50,R0
+    ADD     #50,R0
     JSR     @R0        ; jump to TestFunction
     MOV     #37, R11
     MOV.L   R11, @R10
